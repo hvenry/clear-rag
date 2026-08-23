@@ -15,7 +15,14 @@ from .openai import OpenAIChat, OpenAIEmbeddings
 def build_chat(settings: Settings) -> ChatProvider:
     match settings.chat_provider:
         case "ollama":
-            return OllamaChat(settings.ollama_url, settings.chat_model, think=settings.think)
+            return OllamaChat(
+                settings.ollama_url,
+                settings.chat_model,
+                think=settings.think,
+                num_ctx=settings.num_ctx,
+                num_predict=settings.num_predict,
+                keep_alive=settings.keep_alive,
+            )
         case "openai":
             return OpenAIChat(
                 settings.openai_api_key, settings.chat_model, settings.openai_base_url
@@ -34,7 +41,9 @@ def build_chat(settings: Settings) -> ChatProvider:
 def build_embeddings(settings: Settings) -> EmbeddingProvider:
     match settings.embed_provider:
         case "ollama":
-            return OllamaEmbeddings(settings.ollama_url, settings.embed_model)
+            return OllamaEmbeddings(
+                settings.ollama_url, settings.embed_model, keep_alive=settings.keep_alive
+            )
         case "openai":
             return OpenAIEmbeddings(
                 settings.openai_api_key, settings.embed_model, settings.openai_base_url

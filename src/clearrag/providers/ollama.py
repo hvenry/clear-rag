@@ -47,7 +47,14 @@ class OllamaChat:
     name = "ollama"
 
     def __init__(
-        self, base_url: str, model: str, timeout: float = 300.0, think: bool = False
+        self,
+        base_url: str,
+        model: str,
+        timeout: float = 300.0,
+        think: bool = False,
+        num_ctx: int = 8192,
+        num_predict: int = 1024,
+        keep_alive: str = "30m",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -60,6 +67,23 @@ class OllamaChat:
         frames and returned no answer at all -- 3,751 thinking frames, zero content, and
         done_reason "length". Ollama accepts this flag on non-reasoning models too, so
         sending it unconditionally is safe.
+        """
+        self.num_ctx = num_ctx
+        """Context window to allocate, sent explicitly rather than left to the default.
+
+        Ollama's default is 4096 on most builds, which is exactly the pipeline's context
+        budget -- so the packed chunks alone fill the window and the system prompt and
+        question push it over. llama.cpp then truncates from the front, silently dropping
+        the instructions and the retrieved context. That failure looks like a bad model,
+        not a misconfigured one, which is why the value is stated here instead of assumed.
+        """
+        self.num_predict = num_predict
+        """Ceiling on answer length. A grounded answer is short; this bounds the case
+        where a model decides otherwise and spends minutes proving it."""
+        self.keep_alive = keep_alive
+        """How long Ollama holds the model in memory after a request. The default is five
+        minutes, so a pause between questions costs a full reload of several gigabytes on
+        the next one -- which reads as "the app is slow" rather than "the model unloaded".
         """
 
     async def complete(self, messages: Sequence[Message], *, temperature: float = 0.1) -> str:
@@ -74,7 +98,12 @@ class OllamaChat:
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             "stream": True,
             "think": self.think,
-            "options": {"temperature": temperature},
+            "keep_alive": self.keep_alive,
+            "options": {
+                "temperature": temperature,
+                "num_ctx": self.num_ctx,
+                "num_predict": self.num_predict,
+            },
         }
         try:
             async with (
@@ -102,6 +131,32 @@ class OllamaChat:
                 _NOT_RUNNING.format(url=self.base_url), remedy="Start Ollama, then retry."
             ) from exc
 
+    async def preload(self) -> None:
+        """Load the model into memory before the first question arrives.
+
+        A chat request with no messages makes Ollama load the weights and return, which
+        moves the several-second first-load off the first query and onto server startup
+        where nobody is waiting on it. Best-effort by design: a failure here costs a slow
+        first answer, so it must never prevent the server from starting.
+
+        ``num_ctx`` has to match what queries will send. Ollama allocates the KV cache at
+        load time and reloads the model when a later request asks for a different context
+        size -- so preloading without it warms the wrong model and the first question pays
+        the full load anyway, which is indistinguishable from preloading not working.
+        """
+        payload = {
+            "model": self.model,
+            "messages": [],
+            "keep_alive": self.keep_alive,
+            "options": {"num_ctx": self.num_ctx},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.post(f"{self.base_url}/api/chat", json=payload)
+                response.raise_for_status()
+        except httpx.HTTPError:
+            return
+
     async def healthcheck(self) -> None:
         await _check_model(self.base_url, self.model, self._timeout)
 
@@ -109,10 +164,13 @@ class OllamaChat:
 class OllamaEmbeddings:
     name = "ollama"
 
-    def __init__(self, base_url: str, model: str, timeout: float = 120.0) -> None:
+    def __init__(
+        self, base_url: str, model: str, timeout: float = 120.0, keep_alive: str = "30m"
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self._timeout = timeout
+        self.keep_alive = keep_alive
         self._dims: int | None = None
 
     @property
@@ -130,7 +188,11 @@ class OllamaEmbeddings:
             return np.zeros((0, self._dims or 0), dtype=np.float32)
 
         prefix = _prefix_for(self.model, kind)
-        payload = {"model": self.model, "input": [f"{prefix}{t}" for t in texts]}
+        payload = {
+            "model": self.model,
+            "input": [f"{prefix}{t}" for t in texts],
+            "keep_alive": self.keep_alive,
+        }
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 r = await client.post(f"{self.base_url}/api/embed", json=payload)
@@ -152,6 +214,17 @@ class OllamaEmbeddings:
         arr = l2_normalise(np.asarray(vectors, dtype=np.float32))
         self._dims = int(arr.shape[1])
         return arr
+
+    async def preload(self) -> None:
+        """Load the embedding model and learn its dimensionality up front.
+
+        Embedding one token is the cheapest way to do both, and it also settles the
+        dimension probe the vector index would otherwise trigger on the first query.
+        """
+        try:
+            await self.embed(["probe"], kind="query")
+        except (ProviderError, httpx.HTTPError):
+            return
 
     async def healthcheck(self) -> None:
         await _check_model(self.base_url, self.model, self._timeout)

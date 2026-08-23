@@ -60,7 +60,7 @@ export const STAGE_INFO: Record<string, StageInfo> = {
     short: "Generate",
     what: "The language model writes the answer using only the packed context, citing each claim by number. Citations pointing at passages that were never supplied are discarded rather than shown.",
     timing:
-      "By far the slowest stage, and proportional to answer length. A reasoning model spends extra time thinking before its first word — clear-rag disables that by default.",
+      "By far the slowest stage, and the only one worth splitting in two. `ttft_ms` is the model reading the packed context before it writes anything — shrink it with fewer or smaller chunks. `tokens_per_second` is the rate it writes at afterwards — that one is a property of the model, not the retrieval. A reasoning model also spends extra time thinking before its first word; clear-rag disables that by default.",
   },
 };
 

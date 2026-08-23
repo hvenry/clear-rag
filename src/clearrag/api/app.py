@@ -11,6 +11,7 @@ and browsers reconnect on their own.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from collections.abc import AsyncIterator
@@ -108,12 +109,37 @@ def engine() -> Engine:
         raise HTTPException(503, {"message": str(exc), "remedy": exc.remedy}) from exc
 
 
+async def _preload() -> None:
+    """Ask the providers to load their models before the first question arrives.
+
+    Runs as a background task rather than inline: loading several gigabytes of weights
+    takes seconds, and a server that refuses to accept connections until a model is warm
+    is worse than one whose first answer is slow. Every failure here is swallowed for the
+    same reason -- preloading is an optimisation, and a cold model still answers.
+    """
+    try:
+        eng = state.get()
+    except ProviderError:
+        return
+    for provider in (eng.chat, eng.embeddings):
+        preload = getattr(provider, "preload", None)
+        if preload is None:
+            continue
+        try:
+            await preload()
+        except Exception:  # noqa: BLE001 - an unusable provider is the healthcheck's job
+            continue
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     state.settings = get_settings()
     state.config = PipelineConfig()
     state.settings.ensure_workspace()
+    warm = asyncio.create_task(_preload()) if state.settings.preload else None
     yield
+    if warm is not None:
+        warm.cancel()
     if state.engine is not None:
         state.engine.store.close()
 

@@ -52,6 +52,37 @@ async def test_query_emits_stages_then_tokens_then_done(loaded_engine):
     assert kinds.index("context") < kinds.index("token")
 
 
+async def test_generate_splits_the_wait_into_prefill_and_decode(loaded_engine):
+    """One duration cannot say whether the wait was the model *reading* the retrieved
+    context or *writing* the answer -- and those have opposite fixes: retrieve less, or
+    run a smaller model. The trace has to carry both or it cannot be acted on."""
+    events = await drain(loaded_engine.query("Where did Henry study?"))
+    generate = next(
+        e["stage"] for e in events if e["type"] == "stage" and e["stage"]["name"] == "generate"
+    )
+    diagnostics = generate["diagnostics"]
+
+    assert diagnostics["ttft_ms"] is not None
+    assert diagnostics["tokens"] > 0
+    assert diagnostics["prompt_tokens"] > 0
+    # The two halves must account for the whole stage, or the split is decorative.
+    assert diagnostics["ttft_ms"] + diagnostics["decode_ms"] == pytest.approx(
+        generate["duration_ms"], abs=0.5
+    )
+
+
+async def test_healthcheck_reports_a_missing_reranker_without_failing(engine):
+    """Optional components warn, they do not fail. A preflight that goes red over a
+    degradation teaches people to ignore red preflights."""
+    report = await engine.healthcheck()
+    rerank = next(c for c in report["checks"] if c["component"] == "rerank")
+
+    assert rerank["optional"] is True
+    assert rerank["ok"] is False
+    assert "[rerank]" in rerank["remedy"]
+    assert report["ok"] is True
+
+
 async def test_hybrid_retrieval_runs_both_retrievers_and_fuses(loaded_engine):
     events = await drain(loaded_engine.query("Queen's University computing"))
     stages = {e["stage"]["name"]: e["stage"] for e in events if e["type"] == "stage"}

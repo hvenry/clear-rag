@@ -121,6 +121,24 @@ class Settings(BaseSettings):
     think: bool = False
     """Let a reasoning model think before answering. Off by default -- see OllamaChat."""
 
+    # ── Local inference tuning (Ollama) ──
+    # These are process settings rather than PipelineConfig knobs on purpose: they change
+    # how fast an answer arrives, never what the pipeline retrieves, so they must not
+    # perturb config_hash and split the ablation table into incomparable groups.
+    num_ctx: int = 8192
+    """Context window requested from Ollama. Must exceed ``max_context_tokens`` plus the
+    system prompt, the question and the answer, or the model silently truncates its own
+    instructions -- see OllamaChat.num_ctx."""
+
+    num_predict: int = 1024
+    """Ceiling on generated tokens."""
+
+    keep_alive: str = "30m"
+    """How long Ollama keeps the model resident between questions."""
+
+    preload: bool = True
+    """Load the chat and embedding models at startup instead of on the first question."""
+
     chat_provider: Literal["ollama", "openai", "anthropic"] = "ollama"
     embed_provider: Literal["ollama", "openai"] = "ollama"
 

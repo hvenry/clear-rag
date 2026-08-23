@@ -33,7 +33,7 @@ from .generate.prompt import (
 from .index.lexical import LexicalIndex
 from .index.store import Store
 from .index.vector import VectorIndex
-from .ingest.chunk import chunk_document
+from .ingest.chunk import chunk_document, count_tokens
 from .ingest.parse import parse
 from .providers.base import ChatProvider, EmbeddingProvider, ProviderError, Reranker
 from .query.assemble import assemble
@@ -476,11 +476,14 @@ class Engine:
         rec = trace.stage("generate", "Generate", model=getattr(self.chat, "model", "unknown"))
         answer_parts: list[str] = []
         start = time.perf_counter()
+        first_token_at: float | None = None
         try:
             async for token in self.chat.stream(
                 build_answer_messages(question, packed.prompt_context, history),
                 temperature=self.config.temperature,
             ):
+                if first_token_at is None:
+                    first_token_at = time.perf_counter()
                 answer_parts.append(token)
                 yield {"type": "token", "text": token}
         except ProviderError as exc:
@@ -500,6 +503,13 @@ class Engine:
         invented = hallucinated_markers(answer, packed.used)
         rec.diagnostics = {
             "characters": len(answer),
+            **_generation_speed(
+                started=start,
+                first_token_at=first_token_at,
+                finished=start + rec.duration_ms / 1000,
+                answer=answer,
+                prompt_tokens=packed.diagnostics.get("context_tokens", 0),
+            ),
             "citations": len(citations),
             # Markers pointing at passages that were never supplied. Dropped rather than
             # rendered, because a citation UI showing a fabricated source is worse than none.
@@ -531,6 +541,24 @@ class Engine:
                 report["ok"] = False
             report["checks"].append(entry)
 
+        # Reranking is optional, so its absence is reported as a warning rather than
+        # folded into report["ok"]: a missing cross-encoder degrades answer quality, it
+        # does not stop queries, and a preflight that fails hard on it would train people
+        # to ignore a red check.
+        rerank_entry: dict[str, Any] = {"component": "rerank", "optional": True}
+        if self.reranker is None:
+            rerank_entry.update(
+                ok=False,
+                error="No cross-encoder installed; the rerank stage will be skipped.",
+                remedy="Install the optional extra: pip install -e '.[rerank]'",
+            )
+        else:
+            downloaded = getattr(self.reranker, "is_downloaded", lambda: True)()
+            rerank_entry.update(ok=True, provider=self.reranker.name)
+            if not downloaded:
+                rerank_entry["remedy"] = "The model downloads (~23 MB) on the first reranked query."
+        report["checks"].append(rerank_entry)
+
         report["documents"] = len(self.store.list_documents())
         report["chunks"] = self.store.count_chunks()
         if (previous := self.store.check_embedder(self.embeddings.id)) is not None:
@@ -545,6 +573,52 @@ class Engine:
                 }
             )
         return report
+
+
+def _generation_speed(
+    *,
+    started: float,
+    first_token_at: float | None,
+    finished: float,
+    answer: str,
+    prompt_tokens: int,
+) -> dict[str, Any]:
+    """Split the generate stage into the two waits that have different causes.
+
+    One duration cannot answer the only question a slow answer actually raises. Before
+    the first token the model is reading: it processes the whole packed context in one
+    compute-bound pass, so that number moves with ``k_final`` and ``chunk_size`` and
+    barely at all with model size. After it, the model is writing: one pass over every
+    weight per token, so that number is set by model size against memory bandwidth and
+    is unaffected by how much context was retrieved.
+
+    Retrieving less fixes the first. A smaller model fixes the second. Reporting a single
+    total tells you to do both, which is how a pipeline ends up with neither its context
+    nor its model chosen on evidence.
+
+    Token counts use the same cl100k approximation the context budget uses, so they are
+    comparable to ``chunk_size`` and ``context_tokens`` -- not to the model's own
+    tokenizer, which nothing else in the app speaks either.
+    """
+    if first_token_at is None:
+        return {"ttft_ms": None, "decode_ms": None, "tokens": 0}
+
+    ttft_ms = (first_token_at - started) * 1000
+    decode_ms = max(0.0, (finished - first_token_at) * 1000)
+    tokens = count_tokens(answer)
+
+    return {
+        "ttft_ms": round(ttft_ms, 1),
+        "decode_ms": round(decode_ms, 1),
+        "tokens": tokens,
+        # Decode rate excludes the prefill wait; including it would make a long context
+        # look like a slow model.
+        "tokens_per_second": round(tokens / (decode_ms / 1000), 1) if decode_ms > 0 else None,
+        "prompt_tokens": prompt_tokens,
+        "prefill_tokens_per_second": (
+            round(prompt_tokens / (ttft_ms / 1000), 1) if ttft_ms > 0 and prompt_tokens else None
+        ),
+    }
 
 
 def _error_event(exc: Exception) -> dict[str, Any]:

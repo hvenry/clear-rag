@@ -61,11 +61,15 @@ def _check(settings) -> int:
     from .config import PipelineConfig
     from .pipeline import Engine
     from .providers.base import ProviderError
-    from .providers.registry import build_chat, build_embeddings
+    from .providers.registry import build_chat, build_embeddings, build_reranker
 
     try:
         engine = Engine(
-            settings, PipelineConfig(), build_chat(settings), build_embeddings(settings)
+            settings,
+            PipelineConfig(),
+            build_chat(settings),
+            build_embeddings(settings),
+            build_reranker(settings),
         )
         report = asyncio.run(engine.healthcheck())
     except ProviderError as exc:
@@ -75,7 +79,9 @@ def _check(settings) -> int:
         return 1
 
     for check in report["checks"]:
-        mark = "ok  " if check.get("ok") else "FAIL"
+        # Optional components warn instead of failing: a missing reranker degrades
+        # quality, it does not stop queries.
+        mark = "ok  " if check.get("ok") else "warn" if check.get("optional") else "FAIL"
         who = f"{check.get('provider', '')} {check.get('model') or ''}".strip()
         print(f"{mark}  {check['component']}: {who}".rstrip())
         if not check.get("ok"):
@@ -84,10 +90,6 @@ def _check(settings) -> int:
                 print(f"      -> {check['remedy']}")
     print(f"\n{report['documents']} documents, {report['chunks']} chunks indexed.")
     return 0 if report["ok"] else 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())
 
 
 def _add_eval_args(parser: argparse.ArgumentParser) -> None:
@@ -265,3 +267,7 @@ def _print_run(run, k: int) -> None:
             print(f"    {result.id:<24} {result.question}")
             for missed in result.missed:
                 print(f"      missed → {missed}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

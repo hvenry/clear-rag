@@ -101,6 +101,52 @@ async def test_thinking_frames_are_never_emitted_as_answer_text(capture):
     assert await chat.complete(MESSAGES) == "answer [1]"
 
 
+async def test_context_window_and_keep_alive_are_sent_explicitly(capture):
+    """Left to Ollama's default, num_ctx is 4096 -- the same size as the pipeline's own
+    context budget, so the packed chunks alone fill the window and the system prompt and
+    question are truncated off the front. The model then looks stupid rather than
+    misconfigured, which is why nothing here is left to a default."""
+    capture["install"](
+        lambda r: httpx.Response(200, content=ndjson({"message": {"content": "hi"}, "done": True}))
+    )
+    chat = OllamaChat("http://x", "m", num_ctx=8192, num_predict=256, keep_alive="30m")
+    await chat.complete(MESSAGES)
+
+    request = capture["requests"][0]
+    assert request["options"]["num_ctx"] == 8192
+    assert request["options"]["num_predict"] == 256
+    assert request["keep_alive"] == "30m"
+
+
+async def test_preload_loads_the_model_without_generating(capture):
+    capture["install"](lambda r: httpx.Response(200, json={"done": True}))
+    await OllamaChat("http://x", "m", num_ctx=8192, keep_alive="1h").preload()
+    assert capture["requests"][0] == {
+        "model": "m",
+        "messages": [],
+        "keep_alive": "1h",
+        # Ollama sizes the KV cache at load time and reloads on a different num_ctx, so
+        # preloading with the wrong one warms a model the first query then discards.
+        "options": {"num_ctx": 8192},
+    }
+
+
+async def test_preload_is_silent_when_ollama_is_down(monkeypatch):
+    """Preloading is an optimisation. A cold model still answers, so a failure here must
+    never stop the server from starting."""
+    real = httpx.AsyncClient
+
+    def patched(*args, **kwargs):
+        def boom(request):
+            raise httpx.ConnectError("refused", request=request)
+
+        kwargs["transport"] = httpx.MockTransport(boom)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", patched)
+    await OllamaChat("http://127.0.0.1:1", "m").preload()
+
+
 async def test_missing_model_reports_how_to_fix_it(capture):
     capture["install"](lambda r: httpx.Response(404, content=b'{"error":"model not found"}'))
     chat = OllamaChat("http://x", "absent-model")
@@ -147,6 +193,12 @@ async def test_query_and_document_get_different_prefixes(capture):
     assert document_input != query_input, "asymmetric models need distinct prefixes"
     assert document_input.startswith("search_document: ")
     assert query_input.startswith("search_query: ")
+
+
+async def test_embedding_requests_keep_the_model_resident(capture):
+    capture["install"](lambda r: httpx.Response(200, json={"embeddings": [[1.0, 0.0]]}))
+    await OllamaEmbeddings("http://x", "m", keep_alive="30m").embed(["a"], kind="query")
+    assert capture["requests"][0]["keep_alive"] == "30m"
 
 
 def test_unknown_embedding_model_falls_back_to_no_prefix():

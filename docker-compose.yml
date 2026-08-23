@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+      target: slim
+    ports:
+      - "8000:8000"
+    volumes:
+      # Documents, vectors and traces persist across container rebuilds.
+      - clearrag-data:/data
+    environment:
+      # Ollama runs on the HOST, not in a container. Docker on macOS has no GPU access,
+      # so a containerised Ollama would be CPU-only and feel broken on the most common
+      # laptop. Override this to http://ollama:11434 when using the `ollama` profile.
+      CLEARRAG_OLLAMA_URL: ${CLEARRAG_OLLAMA_URL:-http://host.docker.internal:11434}
+      CLEARRAG_CHAT_MODEL: ${CLEARRAG_CHAT_MODEL:-llama3.2}
+      CLEARRAG_EMBED_MODEL: ${CLEARRAG_EMBED_MODEL:-nomic-embed-text}
+      CLEARRAG_CHAT_PROVIDER: ${CLEARRAG_CHAT_PROVIDER:-ollama}
+      CLEARRAG_OPENAI_API_KEY: ${CLEARRAG_OPENAI_API_KEY:-}
+      CLEARRAG_ANTHROPIC_API_KEY: ${CLEARRAG_ANTHROPIC_API_KEY:-}
+    extra_hosts:
+      # Gives Linux the same host.docker.internal that macOS and Windows provide,
+      # so one compose file behaves identically everywhere.
+      - "host.docker.internal:host-gateway"
+
+  # Opt-in: `docker compose --profile ollama up`.
+  # Intended for Linux (where GPU passthrough works) and for CI.
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
+volumes:
+  clearrag-data:
+  ollama-models:

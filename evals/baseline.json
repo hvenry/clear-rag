@@ -1,0 +1,79 @@
+{
+  "_comment": "Deterministic fake-provider scores for the default pipeline configuration. These are a REGRESSION SIGNAL, not a quality measurement: the fake embedder is a bag-of-words hash projection, so the absolute values mean nothing. What they catch is a change that silently breaks chunking, BM25, fusion or assembly. Regenerate with scripts/refresh_baseline.py after a deliberate retrieval change, and read the diff.",
+  "config_hash": "7431ae34ee31",
+  "n_questions": 58,
+  "at_k": {
+    "1": {
+      "k": 1,
+      "n_questions": 58,
+      "n_answerable": 53,
+      "recall": 0.4811,
+      "precision": 0.4906,
+      "mrr": 0.4906,
+      "ndcg": 0.4906,
+      "hit_rate": 0.4906,
+      "refusal_accuracy": null,
+      "mention_accuracy": null,
+      "by_tag": {
+        "cross-doc": 0.5,
+        "distractor": 0.375,
+        "lexical": 0.4545,
+        "semantic": 0.48
+      }
+    },
+    "3": {
+      "k": 3,
+      "n_questions": 58,
+      "n_answerable": 53,
+      "recall": 0.7736,
+      "precision": 0.2642,
+      "mrr": 0.6226,
+      "ndcg": 0.6617,
+      "hit_rate": 0.7736,
+      "refusal_accuracy": null,
+      "mention_accuracy": null,
+      "by_tag": {
+        "cross-doc": 1.0,
+        "distractor": 0.75,
+        "lexical": 0.8182,
+        "semantic": 0.72
+      }
+    },
+    "5": {
+      "k": 5,
+      "n_questions": 58,
+      "n_answerable": 53,
+      "recall": 0.9623,
+      "precision": 0.1962,
+      "mrr": 0.6679,
+      "ndcg": 0.7413,
+      "hit_rate": 0.9623,
+      "refusal_accuracy": null,
+      "mention_accuracy": null,
+      "by_tag": {
+        "cross-doc": 1.0,
+        "distractor": 0.875,
+        "lexical": 1.0,
+        "semantic": 0.96
+      }
+    },
+    "10": {
+      "k": 10,
+      "n_questions": 58,
+      "n_answerable": 53,
+      "recall": 1.0,
+      "precision": 0.1019,
+      "mrr": 0.6733,
+      "ndcg": 0.7539,
+      "hit_rate": 1.0,
+      "refusal_accuracy": null,
+      "mention_accuracy": null,
+      "by_tag": {
+        "cross-doc": 1.0,
+        "distractor": 1.0,
+        "lexical": 1.0,
+        "semantic": 1.0
+      }
+    }
+  }
+}

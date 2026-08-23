@@ -1,0 +1,34 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+.env
+.env.local
+
+# Runtime data (SQLite, vectors, keyword index). The app creates this directory
+# itself on startup, so nothing in it is tracked.
+workspace/
+
+web/node_modules/
+web/dist/
+node_modules/
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+
+# TS incremental build cache
+web/*.tsbuildinfo
+
+# Local-only working notes (design specs stay on disk, not in the public repo)
+docs/specs/
+
+# Generated eval reports (the committed inputs are evals/golden.jsonl,
+# evals/corpus/ and evals/baseline.json; run outputs are disposable)
+evals/*.report.json
+ablation.md

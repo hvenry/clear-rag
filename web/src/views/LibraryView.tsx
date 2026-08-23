@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { ChunkInspector } from "../components/ChunkInspector";
+import { EmbeddingMap } from "../components/EmbeddingMap";
 import { Panel } from "../components/Panel";
 import { api } from "../lib/api";
 import type { DocumentSummary } from "../lib/types";
@@ -15,45 +16,84 @@ import type { DocumentSummary } from "../lib/types";
 export function LibraryView({
   documents,
   onChanged,
+  onUpload,
   initialDocId
 }: {
   documents: DocumentSummary[];
   onChanged: () => void;
+  onUpload: (files: File[]) => Promise<void>;
   initialDocId?: string | null;
 }) {
   const [active, setActive] = useState<string | null>(initialDocId ?? null);
+  const [mode, setMode] = useState<"documents" | "map">("documents");
 
   useEffect(() => {
-    if (initialDocId) setActive(initialDocId);
+    if (initialDocId) {
+      setActive(initialDocId);
+      setMode("documents");
+    }
   }, [initialDocId]);
 
   useEffect(() => {
-    if (documents.length && !documents.some((d) => d.id === active)) {
-      setActive(documents[0].id);
+    // Only clear a selection that no longer exists — never auto-select. Auto-selecting
+    // hid the list on mobile, and closing the document re-selected it instantly,
+    // making the list unreachable on a phone.
+    if (active && !documents.some((d) => d.id === active)) {
+      setActive(null);
     }
   }, [documents, active]);
 
   if (documents.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-16">
+      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
         <h2 className="font-display text-[15px] tracking-[0.14em] uppercase">Library</h2>
         <div className="rule-dashed my-5" />
         <p className="text-[13px] leading-relaxed text-muted">
-          Nothing indexed yet. Drop a PDF, DOCX, Markdown, CSV or text file anywhere on
-          this window and it will appear here, split into the chunks retrieval actually
-          searches over.
+          Nothing indexed yet. Add a PDF, DOCX, Markdown, CSV or text file and it will
+          appear here, split into the chunks retrieval actually searches over.
         </p>
+        <div className="mt-4">
+          <UploadButton onUpload={onUpload} />
+        </div>
       </div>
     );
   }
 
+  // On phones this is master-detail navigation: the list is a full-width page, opening
+  // a document replaces it (the inspector's close button is the way back), and the map
+  // takes the whole viewport. A 240px rail beside a 390px screen served neither pane.
+  const detailShown = mode === "map" || active !== null;
+
   return (
     <div className="flex h-full min-h-0">
-      <aside className="w-60 shrink-0 overflow-y-auto border-r border-line">
+      <aside
+        className={`${detailShown ? "hidden lg:block" : "block"} w-full shrink-0 overflow-y-auto border-r border-line lg:w-60`}
+      >
         <div className="px-4 pt-4 pb-2">
-          <h2 className="font-display text-[11px] tracking-[0.18em] text-subtle uppercase">
-            Documents
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex">
+            {(["documents", "map"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                data-hint={
+                  m === "documents"
+                    ? "Read each document with its chunk boundaries drawn over the text."
+                    : "See every chunk as a point in embedding space, and where a question lands among them."
+                }
+                className={[
+                  "hint -ml-px border px-2.5 py-1 font-display text-[10px] tracking-[0.14em] uppercase transition-colors first:ml-0",
+                  mode === m
+                    ? "z-10 border-foreground/50 bg-foreground text-background"
+                    : "border-line text-subtle hover:border-foreground/40 hover:text-foreground"
+                ].join(" ")}
+              >
+                {m === "documents" ? "Documents" : "Vector map"}
+              </button>
+            ))}
+            </div>
+            <UploadButton onUpload={onUpload} compact />
+          </div>
         </div>
         <ul className="pb-3">
           {documents.map((doc) => (
@@ -89,8 +129,16 @@ export function LibraryView({
         </ul>
       </aside>
 
-      <div className="min-w-0 flex-1 overflow-hidden">
-        {active ? (
+      <div className={`${detailShown ? "block" : "hidden lg:block"} min-w-0 flex-1 overflow-hidden`}>
+        {mode === "map" ? (
+          <EmbeddingMap
+            onClose={() => setMode("documents")}
+            onOpenDoc={(docId) => {
+              setActive(docId);
+              setMode("documents");
+            }}
+          />
+        ) : active ? (
           <ChunkInspector docId={active} onClose={() => setActive(null)} />
         ) : (
           <div className="p-6">
@@ -101,5 +149,49 @@ export function LibraryView({
         )}
       </div>
     </div>
+  );
+}
+
+
+/**
+ * A real file input. Drag-and-drop was the only way to add documents, which excludes
+ * every phone; this is the same upload path behind a picker the OS provides.
+ */
+function UploadButton({
+  onUpload,
+  compact = false
+}: {
+  onUpload: (files: File[]) => Promise<void>;
+  compact?: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <label
+      className={[
+        "inline-flex cursor-pointer items-center border border-line font-display tracking-[0.14em] uppercase transition-colors hover:border-foreground/50",
+        compact ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]",
+        busy ? "pointer-events-none opacity-40" : ""
+      ].join(" ")}
+    >
+      {busy ? "Indexing…" : "+ Add"}
+      <input
+        type="file"
+        multiple
+        accept=".pdf,.docx,.md,.markdown,.txt,.csv"
+        className="hidden"
+        onChange={async (e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (!files.length) return;
+          setBusy(true);
+          try {
+            await onUpload(files);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+    </label>
   );
 }

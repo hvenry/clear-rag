@@ -52,9 +52,11 @@ export function RetrievalTable({
   if (rows.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto">
+    // Capped on small screens so a ten-row result list scrolls inside its own panel
+    // instead of stretching the conversation; desktop keeps the full table.
+    <div className="max-h-64 overflow-x-auto overflow-y-auto lg:max-h-none">
       <table className="w-full min-w-[42rem] border-collapse text-left">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-background">
           <tr className="border-b border-line">
             <Th hint="Each row is one chunk of a document that retrieval considered, identified by its position in that document. Click a row to trace it through the pipeline.">
               Chunk

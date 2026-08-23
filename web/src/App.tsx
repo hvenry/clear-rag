@@ -10,7 +10,9 @@ import { StageStrip } from "./components/StageStrip";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { api } from "./lib/api";
 import { formatMs } from "./lib/stages";
+import { STAGE_TOPIC } from "./lib/topics";
 import { LabView } from "./views/LabView";
+import { LearnView } from "./views/LearnView";
 import { LibraryView } from "./views/LibraryView";
 import type {
   Citation,
@@ -30,7 +32,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
-  const [view, setView] = useState<"chat" | "library" | "lab">("chat");
+  const [view, setView] = useState<"chat" | "library" | "lab" | "learn">("chat");
+  const [learnTopic, setLearnTopic] = useState<string | null>(null);
   const [inspecting, setInspecting] = useState<{ docId: string; span?: [number, number] } | null>(
     null
   );
@@ -173,6 +176,11 @@ export default function App() {
     }
   }, [question, busy, turns, refresh]);
 
+  const explainStage = (stageName: string) => {
+    setLearnTopic(STAGE_TOPIC[stageName] ?? null);
+    setView("learn");
+  };
+
   const openCitation = (citation: Citation) => {
     setInspecting({ docId: citation.doc_id, span: citation.span });
     setView("library");
@@ -188,13 +196,13 @@ export default function App() {
     >
       {/* ── Header ── */}
       <header className="glass-strong sticky top-0 z-20 border-x-0 border-t-0">
-        <div className="flex items-center justify-between gap-4 px-5 py-3">
-          <div className="flex items-baseline gap-5">
-            <h1 className="font-display text-[15px] font-medium tracking-[0.2em] uppercase">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+          <div className="flex min-w-0 items-baseline gap-2.5 sm:gap-5">
+            <h1 className="hidden font-display text-[15px] font-medium tracking-[0.2em] uppercase min-[420px]:block">
               clear<span className="opacity-45">-rag</span>
             </h1>
             <nav className="flex items-center gap-1">
-              {(["chat", "library", "lab"] as const).map((v) => (
+              {(["chat", "library", "lab", "learn"] as const).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
@@ -203,10 +211,12 @@ export default function App() {
                       ? "Ask questions and watch each retrieval stage as it runs."
                       : v === "library"
                         ? "Inspect how each document was split into the chunks retrieval searches over."
-                        : "Change pipeline settings and compare runs of the same question side by side."
+                        : v === "lab"
+                          ? "Change pipeline settings and compare runs of the same question side by side."
+                          : "A page per concept: every stage and every metric, explained against this project's real measurements."
                   }
                   className={[
-                    "hint border px-2.5 py-1 font-display text-[10px] tracking-[0.16em] uppercase transition-colors",
+                    "hint border px-2 py-1 font-display text-[10px] tracking-[0.12em] uppercase transition-colors sm:px-2.5 sm:tracking-[0.16em]",
                     view === v
                       ? "border-foreground/50 bg-foreground text-background"
                       : "border-line text-subtle hover:border-foreground/40 hover:text-foreground"
@@ -249,6 +259,7 @@ export default function App() {
           <LibraryView
             documents={documents}
             onChanged={() => void refresh()}
+            onUpload={upload}
             initialDocId={inspecting?.docId ?? null}
           />
         </div>
@@ -259,12 +270,17 @@ export default function App() {
             docCount={documents.length}
             onCorpusChanged={() => void refresh()}
             onCite={openCitation}
+            onExplain={explainStage}
           />
+        </div>
+      ) : view === "learn" ? (
+        <div className="min-h-0 flex-1">
+          <LearnView topicId={learnTopic} onSelect={setLearnTopic} />
         </div>
       ) : (
         <main className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-4xl px-5 py-6">
+            <div className="mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-6">
               {turns.length === 0 ? <EmptyState /> : null}
 
               {turns.map((turn, i) => (
@@ -273,7 +289,11 @@ export default function App() {
                     {turn.question}
                   </h2>
 
-                  <StageStrip stages={turn.stages} streaming={turn.streaming} />
+                  <StageStrip
+                    stages={turn.stages}
+                    streaming={turn.streaming}
+                    onExplain={explainStage}
+                  />
 
                   {turn.trace?.resolved_query &&
                   turn.trace.resolved_query !== turn.question ? (
@@ -377,14 +397,17 @@ export default function App() {
 
           {/* ── Composer ── */}
           <div className="glass-strong border-x-0 border-b-0">
-            <div className="mx-auto w-full max-w-4xl px-5 py-4">
+            <div className="mx-auto w-full max-w-4xl px-3 py-3 sm:px-5 sm:py-4">
               {uploading ? (
                 <p className="mb-2 font-mono text-[10px] text-subtle">{uploading}</p>
               ) : null}
               <div className="flex items-end gap-2">
                 <textarea
                   value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
+                  onChange={(e) => {
+                    setQuestion(e.target.value);
+                    autoGrow(e.currentTarget);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -392,11 +415,7 @@ export default function App() {
                     }
                   }}
                   rows={1}
-                  placeholder={
-                    documents.length
-                      ? "Ask a question about your documents…"
-                      : "Drop a document anywhere to begin…"
-                  }
+                  placeholder={documents.length ? "Ask about your documents…" : "Add a document to begin…"}
                   className="max-h-40 min-h-[42px] flex-1 resize-none border border-line bg-transparent px-3 py-2.5 text-[13px] outline-none transition-colors focus:border-foreground/45"
                 />
                 <button
@@ -427,6 +446,12 @@ export default function App() {
   );
 }
 
+/** Grow a textarea to fit its content instead of clipping a wrapped line. */
+function autoGrow(el: HTMLTextAreaElement): void {
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 /** How many distinct chunks retrieval considered — decides whether a chart earns space. */
 function countCandidates(stages: StageRecord[]): number {
   const ids = new Set<string>();
@@ -453,7 +478,7 @@ function EmptyState() {
       </p>
       <div className="rule-dashed my-6 max-w-lg" />
       <ul className="space-y-1.5 font-mono text-[11px] text-subtle">
-        <li>drop a file anywhere on this window to index it</li>
+        <li>add documents in the Library (or drop files anywhere, on desktop)</li>
         <li>hover anything to find out what it means</li>
         <li>click a citation to open the source, highlighted at the exact sentence</li>
         <li>open Library to see how a document was split into chunks</li>

@@ -137,8 +137,9 @@ Measured on a 58-question golden set over a 10-document corpus (`evals/`), using
 | dense only, 50% overlap (2024 baseline) | 0.651 | 0.925 | 0.757 | 0.797 | 0.955 | 0.880 | 0.875 |
 | dense only | 0.632 | 0.887 | 0.737 | 0.773 | 0.909 | 0.840 | 0.875 |
 | keyword only (BM25) | 0.821 | 0.925 | 0.868 | 0.882 | 1.000 | 0.880 | 0.875 |
-| **hybrid + weighted fusion** | 0.858 | 1.000 | 0.922 | 0.942 | 1.000 | 1.000 | 1.000 |
+| hybrid + weighted fusion | 0.858 | 1.000 | 0.922 | 0.942 | 1.000 | 1.000 | 1.000 |
 | hybrid + RRF | 0.783 | 1.000 | 0.884 | 0.913 | 1.000 | 1.000 | 1.000 |
+| **hybrid + RRF + cross-encoder rerank** | **0.972** | 1.000 | **0.991** | 0.993 | 1.000 | 1.000 | 1.000 |
 | hybrid + RRF, 96-token chunks | 0.764 | 0.962 | 0.858 | 0.931 | 1.000 | 0.960 | 0.875 |
 | hybrid + RRF, 192-token chunks | 0.802 | 0.981 | 0.887 | 0.980 | 1.000 | 1.000 | 0.875 |
 | hybrid + RRF, 256-token chunks | 0.802 | 0.981 | 0.877 | 0.912 | 1.000 | 1.000 | 0.875 |
@@ -150,9 +151,13 @@ corpus — production access is described in both `security.md` and `onboarding.
 different answers, and "retention" means thirteen months in one document and thirty-five
 days in another.
 
-**What the numbers say.** Hybrid retrieval is the whole story: dense alone reaches 0.887
-recall@5 and BM25 alone 0.925, while combining them reaches 1.000 and resolves every
-distractor question that either method alone got wrong. Notably **BM25 beats vector
+**What the numbers say.** Two techniques carry the table. Hybrid retrieval: dense alone
+reaches 0.887 recall@5 and BM25 alone 0.925, while combining them reaches 1.000 and
+resolves every distractor question either method alone got wrong. Then reranking — a
+23 MB quantised cross-encoder (ms-marco-MiniLM via ONNX, downloaded on first use, no
+torch) re-scores the fused shortlist and delivers the single largest jump measured:
+recall@1 0.783 → **0.972**, MRR 0.884 → **0.991**, for a few hundred milliseconds per
+query. Fusion gets the right chunk into the top five; the reranker puts it first. Notably **BM25 beats vector
 search here** — on a technical corpus full of exact identifiers (`422`, `hb bootstrap`,
 `X-RateLimit-Remaining`) lexical matching is genuinely strong, which is the argument
 against the dense-only pipeline this project's predecessor used.
@@ -204,6 +209,45 @@ problem, and catching that class of defect needs the answer-side metrics
 
 The lesson generalises past this project: a benchmark that only scores retrieval will
 report a healthy system while users get wrong answers.
+
+### Measuring what retrieval metrics cannot see
+
+The section above ends with a warning: a benchmark that only scores retrieval reports a
+healthy system while users get wrong answers. This suite closes that gap. It runs with
+`--generate` and grades the **answers**, deterministically — no judge model:
+
+| Metric | Question it answers |
+|---|---|
+| false refusals | did the model say "I don't know" with the answer in front of it? |
+| required mentions / wrong-section bleed | is the right content present — and content from the *wrong* section absent? (`must_not_mention` labels) |
+| grounding / citation precision | do the cited chunks actually cover the labelled answer span? |
+
+The attribution suite (`evals/attribution/`) is a single fictional staff profile whose
+sections deliberately share vocabulary — a day job doing forecasting, an AI club doing
+NLP, projects that echo both. One document means retrieval is trivially perfect in every
+configuration, so **every failure the suite reports is a generation failure.**
+
+Measured on the bundled suite (12 answerable + 3 unanswerable questions):
+
+| Model · chunk size | retrieval recall@5 | required mentions | grounding | citation precision |
+|---|---|---|---|---|
+| qwen3.5:9b · 512 | 1.000 | **1.000** | **1.000** | **1.000** |
+| qwen3.5:9b · 192 | 1.000 | **1.000** | **1.000** | 0.917 |
+| llama3.2:3b · 512 | 1.000 | 0.917 | **0.417** | 0.417 |
+| llama3.2:3b · 192 | 1.000 | 0.750 | **0.583** | 0.583 |
+
+Reading it: retrieval metrics are a flat, useless 1.000 across every row — and grounding
+varies by a factor of 2.4. The 3B model usually *says* the right thing (mentions ≈ 0.9)
+while citing the wrong chunk more than half the time; smaller chunks help it somewhat
+(0.417 → 0.583) but don't fix it. The 9B model is essentially perfect at either chunk
+size. This settles, with numbers, what an earlier debugging session found anecdotally on
+a real résumé: past a modest floor, **attribution quality is a property of the model far
+more than of the chunking** — and it is entirely invisible to recall@k.
+
+```bash
+clear-rag eval --suite attribution --generate            # current model
+CLEARRAG_CHAT_MODEL=llama3.2 clear-rag eval --suite attribution --generate --chunk-size 192
+```
 
 ### The regression gate
 
@@ -366,8 +410,9 @@ assert real ranking behaviour rather than merely that the plumbing connects.
 | **0** | Stage/Trace machinery, Ollama providers, ingest → index, BM25 + vector + RRF, SSE API, chat UI + Retrieval Inspector + Chunk Inspector, Docker | ✅ done |
 | **1** | Golden set, recall@k / MRR / nDCG, ablation runner, CI regression gate | ✅ done |
 | **2** | Lab: live config, side-by-side comparison, re-index from stored text | ✅ done |
-| **3** | Cross-encoder reranking, embedding map | next |
-| **4** | docling parsing, semantic chunking, contextual retrieval, answer-side eval | |
+| **3** | Cross-encoder reranking (ONNX), embedding map, Learn section | ✅ done |
+| **3.5** | Answer-side evaluation: attribution suite, grounding & refusal metrics | ✅ done |
+| **4** | docling parsing, semantic chunking, contextual retrieval | |
 | **5** | HyDE, multi-query, decomposition, self-correction | |
 | **6** | Approximate index as a measured experiment; Electron packaging | |
 

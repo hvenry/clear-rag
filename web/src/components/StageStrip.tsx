@@ -7,6 +7,7 @@ import {
   speedOf,
   stageInfo
 } from "../lib/stages";
+import { STAGE_TOPIC } from "../lib/topics";
 import type { StageRecord } from "../lib/types";
 import { Loader } from "./Loader";
 
@@ -18,13 +19,21 @@ import { Loader } from "./Loader";
  * enough to be worth noticing — so a 32-second generate stage is visible at a glance
  * without painting the whole strip.
  */
-export function StageStrip({ stages, streaming }: { stages: StageRecord[]; streaming: boolean }) {
+export function StageStrip({
+  stages,
+  streaming,
+  onExplain
+}: {
+  stages: StageRecord[];
+  streaming: boolean;
+  onExplain?: (stageName: string) => void;
+}) {
   const total = stages.reduce((sum, s) => sum + s.duration_ms, 0);
 
   return (
     <div className="flex flex-wrap items-stretch gap-1.5">
       {stages.map((stage) => (
-        <StageChip key={stage.name} stage={stage} total={total} />
+        <StageChip key={stage.name} stage={stage} total={total} onExplain={onExplain} />
       ))}
       {streaming ? (
         <div className="glass flex items-center px-3 py-1.5">
@@ -35,7 +44,15 @@ export function StageStrip({ stages, streaming }: { stages: StageRecord[]; strea
   );
 }
 
-function StageChip({ stage, total }: { stage: StageRecord; total: number }) {
+function StageChip({
+  stage,
+  total,
+  onExplain
+}: {
+  stage: StageRecord;
+  total: number;
+  onExplain?: (stageName: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const info = stageInfo(stage.name);
   const speed = speedOf(stage.duration_ms);
@@ -76,7 +93,15 @@ function StageChip({ stage, total }: { stage: StageRecord; total: number }) {
       </button>
 
       {open ? (
-        <div className="glass-strong absolute top-full left-0 z-30 mt-1.5 max-h-80 w-96 overflow-auto p-3 text-[11px]">
+        <>
+          {/* Mobile: a tap-away backdrop; the popover is a centered page-width sheet
+              instead of a box anchored to a chip that may sit at the screen edge. */}
+          <button
+            aria-label="Close"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-30 cursor-default bg-background/50 lg:hidden"
+          />
+          <div className="glass-strong fixed inset-x-4 top-1/2 z-40 max-h-[70vh] -translate-y-1/2 overflow-auto p-3 text-[11px] lg:absolute lg:inset-x-auto lg:top-full lg:left-0 lg:mt-1.5 lg:max-h-80 lg:w-[min(24rem,calc(100vw-2rem))] lg:-translate-y-0">
           <p className="mb-3 leading-relaxed text-muted">{info.what}</p>
           {stage.error ? (
             <p className="mb-3 border-l-2 border-critical pl-2 font-mono text-[10px] text-muted">
@@ -85,7 +110,16 @@ function StageChip({ stage, total }: { stage: StageRecord; total: number }) {
           ) : null}
           <Rows title="Diagnostics" data={stage.diagnostics} />
           <Rows title="Settings used" data={stage.config} />
-        </div>
+          {onExplain && STAGE_TOPIC[stage.name] ? (
+            <button
+              onClick={() => onExplain(stage.name)}
+              className="mt-1 w-full border border-line px-2 py-1 text-left font-mono text-[10px] text-subtle transition-colors hover:border-foreground/50 hover:text-foreground"
+            >
+              why does this stage exist? →
+            </button>
+          ) : null}
+          </div>
+        </>
       ) : null}
     </div>
   );

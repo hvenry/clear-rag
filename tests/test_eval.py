@@ -250,3 +250,18 @@ def test_markdown_table_marks_the_best_row():
 
 def test_markdown_table_handles_no_runs():
     assert "No runs" in markdown_table([])
+
+
+def test_shipped_attribution_suite_resolves_against_its_corpus():
+    root = Path(__file__).resolve().parents[1] / "evals" / "attribution"
+    raw = load_corpus(root / "corpus")
+    questions = load_golden(root / "golden.jsonl", {n: text for n, (text, _) in raw.items()})
+
+    assert len(questions) >= 12
+    assert any(q.unanswerable for q in questions)
+    assert sum(1 for q in questions if q.must_not_mention) >= 8, (
+        "must_not_mention labels are what make this an attribution suite"
+    )
+    # Single document by design: retrieval is trivially perfect, so every failure the
+    # suite reports is a generation failure.
+    assert len(raw) == 1

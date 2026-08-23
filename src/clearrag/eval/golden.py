@@ -38,6 +38,13 @@ class GoldenQuestion:
     question: str
     relevant: list[RelevantSpan]
     must_mention: list[str] = field(default_factory=list)
+    must_not_mention: list[str] = field(default_factory=list)
+    """Strings whose presence means the answer bled in from the wrong section.
+
+    This is the label that encodes *attribution*: for "what did they do at the AI
+    club?", an answer mentioning the day job's "forecasting" work is drawing on the
+    wrong part of the document even if every cited fact is individually true.
+    """
     unanswerable: bool = False
     tags: list[str] = field(default_factory=list)
 
@@ -119,6 +126,7 @@ def load_golden(path: Path, corpus: dict[str, str]) -> list[GoldenQuestion]:
                 question=row["question"],
                 relevant=spans,
                 must_mention=row.get("must_mention", []),
+                must_not_mention=row.get("must_not_mention", []),
                 unanswerable=unanswerable,
                 tags=row.get("tags", []),
             )

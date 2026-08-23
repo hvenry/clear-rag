@@ -4,6 +4,7 @@ import { AnswerText } from "../components/Citations";
 import { SourceLegend } from "../components/Legend";
 import { Loader } from "../components/Loader";
 import { RetrievalTable } from "../components/RetrievalTable";
+import { PanelTrigger, SidePanel } from "../components/SidePanel";
 import { StageStrip } from "../components/StageStrip";
 import { api } from "../lib/api";
 import { diffConfigs, KNOB_GROUPS, REINDEX_KEYS, type Knob } from "../lib/knobs";
@@ -35,12 +36,14 @@ export function LabView({
   chunkCount,
   docCount,
   onCorpusChanged,
-  onCite
+  onCite,
+  onExplain
 }: {
   chunkCount: number;
   docCount: number;
   onCorpusChanged: () => void;
   onCite: (citation: Citation) => void;
+  onExplain?: (stageName: string) => void;
 }) {
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
   const [applied, setApplied] = useState<Record<string, unknown> | null>(null);
@@ -52,6 +55,7 @@ export function LabView({
   const [runs, setRuns] = useState<LabRun[]>([]);
   const [busy, setBusy] = useState(false);
   const [selectedChunk, setSelectedChunk] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     api.config().then((response) => {
@@ -200,8 +204,13 @@ export function LabView({
 
   return (
     <div className="flex h-full min-h-0">
-      {/* ── Config rail ── */}
-      <aside className="w-80 shrink-0 overflow-y-auto border-r border-line">
+      {/* ── Config rail: static on desktop, full-screen drawer on mobile ── */}
+      <SidePanel
+        title="Pipeline settings"
+        widthClass="lg:w-80"
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      >
         <div className="px-4 pt-4 pb-1">
           <h2 className="font-display text-[11px] tracking-[0.18em] text-subtle uppercase">
             Pipeline settings
@@ -261,12 +270,27 @@ export function LabView({
             <p className="mt-2 font-mono text-[10px] text-subtle">{notice}</p>
           ) : null}
         </section>
-      </aside>
+      </SidePanel>
 
-      {/* ── Runs ── */}
+      {/* ── Runs on top; the composer is pinned to the bottom, matching Chat ── */}
       <section className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 sm:p-4 lg:flex-row lg:items-start lg:overflow-x-auto lg:overflow-y-hidden">
+          {runs.length === 0 ? <LabEmptyState /> : null}
+          {runs.map((run, i) => (
+            <RunCard
+              key={run.id}
+              run={run}
+              isLatest={i === 0}
+              selected={selectedChunk}
+              onSelect={setSelectedChunk}
+              onCite={onCite}
+              onExplain={onExplain}
+            />
+          ))}
+        </div>
+
         {needsReindex || dirtyChunking ? (
-          <div className="border-b border-slow/40 bg-slow/5 px-5 py-2.5">
+          <div className="border-t border-slow/40 bg-slow/5 px-3 py-2.5 sm:px-5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <p className="text-[11px] text-muted">
                 Chunking changed — the {chunkCount} stored chunks were cut under the old
@@ -284,11 +308,19 @@ export function LabView({
           </div>
         ) : null}
 
-        <div className="glass-strong border-x-0 border-t-0">
-          <div className="flex items-end gap-2 px-5 py-3">
+        <div className="glass-strong border-x-0 border-b-0">
+          <div className="flex items-end gap-2 px-3 py-3 sm:px-5">
+            <PanelTrigger
+              label={dirty ? "Settings ·" : "Settings"}
+              onOpen={() => setSettingsOpen(true)}
+            />
             <textarea
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) => {
+                setQuestion(e.target.value);
+                e.currentTarget.style.height = "auto";
+                e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -296,7 +328,7 @@ export function LabView({
                 }
               }}
               rows={1}
-              placeholder="Ask the same question under different settings…"
+              placeholder="Ask under these settings…"
               className="max-h-32 min-h-[38px] flex-1 resize-none border border-line bg-transparent px-3 py-2 text-[13px] outline-none transition-colors focus:border-foreground/45"
             />
             <button
@@ -312,20 +344,6 @@ export function LabView({
               {dirty ? "Apply + Ask" : "Ask"}
             </button>
           </div>
-        </div>
-
-        <div className="flex min-h-0 flex-1 items-start gap-4 overflow-x-auto p-4">
-          {runs.length === 0 ? <LabEmptyState /> : null}
-          {runs.map((run, i) => (
-            <RunCard
-              key={run.id}
-              run={run}
-              isLatest={i === 0}
-              selected={selectedChunk}
-              onSelect={setSelectedChunk}
-              onCite={onCite}
-            />
-          ))}
         </div>
       </section>
     </div>
@@ -452,20 +470,22 @@ function RunCard({
   isLatest,
   selected,
   onSelect,
-  onCite
+  onCite,
+  onExplain
 }: {
   run: LabRun;
   isLatest: boolean;
   selected: string | null;
   onSelect: (id: string | null) => void;
   onCite: (citation: Citation) => void;
+  onExplain?: (stageName: string) => void;
 }) {
   const { turn } = run;
 
   return (
     <article
       className={[
-        "reveal relative w-[42rem] shrink-0 border bg-background",
+        "reveal relative w-full shrink-0 border bg-background lg:w-[42rem]",
         isLatest ? "panel-ticks border-foreground/30" : "border-line"
       ].join(" ")}
     >
@@ -499,7 +519,7 @@ function RunCard({
       </header>
 
       <div className="space-y-3 px-4 py-3">
-        <StageStrip stages={turn.stages} streaming={turn.streaming} />
+        <StageStrip stages={turn.stages} streaming={turn.streaming} onExplain={onExplain} />
 
         {turn.error ? (
           <div className="border border-critical/50 px-3 py-2">
@@ -542,8 +562,8 @@ function LabEmptyState() {
     <div className="reveal max-w-md px-2 py-8">
       <p className="text-[13px] leading-relaxed text-muted">
         Ask a question, then change one setting and ask it again. Each run becomes a card,
-        newest on the left, with the changed setting highlighted — so the difference
-        between two configurations is something you read, not something you remember.
+        newest first, with the changed setting highlighted — so the difference between
+        two configurations is something you read, not something you remember.
       </p>
       <div className="rule-dashed my-5" />
       <ul className="space-y-1.5 font-mono text-[11px] text-subtle">

@@ -37,6 +37,10 @@ class VectorIndex:
     def ids(self) -> list[str]:
         return list(self._ids)
 
+    def snapshot(self) -> tuple[list[str], np.ndarray]:
+        """Ids and vectors, in row order, for whole-corpus analysis (e.g. projection)."""
+        return list(self._ids), self._vectors
+
     def add(self, chunk_ids: list[str], vectors: np.ndarray) -> None:
         if len(chunk_ids) != len(vectors):
             raise ValueError(f"{len(chunk_ids)} ids but {len(vectors)} vectors")

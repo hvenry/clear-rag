@@ -94,6 +94,16 @@ def extract_citations(
     return sorted(citations, key=lambda c: c.marker)
 
 
+def is_refusal(answer: str) -> bool:
+    """Whether an answer is the instructed refusal rather than an attempt.
+
+    A substring check over the opening rather than an exact match, because models wrap
+    the instructed sentence ("I'm sorry, but I don't have that information...") often
+    enough that strict matching under-counts refusals.
+    """
+    return "don't have that information" in answer.lower()[:160]
+
+
 def hallucinated_markers(answer: str, used: Sequence[tuple[int, Chunk]]) -> list[int]:
     """Markers the model produced that were never supplied to it."""
     valid = {marker for marker, _ in used}

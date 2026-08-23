@@ -28,6 +28,10 @@ def standard_variants() -> list[tuple[str, PipelineConfig]]:
             BASE.model_copy(update={"retrieval": "hybrid", "fusion": "weighted"}),
         ),
         ("hybrid + RRF", BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf"})),
+        (
+            "hybrid + RRF + cross-encoder rerank",
+            BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf", "rerank": True}),
+        ),
         # Chunk size sweep, holding retrieval fixed at the current best. Small sizes are
         # included because structurally dense documents (a resume, a spec, a settings
         # table) pack several distinct sections into one 512-token chunk, and a small

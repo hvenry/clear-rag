@@ -167,3 +167,117 @@ def test_aggregate_breaks_recall_down_by_tag():
 def test_aggregate_of_nothing_does_not_divide_by_zero():
     agg = aggregate([], k=5)
     assert (agg.recall, agg.mrr, agg.ndcg, agg.n_questions) == (0.0, 0.0, 0.0, 0)
+
+
+# ── score_answer ──
+
+
+def make_question(**kwargs) -> GoldenQuestion:
+    defaults = dict(id="q", question="?", relevant=[label(100, 200)])
+    defaults.update(kwargs)
+    return GoldenQuestion(**defaults)
+
+
+def scored(answer: str, citations: list[dict] | None = None, **q):
+    from clearrag.eval.metrics import score_answer
+
+    question = make_question(**q)
+    result = QuestionResult(id="q", question="?", tags=[], unanswerable=question.unanswerable)
+    score_answer(result, question, answer, citations or [])
+    return result
+
+
+from clearrag.eval.metrics import QuestionResult  # noqa: E402
+
+
+def test_refusal_is_detected_even_with_a_preamble():
+    result = scored("I'm sorry, but I don't have that information in the documents.")
+    assert result.refused is True
+
+
+def test_refusal_skips_content_and_citation_grading():
+    """A refusal has no content to grade; it is counted by the refusal metrics alone,
+    not double-penalised as unmentioned/ungrounded."""
+    result = scored(
+        "I don't have that information in the provided documents.",
+        must_mention=["emotion"],
+        must_not_mention=["forecasting"],
+    )
+    assert result.refused is True
+    assert result.mentioned is None
+    assert result.confused is None
+    assert result.grounded is None
+
+
+def test_wrong_section_bleed_is_flagged():
+    result = scored(
+        "They built an emotion classifier and a forecasting model.",
+        must_mention=["emotion"],
+        must_not_mention=["forecasting"],
+    )
+    assert result.mentioned is True, "required content is present"
+    assert result.confused is True, "but so is wrong-section content"
+
+
+def test_clean_answer_is_not_confused():
+    result = scored(
+        "They built an emotion classifier with a transformer.",
+        must_mention=["emotion"],
+        must_not_mention=["forecasting"],
+    )
+    assert (result.mentioned, result.confused) == (True, False)
+
+
+def test_citation_covering_the_gold_span_grounds_the_answer():
+    result = scored(
+        "The answer [1].",
+        citations=[{"filename": "a.md", "span": [50, 400]}],  # contains gold 100–200
+    )
+    assert result.grounded is True
+    assert result.citation_precision == pytest.approx(1.0)
+
+
+def test_citation_of_the_wrong_region_does_not_ground():
+    result = scored(
+        "The answer [1].",
+        citations=[{"filename": "a.md", "span": [900, 1200]}],
+    )
+    assert result.grounded is False
+    assert result.citation_precision == pytest.approx(0.0)
+
+
+def test_citation_of_the_wrong_document_does_not_ground():
+    result = scored(
+        "The answer [1].",
+        citations=[{"filename": "other.md", "span": [100, 200]}],
+    )
+    assert result.grounded is False
+
+
+def test_citation_precision_is_diluted_by_irrelevant_citations():
+    result = scored(
+        "The answer [1][2].",
+        citations=[
+            {"filename": "a.md", "span": [50, 400]},
+            {"filename": "a.md", "span": [900, 1200]},
+        ],
+    )
+    assert result.grounded is True
+    assert result.citation_precision == pytest.approx(0.5)
+
+
+def test_uncited_answer_is_ungrounded_with_zero_precision():
+    result = scored("An answer with no citations at all.")
+    assert result.grounded is False
+    assert result.citation_precision == pytest.approx(0.0)
+
+
+def test_aggregate_separates_false_refusals_from_correct_ones():
+    ok = scored("The answer [1].", citations=[{"filename": "a.md", "span": [50, 400]}])
+    wrongly_refused = scored("I don't have that information.")
+    correctly_refused = scored("I don't have that information.", relevant=[], unanswerable=True)
+
+    agg = aggregate([ok, wrongly_refused, correctly_refused], k=5)
+    assert agg.false_refusal_rate == pytest.approx(0.5), "1 of 2 answerable refused"
+    assert agg.refusal_accuracy == pytest.approx(1.0), "the unanswerable was declined"
+    assert agg.grounding_rate == pytest.approx(1.0), "graded only over non-refused answers"

@@ -29,7 +29,7 @@ from ..core.types import Message
 from ..ingest.parse import EmptyExtraction, UnsupportedFile
 from ..pipeline import Engine
 from ..providers.base import ProviderError
-from ..providers.registry import build_chat, build_embeddings
+from ..providers.registry import build_chat, build_embeddings, build_reranker
 
 
 def _find_web_dist() -> Path:
@@ -88,6 +88,7 @@ class State:
             self.config,
             chat=build_chat(self.settings),
             embeddings=build_embeddings(self.settings),
+            reranker=build_reranker(self.settings),
         )
         return self.engine
 
@@ -302,6 +303,65 @@ async def chat(request: ChatRequest, eng: Engine = Depends(engine)) -> Streaming
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── Embedding map ───────────────────────────────────────────────────────────────
+
+
+@app.get("/api/map")
+async def embedding_map(query: str | None = None, eng: Engine = Depends(engine)) -> dict[str, Any]:
+    """The corpus projected to 2D, optionally with a query point and its neighbours."""
+    from ..index.project import fit_projection
+
+    try:
+        index = await eng._vector_index()
+    except Exception as exc:
+        raise HTTPException(
+            503, {"message": str(exc), "remedy": getattr(exc, "remedy", None)}
+        ) from exc
+
+    ids, vectors = index.snapshot()
+    if len(ids) < 3:
+        raise HTTPException(
+            409,
+            "The map needs at least 3 indexed chunks. Upload documents or load the sample corpus.",
+        )
+
+    projection = fit_projection(vectors)
+    coords = projection.transform(vectors)
+    chunks = eng.store.get_chunks(ids)
+    filenames = {d["id"]: d["filename"] for d in eng.store.list_documents()}
+
+    points = [
+        {
+            "chunk_id": cid,
+            "doc_id": chunks[cid].doc_id,
+            "filename": filenames.get(chunks[cid].doc_id, "?"),
+            "ordinal": chunks[cid].ordinal,
+            "x": round(float(x), 4),
+            "y": round(float(y), 4),
+        }
+        for cid, (x, y) in zip(ids, coords, strict=True)
+        if cid in chunks
+    ]
+
+    query_point = None
+    neighbours: list[str] = []
+    if query and query.strip():
+        try:
+            vector = await eng.embeddings.embed([query.strip()], kind="query")
+        except ProviderError as exc:
+            raise HTTPException(503, {"message": str(exc), "remedy": exc.remedy}) from exc
+        qx, qy = projection.transform(vector)[0]
+        query_point = {"x": round(float(qx), 4), "y": round(float(qy), 4)}
+        neighbours = [c.chunk_id for c in index.search(vector[0], k=min(5, len(ids)))]
+
+    return {
+        "points": points,
+        "query": query_point,
+        "neighbours": neighbours,
+        "explained_variance": list(projection.explained),
+    }
 
 
 # ── Traces ──────────────────────────────────────────────────────────────────────

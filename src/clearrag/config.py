@@ -61,9 +61,10 @@ class PipelineConfig(BaseModel):
     rerank: bool = Field(
         False,
         description=(
-            "Cross-encoder reranking. NOT YET IMPLEMENTED: the Reranker protocol and the "
-            "degrade-to-fusion path exist, but no reranker is constructed, so enabling this "
-            "changes nothing. The pipeline reports it as skipped rather than pretending."
+            "Cross-encoder reranking of the fused shortlist (ms-marco-MiniLM via ONNX, "
+            "~23 MB downloaded on first use). Off by default because it adds a few hundred "
+            "milliseconds; when the optional dependencies are missing the stage reports "
+            "itself as skipped rather than failing the query."
         ),
     )
     k_final: int = Field(5, ge=1, le=50, description="Chunks handed to the generator.")

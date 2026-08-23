@@ -79,3 +79,23 @@ def test_chat_streams_context_with_position_metadata(client):
     for chunk in context["chunks"]:
         assert {"marker", "chunk_id", "filename", "ordinal", "span"} <= chunk.keys()
     assert events[-1]["type"] == "done"
+
+
+def test_map_projects_the_corpus_and_a_query(client):
+    client.post("/api/documents/sample")
+    plain = client.get("/api/map").json()
+    assert len(plain["points"]) >= 10
+    assert plain["query"] is None
+    for point in plain["points"]:
+        assert -1.001 <= point["x"] <= 1.001 and -1.001 <= point["y"] <= 1.001
+        assert {"chunk_id", "filename", "ordinal"} <= point.keys()
+
+    with_query = client.get("/api/map", params={"query": "how do I roll back a release?"}).json()
+    assert with_query["query"] is not None
+    assert 1 <= len(with_query["neighbours"]) <= 5
+    ids = {p["chunk_id"] for p in with_query["points"]}
+    assert set(with_query["neighbours"]) <= ids
+
+
+def test_map_refuses_a_near_empty_corpus(client):
+    assert client.get("/api/map").status_code == 409

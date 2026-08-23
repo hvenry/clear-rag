@@ -106,9 +106,20 @@
 }
 
 html,
-body,
+body {
+  height: 100%;
+  /* The app is a fixed shell with internal scroll regions. Page-level scrolling is
+     what made mobile feel slippery: the body pans while an inner panel also pans,
+     and horizontal overflow from wide tables drags the whole viewport sideways. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 #root {
   height: 100%;
+  /* Small-viewport height tracks the mobile URL bar collapsing, so the composer
+     sits at the true bottom instead of hiding behind browser chrome. */
+  height: 100dvh;
 }
 
 body {
@@ -118,6 +129,40 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Scroll regions keep their momentum to themselves — reaching the end of a table
+   must not start scrolling the page behind it. */
+[class*="overflow-y-auto"],
+[class*="overflow-x-auto"] {
+  overscroll-behavior: contain;
+}
+
+/* A container with overflow-y: auto silently computes overflow-x to auto as well, so
+   any child poking past the right edge (a popover, a wide table that escaped its
+   wrapper) let the whole page pan sideways. Vertical scrollers scroll vertically,
+   full stop; horizontal scrolling exists only where a wrapper opts in explicitly. */
+[class*="overflow-y-auto"]:not([class*="overflow-x"]) {
+  overflow-x: hidden;
+}
+
+/* "manipulation" keeps panning and pinch gestures but removes double-tap-to-zoom —
+   which is what made tapping the chat log or the menu bar lurch the viewport. */
+@media (pointer: coarse) {
+  * {
+    touch-action: manipulation;
+  }
+}
+
+/* iOS zooms the page when a focused input's font is under 16px. On touch devices,
+   inputs get 16px regardless of their utility class — losing the zoom jump is worth
+   more than the type-scale purity. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 ::selection {
@@ -244,7 +289,15 @@ body {
     transform 0.14s ease;
 }
 
-.hint:hover::after,
+/* Touch has no hover: a tapped element keeps :hover until the next tap, leaving
+   tooltips stuck over the content. Hover-triggered hints exist only where hover is
+   a real capability; focus-visible keeps them for keyboard users everywhere. */
+@media (hover: hover) {
+  .hint:hover::after {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 .hint:focus-visible::after {
   opacity: 1;
   transform: translateY(0);
@@ -255,7 +308,11 @@ body {
   left: calc(100% + 9px);
   transform: translateY(-50%) translateX(-3px);
 }
-.hint-right:hover::after,
+@media (hover: hover) {
+  .hint-right:hover::after {
+    transform: translateY(-50%) translateX(0);
+  }
+}
 .hint-right:focus-visible::after {
   transform: translateY(-50%) translateX(0);
 }
@@ -308,7 +365,9 @@ body {
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      /* `none`, not translateY(0): a retained identity transform still makes this a
+         containing block, mis-anchoring fixed-position popovers inside. */
+      transform: none;
     }
   }
 
@@ -325,7 +384,7 @@ body {
     }
     100% {
       opacity: 1;
-      transform: translateX(0);
+      transform: none;
     }
   }
 }

@@ -22,9 +22,9 @@ from typing import Any
 from ..config import PipelineConfig, Settings
 from ..core.types import Chunk
 from ..pipeline import Engine
-from ..providers.base import ChatProvider, EmbeddingProvider
+from ..providers.base import ChatProvider, EmbeddingProvider, Reranker
 from .golden import GoldenQuestion, load_corpus, load_golden
-from .metrics import Aggregate, QuestionResult, aggregate, score_question
+from .metrics import Aggregate, QuestionResult, aggregate, score_answer, score_question
 
 DEFAULT_KS = (1, 3, 5, 10)
 
@@ -66,6 +66,8 @@ class EvalRun:
                     "missed": r.missed,
                     "refused": r.refused,
                     "mentioned": r.mentioned,
+                    "confused": r.confused,
+                    "grounded": r.grounded,
                 }
                 for r in self.results
             ],
@@ -88,11 +90,13 @@ async def evaluate(
     for question in questions:
         ranking: list[str] = []
         answer: str | None = None
+        cited: list[dict] = []
 
         async for event in engine.query(question.question, generate=generate):
             if event["type"] == "done":
                 ranking = _final_ranking(event["trace"])
                 answer = event["trace"].get("answer")
+                cited = event["trace"].get("citations") or []
             elif event["type"] == "error":
                 # A failed question scores zero rather than aborting the sweep; the
                 # per-question breakdown records which ones failed.
@@ -109,11 +113,7 @@ async def evaluate(
         for k in ks:
             result = score_question(question, ranked, k=k)
             if generate and answer is not None:
-                result.answer = answer
-                lowered = answer.lower()
-                result.refused = lowered.startswith("i don't have that information")
-                if question.must_mention:
-                    result.mentioned = all(m.lower() in lowered for m in question.must_mention)
+                score_answer(result, question, answer, cited)
             per_k[k].append(result)
 
     elapsed = (time.perf_counter() - started) * 1000
@@ -157,6 +157,7 @@ async def ablate(
     workspace_root: Path,
     chat_factory: Callable[[], ChatProvider],
     embeddings_factory: Callable[[], EmbeddingProvider],
+    reranker_factory: Callable[[], Reranker | None] | None = None,
     ks: Sequence[int] = DEFAULT_KS,
     generate: bool = False,
     on_progress: Callable[[str], None] | None = None,
@@ -175,7 +176,13 @@ async def ablate(
     for signature, members in groups.items():
         workspace = workspace_root / f"idx-{signature}"
         settings = Settings(workspace=workspace)
-        engine = Engine(settings, members[0][1], chat_factory(), embeddings_factory())
+        engine = Engine(
+            settings,
+            members[0][1],
+            chat_factory(),
+            embeddings_factory(),
+            reranker=reranker_factory() if reranker_factory else None,
+        )
 
         ingest_started = time.perf_counter()
         if engine.store.count_chunks() == 0:

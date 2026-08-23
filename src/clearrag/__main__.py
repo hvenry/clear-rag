@@ -91,8 +91,19 @@ if __name__ == "__main__":
 
 
 def _add_eval_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--corpus", type=Path, default=EVAL_DIR / "corpus")
-    parser.add_argument("--golden", type=Path, default=EVAL_DIR / "golden.jsonl")
+    parser.add_argument(
+        "--suite",
+        choices=["retrieval", "attribution"],
+        default="retrieval",
+        help=(
+            "Which bundled benchmark to run. 'retrieval' measures search quality over a "
+            "multi-document corpus; 'attribution' is a single structured document where "
+            "retrieval is trivially perfect and the entire burden falls on generation -- "
+            "run it with --generate."
+        ),
+    )
+    parser.add_argument("--corpus", type=Path, default=None)
+    parser.add_argument("--golden", type=Path, default=None)
     parser.add_argument("--k", type=int, default=5, help="Primary cutoff for the summary.")
     parser.add_argument("--json", type=Path, default=None, help="Write the full report here.")
     parser.add_argument(
@@ -105,17 +116,31 @@ def _add_eval_args(parser: argparse.ArgumentParser) -> None:
         ),
     )
     parser.add_argument("--workspace", type=Path, default=None, help="Where to build indexes.")
+    parser.add_argument(
+        "--chunk-size", type=int, default=None, help="Override chunk size (tokens)."
+    )
+    parser.add_argument("--chunk-overlap", type=int, default=None, help="Override chunk overlap.")
+
+
+def _resolve_suite(args) -> tuple[Path, Path]:
+    """Explicit --corpus/--golden win; otherwise the named suite picks both."""
+    base = EVAL_DIR if args.suite == "retrieval" else EVAL_DIR / "attribution"
+    return (args.corpus or base / "corpus", args.golden or base / "golden.jsonl")
 
 
 def _providers(settings, fake: bool):
     if fake:
         from .providers.fake import FakeChat, FakeEmbeddings
 
-        return (lambda: FakeChat(), lambda: FakeEmbeddings())
+        return (lambda: FakeChat(), lambda: FakeEmbeddings(), lambda: None)
 
-    from .providers.registry import build_chat, build_embeddings
+    from .providers.registry import build_chat, build_embeddings, build_reranker
 
-    return (lambda: build_chat(settings), lambda: build_embeddings(settings))
+    return (
+        lambda: build_chat(settings),
+        lambda: build_embeddings(settings),
+        lambda: build_reranker(settings),
+    )
 
 
 def _eval(settings, args) -> int:
@@ -125,18 +150,25 @@ def _eval(settings, args) -> int:
     from .config import PipelineConfig
     from .eval.runner import ablate, write_report
 
-    chat_factory, embeddings_factory = _providers(settings, args.fake)
+    chat_factory, embeddings_factory, reranker_factory = _providers(settings, args.fake)
     workspace = args.workspace or Path(tempfile.mkdtemp(prefix="clearrag-eval-"))
-    config = PipelineConfig(k_final=max(args.k, 10))
+    overrides: dict = {"k_final": max(args.k, 10)}
+    if args.chunk_size is not None:
+        overrides["chunk_size"] = args.chunk_size
+    if args.chunk_overlap is not None:
+        overrides["chunk_overlap"] = args.chunk_overlap
+    config = PipelineConfig(**overrides)
 
+    corpus_dir, golden_path = _resolve_suite(args)
     runs = asyncio.run(
         ablate(
             [("current config", config)],
-            corpus_dir=args.corpus,
-            golden_path=args.golden,
+            corpus_dir=corpus_dir,
+            golden_path=golden_path,
             workspace_root=workspace,
             chat_factory=chat_factory,
             embeddings_factory=embeddings_factory,
+            reranker_factory=reranker_factory,
             generate=args.generate,
         )
     )
@@ -156,21 +188,23 @@ def _ablate(settings, args) -> int:
     from .eval.runner import ablate, markdown_table, write_report
     from .eval.variants import standard_variants
 
-    chat_factory, embeddings_factory = _providers(settings, args.fake)
+    chat_factory, embeddings_factory, reranker_factory = _providers(settings, args.fake)
     workspace = args.workspace or Path(tempfile.mkdtemp(prefix="clearrag-ablate-"))
     variants = standard_variants()
 
     print(
         f"Sweeping {len(variants)} configurations ({'fake' if args.fake else 'real'} providers)…\n"
     )
+    corpus_dir, golden_path = _resolve_suite(args)
     runs = asyncio.run(
         ablate(
             variants,
-            corpus_dir=args.corpus,
-            golden_path=args.golden,
+            corpus_dir=corpus_dir,
+            golden_path=golden_path,
             workspace_root=workspace,
             chat_factory=chat_factory,
             embeddings_factory=embeddings_factory,
+            reranker_factory=reranker_factory,
             on_progress=lambda label: print(f"  · {label}"),
         )
     )
@@ -206,10 +240,23 @@ def _print_run(run, k: int) -> None:
         for tag, value in agg.by_tag.items():
             print(f"    {tag:<12} {value:.3f}")
 
-    if agg.refusal_accuracy is not None:
-        print(f"\n  refusal accuracy      {agg.refusal_accuracy:.3f}")
-    if agg.mention_accuracy is not None:
-        print(f"  required-mention rate {agg.mention_accuracy:.3f}")
+    answer_side = [
+        ("refusal accuracy", agg.refusal_accuracy, "unanswerables correctly declined"),
+        ("false refusals", agg.false_refusal_rate, "answerables wrongly declined"),
+        ("required mentions", agg.mention_accuracy, "answers containing what they must"),
+        ("wrong-section bleed", agg.confusion_rate, "answers containing what they must not"),
+        ("grounding", agg.grounding_rate, "answers citing a chunk that covers the labelled span"),
+        (
+            "citation precision",
+            agg.citation_precision,
+            "share of citations covering a labelled span",
+        ),
+    ]
+    if any(value is not None for _, value, _ in answer_side):
+        print("\n  answer quality:")
+        for label, value, note in answer_side:
+            if value is not None:
+                print(f"    {label:<20} {value:.3f}   ({note})")
 
     misses = [r for r in run.results if not r.hit and not r.unanswerable]
     if misses:

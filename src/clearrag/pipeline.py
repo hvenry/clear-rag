@@ -28,6 +28,7 @@ from .generate.prompt import (
     build_rewrite_messages,
     extract_citations,
     hallucinated_markers,
+    is_refusal,
 )
 from .index.lexical import LexicalIndex
 from .index.store import Store
@@ -503,7 +504,7 @@ class Engine:
             # Markers pointing at passages that were never supplied. Dropped rather than
             # rendered, because a citation UI showing a fabricated source is worse than none.
             "hallucinated_markers": invented,
-            "refused": answer.lower().startswith("i don't have that information"),
+            "refused": is_refusal(answer),
         }
 
         trace.answer = answer

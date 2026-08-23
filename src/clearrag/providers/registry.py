@@ -7,7 +7,7 @@ file and one branch here, rather than touching the pipeline.
 from __future__ import annotations
 
 from ..config import Settings
-from .base import ChatProvider, EmbeddingProvider, ProviderError
+from .base import ChatProvider, EmbeddingProvider, ProviderError, Reranker
 from .ollama import OllamaChat, OllamaEmbeddings
 from .openai import OpenAIChat, OpenAIEmbeddings
 
@@ -41,3 +41,13 @@ def build_embeddings(settings: Settings) -> EmbeddingProvider:
             )
         case other:  # pragma: no cover - guarded by pydantic Literal
             raise ProviderError(f"Unknown embedding provider '{other}'.")
+
+
+def build_reranker(settings: Settings) -> Reranker | None:
+    """The cross-encoder is optional: None (deps not installed) degrades gracefully --
+    the pipeline reports a skipped stage rather than failing the query."""
+    from . import rerank_onnx
+
+    if not rerank_onnx.available():
+        return None
+    return rerank_onnx.OnnxReranker(settings.workspace / "models" / "ms-marco-minilm-l6")

@@ -27,7 +27,9 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
-RUN pip install --no-cache-dir .
+# The rerank extra is onnxruntime + tokenizers (~40 MB of wheels, no torch); the
+# 23 MB cross-encoder itself downloads into the /data volume on first use.
+RUN pip install --no-cache-dir ".[rerank]"
 
 COPY --from=web /web/dist ./web/dist
 COPY evals/corpus/ ./evals/corpus/

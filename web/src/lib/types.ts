@@ -121,3 +121,25 @@ export interface Turn {
   error: { message: string; remedy?: string | null } | null;
   streaming: boolean;
 }
+
+/** Mirrors `clearrag.providers.runtime`. A readout of the local inference runtime. */
+export interface ResidentModel {
+  name: string;
+  size_bytes: number;
+  vram_bytes: number;
+  /** Below 100 means Ollama split the model and part of it runs on the CPU. */
+  on_gpu_pct: number;
+  context_length: number | null;
+  parameters: string | null;
+  quantization: string | null;
+  expires_at: string | null;
+}
+
+export interface RuntimeStatus {
+  available: boolean;
+  error?: string;
+  models: ResidentModel[];
+  resident_bytes: number;
+  vram_bytes: number;
+  fully_on_gpu: boolean;
+}

@@ -390,6 +390,24 @@ async def embedding_map(query: str | None = None, eng: Engine = Depends(engine))
     }
 
 
+# ── Runtime ─────────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/runtime")
+async def runtime() -> dict[str, Any]:
+    """What the inference runtime is doing: which models are resident, and where.
+
+    Separate from /api/health because it answers a different question. Health asks "can
+    this work at all"; this asks "why is it slow" -- and on a GPU box the answer is
+    usually that a model quietly spilled into system RAM.
+    """
+    from ..providers.runtime import ollama_runtime
+
+    if state.settings.chat_provider != "ollama" and state.settings.embed_provider != "ollama":
+        return {"available": False, "error": "No Ollama provider is configured.", "models": []}
+    return await ollama_runtime(state.settings.ollama_url)
+
+
 # ── Traces ──────────────────────────────────────────────────────────────────────
 
 

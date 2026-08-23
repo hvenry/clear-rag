@@ -3,6 +3,7 @@ import type {
   DocumentDetail,
   DocumentSummary,
   Health,
+  RuntimeStatus,
   StreamEvent
 } from "./types";
 
@@ -19,6 +20,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => json<Health>("/health"),
+  runtime: () => json<RuntimeStatus>("/runtime"),
   config: () => json<ConfigResponse>("/config"),
   updateConfig: (patch: Record<string, unknown>) =>
     json<{ config: Record<string, unknown>; config_hash: string; reindex_needed: boolean }>(

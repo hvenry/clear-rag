@@ -6,6 +6,7 @@ import { SourceLegend } from "./components/Legend";
 import { Panel, SectionLabel } from "./components/Panel";
 import { MIN_CANDIDATES_FOR_FLOW, RankFlow } from "./components/RankFlow";
 import { RetrievalTable } from "./components/RetrievalTable";
+import { RuntimePanel } from "./components/RuntimePanel";
 import { StageStrip } from "./components/StageStrip";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { api } from "./lib/api";
@@ -231,6 +232,7 @@ export default function App() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
+            <RuntimePanel />
             {config ? (
               <span
                 data-hint={`Chat model: ${config.providers.chat.model} via ${config.providers.chat.provider}. Embedding model: ${config.providers.embeddings.model}. Config hash ${config.config_hash} identifies the exact retrieval settings every trace was recorded under.`}

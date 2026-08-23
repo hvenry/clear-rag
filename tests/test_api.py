@@ -99,3 +99,11 @@ def test_map_projects_the_corpus_and_a_query(client):
 
 def test_map_refuses_a_near_empty_corpus(client):
     assert client.get("/api/map").status_code == 409
+
+
+def test_runtime_endpoint_degrades_to_a_readout_when_ollama_is_absent(client):
+    """The fake-provider test client has no Ollama behind it. The endpoint must still
+    answer 200 with an honest "unavailable" rather than failing the page."""
+    body = client.get("/api/runtime").json()
+    assert body["available"] in (True, False)
+    assert isinstance(body["models"], list)

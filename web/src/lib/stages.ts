@@ -7,6 +7,8 @@
  * itself instead of requiring the README.
  */
 
+import type { StageRecord } from "./types";
+
 export interface StageInfo {
   /** Short label shown in the pipeline strip. */
   short: string;
@@ -100,6 +102,29 @@ export function formatMs(ms: number): string {
   return `${ms.toFixed(1)}ms`;
 }
 
+/* ── Stage identity (charts) ──────────────────────────────────────────────── */
+
+/**
+ * One colour per pipeline stage, used wherever stage durations are charted.
+ * The retrieval stages reuse the retriever-identity hues the interface already
+ * taught (keyword aqua, vector blue); generate — the segment that dominates
+ * every latency bar — stays deliberately quiet ink so the chart reads calm and
+ * the retrieval slices stay visible. Always drawn beside a text label.
+ */
+export const STAGE_COLOR: Record<string, string> = {
+  transform: "var(--color-cat-5)",
+  bm25: "var(--color-keyword)",
+  dense: "var(--color-vector)",
+  fuse: "rgb(var(--foreground) / 0.8)",
+  rerank: "var(--color-cat-7)",
+  assemble: "var(--color-cat-2)",
+  generate: "rgb(var(--foreground) / 0.32)",
+};
+
+export function stageColor(name: string): string {
+  return STAGE_COLOR[name] ?? "rgb(var(--foreground) / 0.5)";
+}
+
 /* ── Retriever identity ───────────────────────────────────────────────────── */
 
 export type Source = "keyword" | "vector" | "both";
@@ -133,3 +158,12 @@ export const SOURCE_HINT: Record<Source, string> = {
   vector: "Found by vector search only — semantically close without sharing the question’s words.",
   both: "Found by both searches independently. This is the strongest signal a chunk is relevant, and fusion ranks it accordingly.",
 };
+
+/** Stage events can arrive more than once for the same stage; last write wins. */
+export function mergeStage(stages: StageRecord[], incoming: StageRecord): StageRecord[] {
+  const at = stages.findIndex((s) => s.name === incoming.name);
+  if (at === -1) return [...stages, incoming];
+  const next = [...stages];
+  next[at] = incoming;
+  return next;
+}

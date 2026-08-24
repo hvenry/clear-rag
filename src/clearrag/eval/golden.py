@@ -53,14 +53,26 @@ class GoldenQuestion:
         return {r.doc for r in self.relevant}
 
 
-def resolve_quote(text: str, quote: str) -> tuple[int, int]:
-    """Locate ``quote`` in ``text``, tolerating differences in whitespace.
+#: A content token: alphanumeric runs keeping internal punctuation ("77,046", "U.S",
+#: "Company’s", "R&D", "full-time") but shedding anything at the edges.
+_TOKEN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9,.'’&-]*[A-Za-z0-9])?")
 
-    Markdown sources wrap at a column, so a labelled sentence frequently contains a
-    newline where the label author wrote a space. Matching runs of whitespace against
-    ``\\s+`` makes the label robust to rewrapping without making it loose about content.
+
+def resolve_quote(text: str, quote: str) -> tuple[int, int]:
+    """Locate ``quote`` in ``text``, tolerating formatting differences.
+
+    A label anchors *content words in order*, not one renderer's formatting. Sources
+    disagree about everything between the words: Markdown wraps lines, parsers render
+    table cells as ``a | b`` where flat extraction yields ``a b``, PDFs attach
+    parentheses to figures (``(77,046)``) where HTML spaces them out, and trademark
+    glyphs float (``iPad Pro®`` vs ``iPad Pro ®``). So the quote is reduced to its
+    content tokens and any run of non-word characters may separate them — flexible
+    about separators, exact about the words themselves.
     """
-    pattern = r"\s+".join(re.escape(part) for part in quote.split())
+    tokens = _TOKEN.findall(quote)
+    if not tokens:
+        raise GoldenSetError(f"Quote has no content tokens: {quote!r}")
+    pattern = r"[\W_]+".join(re.escape(token) for token in tokens)
     matches = list(re.finditer(pattern, text))
 
     if not matches:
@@ -73,10 +85,26 @@ def resolve_quote(text: str, quote: str) -> tuple[int, int]:
     return matches[0].start(), matches[0].end()
 
 
-def load_golden(path: Path, corpus: dict[str, str]) -> list[GoldenQuestion]:
+def _first_match(text: str, quote: str) -> tuple[int, int]:
+    tokens = _TOKEN.findall(quote)
+    pattern = r"[\W_]+".join(re.escape(token) for token in tokens)
+    match = re.search(pattern, text)
+    assert match is not None  # only called after resolve_quote reported ambiguity
+    return match.start(), match.end()
+
+
+def load_golden(path: Path, corpus: dict[str, str], *, strict: bool = True) -> list[GoldenQuestion]:
     """Parse a JSONL golden set and resolve every quote against ``corpus``.
 
     ``corpus`` maps filename to full document text.
+
+    ``strict=False`` turns an *unresolvable* quote into the sentinel span ``(-1, -1)``
+    instead of a hard error — every coverage check fails against it, so the question
+    scores as a miss. Ablation runs use this: quotes resolve against parsed text, and a
+    parser backend that lost the answer is a result to measure, not a crash. An
+    *ambiguous* quote in lenient mode anchors its first occurrence (backends duplicate
+    text the author cannot control); in strict mode it stays the hard error it always
+    was, because at authoring time ambiguity means the label needs extending.
     """
     questions: list[GoldenQuestion] = []
     errors: list[str] = []
@@ -112,7 +140,22 @@ def load_golden(path: Path, corpus: dict[str, str]) -> list[GoldenQuestion]:
                     )
                 )
             except GoldenSetError as exc:
-                errors.append(f"{qid} ({doc}): {exc}")
+                if strict:
+                    errors.append(f"{qid} ({doc}): {exc}")
+                elif "ambiguous" in str(exc):
+                    # A quote unique in one backend's text can be duplicated in
+                    # another's (tables repeated in GAAP and non-GAAP form flatten
+                    # differently). The content is present; anchor the first
+                    # occurrence rather than crashing an ablation sweep.
+                    spans.append(
+                        RelevantSpan(
+                            doc=doc,
+                            quote=label["quote"],
+                            span=_first_match(corpus[doc], label["quote"]),
+                        )
+                    )
+                else:
+                    spans.append(RelevantSpan(doc=doc, quote=label["quote"], span=(-1, -1)))
 
         unanswerable = bool(row.get("unanswerable", False))
         if unanswerable and spans:

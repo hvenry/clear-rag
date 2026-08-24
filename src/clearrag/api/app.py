@@ -207,7 +207,7 @@ async def write_config(patch: dict[str, Any]) -> dict[str, Any]:
 
     reindex_needed = any(
         patch.get(key) is not None and patch[key] != getattr(state.config, key)
-        for key in ("chunker", "chunk_size", "chunk_overlap", "contextualize")
+        for key in ("parser", "chunker", "chunk_size", "chunk_overlap", "context_mode")
     )
     state.config = updated
     if state.engine is not None:
@@ -217,6 +217,97 @@ async def write_config(patch: dict[str, Any]) -> dict[str, Any]:
         "config": updated.model_dump(),
         "config_hash": updated.config_hash,
         "reindex_needed": reindex_needed,
+    }
+
+
+def _split_models(entries: list[tuple[str, list[str] | None]]) -> dict[str, list[str]]:
+    """Bucket installed models into chat vs embedding by their capabilities.
+
+    Ollama's /api/show reports a ``capabilities`` array ("completion", "embedding",
+    …). When a model's capabilities cannot be fetched (older Ollama, transient
+    error), fall back to the naming convention — "embed" in the tag — rather than
+    listing an embedding model as something you could chat with.
+    """
+    chat: list[str] = []
+    embedding: list[str] = []
+    for name, capabilities in entries:
+        if capabilities is not None:
+            (embedding if "embedding" in capabilities else chat).append(name)
+        elif "embed" in name.lower():
+            embedding.append(name)
+        else:
+            chat.append(name)
+    return {"chat": sorted(chat), "embedding": sorted(embedding)}
+
+
+@app.get("/api/models")
+async def list_models() -> dict[str, Any]:
+    """Models installed in the local Ollama, split by what each can actually do —
+    a selector offering an embedding model as a chat model is a footgun, not a choice.
+
+    Best-effort: an unreachable Ollama returns empty lists rather than an error —
+    the selector degrades to a text field, it does not break the header.
+    """
+    empty: dict[str, list[str]] = {"chat": [], "embedding": []}
+    if state.settings.chat_provider != "ollama" and state.settings.embed_provider != "ollama":
+        return empty
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            response = await client.get(f"{state.settings.ollama_url}/api/tags")
+            response.raise_for_status()
+            names = [m["name"] for m in response.json().get("models", []) if "name" in m]
+
+            async def capabilities(name: str) -> list[str] | None:
+                try:
+                    shown = await client.post(
+                        f"{state.settings.ollama_url}/api/show", json={"model": name}
+                    )
+                    shown.raise_for_status()
+                    return shown.json().get("capabilities")
+                except Exception:
+                    return None
+
+            all_caps = await asyncio.gather(*(capabilities(n) for n in names))
+        return _split_models(list(zip(names, all_caps, strict=True)))
+    except Exception:
+        return empty
+
+
+@app.put("/api/providers")
+async def update_providers(patch: dict[str, Any]) -> dict[str, Any]:
+    """Switch the chat or embedding model at runtime.
+
+    The engine is rebuilt lazily with the new providers. A chat-model change is free;
+    an embedding-model change makes every stored vector incomparable — the
+    embedding-space guard refuses queries until a re-index, and the response says so
+    up front instead of letting the guard be a surprise.
+    """
+    allowed = {"chat_model", "embed_model"}
+    unknown = set(patch) - allowed
+    if unknown:
+        raise HTTPException(422, f"Unknown provider settings: {sorted(unknown)}")
+
+    embed_changed = "embed_model" in patch and patch["embed_model"] != state.settings.embed_model
+    for key, value in patch.items():
+        if not isinstance(value, str) or not value.strip():
+            raise HTTPException(422, f"{key} must be a non-empty string")
+        setattr(state.settings, key, value.strip())
+
+    # Providers are constructed from settings, so dropping the engine is the whole
+    # switch — the next request rebuilds it with the new models.
+    state.engine = None
+
+    return {
+        "providers": {
+            "chat": {"provider": state.settings.chat_provider, "model": state.settings.chat_model},
+            "embeddings": {
+                "provider": state.settings.embed_provider,
+                "model": state.settings.embed_model,
+            },
+        },
+        "reindex_needed": embed_changed,
     }
 
 
@@ -284,6 +375,12 @@ async def get_document(doc_id: str, eng: Engine = Depends(engine)) -> dict[str, 
         "filename": document.filename,
         "text": document.text,
         "meta": document.meta,
+        # Parse structure, so the Library view can draw what the parser recovered —
+        # headings, paragraphs, tables — before it ever became chunks.
+        "blocks": [
+            {"kind": b.kind, "span": list(b.span), "level": b.level, "page": b.page}
+            for b in document.blocks
+        ],
         # Spans let the Chunk Inspector draw boundaries directly over the source text.
         "chunks": [
             {

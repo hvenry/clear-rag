@@ -43,6 +43,9 @@ class EvalRun:
     ingest_ms: float = 0.0
     query_ms: float = 0.0
     generated: bool = False
+    parse_lost: int = 0
+    """Labelled quotes that did not resolve against this run's parsed text — the parse
+    lost the answer, and those questions score as misses."""
 
     @property
     def primary(self) -> Aggregate:
@@ -142,7 +145,7 @@ def _final_ranking(trace: dict[str, Any]) -> list[str]:
 
 #: Settings that change the index rather than the query. Runs agreeing on all of these
 #: can share an ingested workspace.
-_INGEST_KEYS = ("chunker", "chunk_size", "chunk_overlap", "contextualize")
+_INGEST_KEYS = ("parser", "chunker", "chunk_size", "chunk_overlap", "context_mode")
 
 
 def _ingest_signature(config: PipelineConfig) -> str:
@@ -164,7 +167,6 @@ async def ablate(
 ) -> list[EvalRun]:
     """Evaluate each named configuration, re-indexing only when ingestion settings change."""
     raw_corpus = load_corpus(corpus_dir)
-    questions = load_golden(golden_path, {name: text for name, (text, _) in raw_corpus.items()})
 
     # Group by ingestion signature so the expensive embedding step is paid once per
     # distinct index rather than once per variant.
@@ -190,12 +192,24 @@ async def ablate(
                 await engine.ingest(filename, data)
         ingest_ms = (time.perf_counter() - ingest_started) * 1000
 
+        # Golden quotes resolve against *parsed* text, which depends on this group's
+        # parser backend — so loading happens here, per group, leniently: a quote the
+        # parse lost scores as a miss for exactly this group's runs.
+        parsed_corpus = {
+            row["filename"]: doc.text
+            for row in engine.store.list_documents()
+            if (doc := engine.store.get_document(row["id"])) is not None
+        }
+        questions = load_golden(golden_path, parsed_corpus, strict=False)
+        lost = sum(1 for q in questions for label_span in q.relevant if label_span.span == (-1, -1))
+
         for label, config in members:
             if on_progress:
                 on_progress(label)
             engine.config = config
             run = await evaluate(engine, questions, ks=ks, generate=generate, label=label)
             run.ingest_ms = ingest_ms
+            run.parse_lost = lost
             runs.append(run)
 
         engine.store.close()
@@ -208,7 +222,12 @@ async def ablate(
 # ── Reporting ───────────────────────────────────────────────────────────────────
 
 
-def markdown_table(runs: Sequence[EvalRun], *, k: int = 5) -> str:
+def markdown_table(
+    runs: Sequence[EvalRun],
+    *,
+    k: int = 5,
+    tags: Sequence[str] = ("lexical", "semantic", "distractor"),
+) -> str:
     """Render an ablation table ready to paste into the README.
 
     recall@1 sits beside recall@k on purpose. On a small corpus recall@5 saturates at
@@ -221,8 +240,8 @@ def markdown_table(runs: Sequence[EvalRun], *, k: int = 5) -> str:
         return "_No runs._"
 
     columns = f"| Configuration | recall@1 | recall@{k} | MRR | nDCG@{k} |"
-    columns += " lexical | semantic | distractor |"
-    header = columns + "\n|---|---|---|---|---|---|---|---|"
+    columns += "".join(f" {tag} |" for tag in tags)
+    header = columns + "\n|" + "---|" * (5 + len(tags))
 
     def rank_key(run: EvalRun) -> tuple[float, float]:
         agg = run.at_k.get(k)
@@ -237,10 +256,10 @@ def markdown_table(runs: Sequence[EvalRun], *, k: int = 5) -> str:
             continue
         at_one = run.at_k.get(1)
         name = f"**{run.label}**" if rank_key(run) == best else run.label
+        tag_cells = "".join(f" {agg.by_tag.get(tag, 0):.3f} |" for tag in tags)
         rows.append(
             f"| {name} | {fmt(at_one.recall if at_one else None)} | {agg.recall:.3f} | "
-            f"{agg.mrr:.3f} | {agg.ndcg:.3f} | {agg.by_tag.get('lexical', 0):.3f} | "
-            f"{agg.by_tag.get('semantic', 0):.3f} | {agg.by_tag.get('distractor', 0):.3f} |"
+            f"{agg.mrr:.3f} | {agg.ndcg:.3f} |" + tag_cells
         )
 
     generated = [r for r in runs if r.generated]

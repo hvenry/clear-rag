@@ -9,6 +9,7 @@ predecessor project implemented up to the current pipeline, so each row answers
 from __future__ import annotations
 
 from ..config import PipelineConfig
+from ..ingest.parsers import available_backends
 
 BASE = PipelineConfig(k_candidates=50, k_final=10, rewrite_followups=False)
 
@@ -53,3 +54,58 @@ def standard_variants() -> list[tuple[str, PipelineConfig]]:
             BASE.model_copy(update={"chunk_size": 1024, "chunk_overlap": 128}),
         ),
     ]
+
+
+#: The strongest retrieval configuration the standard sweep found; the sec sweep holds
+#: it fixed and varies the Phase 4 knobs one at a time.
+_SEC_BASE = BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf", "rerank": True})
+
+
+def sec_variants() -> tuple[list[tuple[str, PipelineConfig]], list[str]]:
+    """The Phase 4 sweep: parser × chunker × context, one dimension at a time.
+
+    Returns ``(variants, skipped_backends)`` — heavyweight parser backends that are
+    not installed are omitted rather than crashing the sweep, and named so the CLI
+    can say how to add them.
+    """
+    backends = available_backends()
+    skipped = [name for name in ("docling", "marker") if not backends.get(name)]
+
+    variants: list[tuple[str, PipelineConfig]] = [
+        # Parser sweep: what does parsing quality alone do to retrieval?
+        ("naive parser", _SEC_BASE.model_copy(update={"parser": "naive"})),
+        ("primitives parser", _SEC_BASE.model_copy(update={"parser": "primitives"})),
+    ]
+    for name in ("docling", "marker"):
+        if backends.get(name):
+            variants.append((f"{name} parser", _SEC_BASE.model_copy(update={"parser": name})))
+
+    variants += [
+        # Chunker sweep at the primitives parser.
+        (
+            "primitives + semantic chunking",
+            _SEC_BASE.model_copy(update={"parser": "primitives", "chunker": "semantic"}),
+        ),
+        # Context sweep (recursive chunking, primitives parser). "none" is the
+        # "primitives parser" row above.
+        (
+            "primitives + breadcrumb context",
+            _SEC_BASE.model_copy(update={"parser": "primitives", "context_mode": "breadcrumb"}),
+        ),
+        (
+            "primitives + LLM context",
+            _SEC_BASE.model_copy(update={"parser": "primitives", "context_mode": "llm"}),
+        ),
+        # The headline row: everything Phase 4 built, together.
+        (
+            "primitives + semantic + breadcrumb",
+            _SEC_BASE.model_copy(
+                update={
+                    "parser": "primitives",
+                    "chunker": "semantic",
+                    "context_mode": "breadcrumb",
+                }
+            ),
+        ),
+    ]
+    return variants, skipped

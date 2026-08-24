@@ -31,6 +31,12 @@ class PipelineConfig(BaseModel):
     model_config = {"frozen": True}
 
     # ── Ingestion ──
+    parser: Literal["naive", "primitives", "docling", "marker"] = Field(
+        "primitives",
+        description="PDF parser backend. 'naive' is flat pypdf extraction; 'primitives' is "
+        "the hand-rolled layout parser; 'docling' and 'marker' are optional ML-based extras. "
+        "An unavailable backend degrades to 'naive' with the fallback recorded in the trace.",
+    )
     chunker: Literal["recursive", "semantic"] = "recursive"
     chunk_size: int = Field(512, ge=64, le=4096, description="Target chunk size in tokens.")
     chunk_overlap: int = Field(
@@ -40,8 +46,12 @@ class PipelineConfig(BaseModel):
         description="Overlap in tokens. 12% of chunk_size, not the 50% the predecessor used: "
         "high overlap inflates the index and fills top-k with near-duplicates.",
     )
-    contextualize: bool = Field(
-        False, description="Phase 3: prepend an LLM-written situating sentence to each chunk."
+    context_mode: Literal["none", "breadcrumb", "llm"] = Field(
+        "none",
+        description="Contextual retrieval: what to prepend to each chunk at index time. "
+        "'breadcrumb' is a deterministic heading path derived from parse structure; 'llm' is "
+        "an Anthropic-style situating sentence generated per chunk (cached by content hash). "
+        "Stored chunk text, spans and citations are never touched — only the indexed text.",
     )
 
     # ── Retrieval ──

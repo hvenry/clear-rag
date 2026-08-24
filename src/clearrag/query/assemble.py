@@ -51,7 +51,10 @@ def assemble(
             continue
 
         marker = len(used) + 1
-        block = f"[{marker}] ({chunk.id}) {chunk.text.strip()}"
+        # The marker alone labels the passage. The chunk id used to ride along here
+        # "for transparency", but the model never needs it — the [n]→chunk mapping
+        # lives in `used` — and small models parroted "(c_…)" into their answers.
+        block = f"[{marker}] {chunk.text.strip()}"
         cost = count_tokens(block)
 
         if spent + cost > max_tokens:

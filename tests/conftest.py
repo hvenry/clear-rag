@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from clearrag.config import PipelineConfig, Settings
 from clearrag.pipeline import Engine
 from clearrag.providers.fake import FakeChat, FakeEmbeddings
+
+#: The repository root, anchored once here so tests can reference repo files
+#: (evals/, workspace/) without each computing its own fragile parents[n].
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 CORPUS = {
     "resume.pdf": (
@@ -19,6 +25,23 @@ CORPUS = {
         "The crumb structure depends heavily on hydration percentage."
     ),
 }
+
+
+def _tiny_pdf() -> bytes:
+    import io
+
+    from reportlab.lib.pagesizes import LETTER
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=LETTER)
+    c.setFont("Helvetica", 11)
+    c.drawString(72, 700, "A tiny one page document about nothing in particular.")
+    c.save()
+    return buf.getvalue()
+
+
+TINY_PDF = _tiny_pdf()
 
 
 @pytest.fixture

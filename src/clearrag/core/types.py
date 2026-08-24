@@ -29,6 +29,8 @@ class Document:
     page_map: list[tuple[int, int]] = field(default_factory=list)
     """``(char_offset, page_number)`` breakpoints, ascending. Empty for non-paged formats."""
     meta: dict[str, Any] = field(default_factory=dict)
+    blocks: list[Block] = field(default_factory=list)
+    """Parse structure over ``text``, in reading order. Empty when the parser found none."""
 
     def page_at(self, offset: int) -> int | None:
         """Page number containing ``offset``, or None if this document has no pages."""
@@ -40,6 +42,21 @@ class Document:
                 break
             page = num
         return page
+
+
+@dataclass(frozen=True)
+class Block:
+    """One structural unit the parser recovered: a heading, paragraph, or table.
+
+    ``span`` indexes into ``Document.text``, the same offset space chunks use, so the
+    UI can draw parse structure, chunk boundaries and citations over one string.
+    ``level`` is the heading level (1-3) and 0 for non-headings.
+    """
+
+    kind: str  # "heading" | "paragraph" | "table"
+    span: tuple[int, int]
+    level: int = 0
+    page: int | None = None
 
 
 @dataclass(frozen=True)

@@ -15,6 +15,7 @@ dependencies = [
     "python-docx>=1.1",
     "python-multipart>=0.0.20",
     "tiktoken>=0.8",
+    "pdfplumber>=0.11",
 ]
 
 [project.optional-dependencies]
@@ -36,7 +37,12 @@ dev = [
     # untested degradation path is how a headline feature quietly stops working.
     "onnxruntime>=1.20",
     "tokenizers>=0.21",
+    # Test fixtures draw synthetic PDFs with explicit geometry, so every layout
+    # property the primitives parser infers was planted deliberately.
+    "reportlab>=4.0",
 ]
+docling = ["docling>=2.15"]
+marker = ["marker-pdf>=1.5"]
 
 [project.scripts]
 clear-rag = "clearrag.__main__:main"

@@ -33,8 +33,11 @@ from .generate.prompt import (
 from .index.lexical import LexicalIndex
 from .index.store import Store
 from .index.vector import VectorIndex
-from .ingest.chunk import chunk_document, count_tokens
+from .ingest.chunk import ChunkResult, chunk_document, count_tokens
+from .ingest.contextualize import apply_breadcrumbs, apply_llm_context
 from .ingest.parse import parse
+from .ingest.parsers import available_backends, backend_remedy
+from .ingest.structural import chunk_structural
 from .providers.base import ChatProvider, EmbeddingProvider, ProviderError, Reranker
 from .query.assemble import assemble
 from .query.fuse import reciprocal_rank_fusion, weighted_fusion
@@ -97,14 +100,59 @@ class Engine:
 
     # ── Ingestion ───────────────────────────────────────────────────────────────
 
+    async def _chunk(self, document) -> ChunkResult:
+        """Dispatch on the chunker knob. Semantic chunking may embed section units to
+        find topic breakpoints, hence the async path."""
+        if self.config.chunker == "semantic":
+            return await chunk_structural(
+                document,
+                chunk_size=self.config.chunk_size,
+                embed=lambda texts: self.embeddings.embed(texts, kind="document"),
+            )
+        return chunk_document(
+            document,
+            chunk_size=self.config.chunk_size,
+            chunk_overlap=self.config.chunk_overlap,
+        )
+
+    async def _contextualize(self, document, chunks: list) -> list:
+        """Apply the configured context mode. Touches only ``Chunk.context`` — the
+        stored text, spans and citations never change."""
+        if self.config.context_mode == "breadcrumb":
+            return apply_breadcrumbs(document, chunks)
+        if self.config.context_mode == "llm":
+            return await apply_llm_context(
+                document,
+                chunks,
+                self.chat,
+                self.store,
+                model=getattr(self.chat, "model", "unknown"),
+            )
+        return chunks
+
     async def ingest(self, filename: str, data: bytes) -> dict[str, Any]:
         trace = Trace(query=f"ingest:{filename}", config_hash=self.config.config_hash)
         started = time.perf_counter()
 
-        rec = trace.stage("parse", "Parse", format=filename.rsplit(".", 1)[-1].lower())
+        suffix = filename.rsplit(".", 1)[-1].lower()
+        backend = self.config.parser
+        fallback_error: str | None = None
+        if suffix == "pdf" and not available_backends().get(backend, False):
+            # A config knob pointing at an uninstalled backend degrades loudly: the
+            # naive parser still ingests the file, and the trace says what happened.
+            remedy = backend_remedy(backend)
+            fallback_error = f"Parser '{backend}' is not installed; fell back to naive extraction."
+            if remedy:
+                fallback_error += f" Install it with: {remedy}"
+            backend = "naive"
+
+        rec = trace.stage("parse", "Parse", format=suffix, parser=backend)
+        if fallback_error:
+            rec.degraded = True
+            rec.error = fallback_error
         with_timer = atimed(rec)
         async with with_timer:
-            result = parse(filename, data)
+            result = parse(filename, data, parser=backend)
             rec.diagnostics = result.diagnostics
         document = result.document
 
@@ -126,13 +174,9 @@ class Engine:
             chunk_overlap=self.config.chunk_overlap,
         )
         async with atimed(rec):
-            chunked = chunk_document(
-                document,
-                chunk_size=self.config.chunk_size,
-                chunk_overlap=self.config.chunk_overlap,
-            )
+            chunked = await self._chunk(document)
             rec.diagnostics = chunked.diagnostics
-        chunks = chunked.chunks
+        chunks = await self._contextualize(document, chunked.chunks)
 
         rec = trace.stage("embed", "Embed", model=self.embeddings.id)
         async with atimed(rec):
@@ -195,30 +239,32 @@ class Engine:
         documents: list[dict[str, Any]] = []
         total_chunks = 0
 
+        stale_parses = 0
         for row in summaries:
             document = self.store.get_document(row["id"])
             if document is None:
                 continue
-            chunked = chunk_document(
-                document,
-                chunk_size=self.config.chunk_size,
-                chunk_overlap=self.config.chunk_overlap,
-            )
-            vectors = await self.embeddings.embed(
-                [c.indexed_text for c in chunked.chunks], kind="document"
-            )
-            self.store.replace_chunks(document.id, chunked.chunks)
-            fresh_vectors.add([c.id for c in chunked.chunks], vectors)
-            for chunk in chunked.chunks:
+            # Reindex rebuilds from stored text; it cannot re-parse. A PDF whose text
+            # came from a different parser backend keeps that backend's text, and
+            # pretending otherwise would make the parser knob look broken.
+            stored_parser = document.meta.get("parser")
+            if stored_parser is not None and stored_parser != self.config.parser:
+                stale_parses += 1
+            chunked = await self._chunk(document)
+            chunks = await self._contextualize(document, chunked.chunks)
+            vectors = await self.embeddings.embed([c.indexed_text for c in chunks], kind="document")
+            self.store.replace_chunks(document.id, chunks)
+            fresh_vectors.add([c.id for c in chunks], vectors)
+            for chunk in chunks:
                 fresh_lexical.add(chunk.id, chunk.indexed_text)
             documents.append(
                 {
                     "document_id": document.id,
                     "filename": document.filename,
-                    "chunks": len(chunked.chunks),
+                    "chunks": len(chunks),
                 }
             )
-            total_chunks += len(chunked.chunks)
+            total_chunks += len(chunks)
 
         # Swap in the rebuilt indexes only after every document succeeded, so a failure
         # mid-rebuild leaves the previous (consistent) indexes in place.
@@ -226,7 +272,7 @@ class Engine:
         self.lexical = fresh_lexical
         self._persist_indexes()
 
-        return {
+        result = {
             "status": "reindexed",
             "documents": documents,
             "total_chunks": total_chunks,
@@ -234,6 +280,12 @@ class Engine:
             "embedder": self.embeddings.id,
             "duration_ms": round((time.perf_counter() - started) * 1000, 1),
         }
+        if stale_parses:
+            result["note"] = (
+                f"{stale_parses} PDF(s) keep text from a different parser backend — "
+                "re-indexing cannot re-parse. Re-upload the files to apply the new parser."
+            )
+        return result
 
     def delete_document(self, doc_id: str) -> int:
         chunk_ids = self.store.delete_document(doc_id)
@@ -558,6 +610,27 @@ class Engine:
             if not downloaded:
                 rerank_entry["remedy"] = "The model downloads (~23 MB) on the first reranked query."
         report["checks"].append(rerank_entry)
+
+        # Parser backends are optional the same way the reranker is: a missing one
+        # degrades PDF structure quality, it never stops ingestion.
+        backends = available_backends()
+        report["checks"].append(
+            {
+                "component": "parsers",
+                "optional": True,
+                "ok": backends.get(self.config.parser, False),
+                "backends": backends,
+                **(
+                    {}
+                    if backends.get(self.config.parser, False)
+                    else {
+                        "error": f"Configured parser '{self.config.parser}' is not installed; "
+                        "PDFs fall back to naive extraction.",
+                        "remedy": backend_remedy(self.config.parser),
+                    }
+                ),
+            }
+        )
 
         report["documents"] = len(self.store.list_documents())
         report["chunks"] = self.store.count_chunks()

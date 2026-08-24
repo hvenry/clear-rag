@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from conftest import drain
 
 from clearrag.core.types import Message
 from clearrag.pipeline import EmbeddingSpaceMismatch, Engine
 from clearrag.providers.fake import FakeChat, FakeEmbeddings
+from tests.conftest import drain
 
 
 async def test_ingest_indexes_a_document(engine):

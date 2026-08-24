@@ -120,10 +120,23 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         summary: "One authoritative text per document, with every chunk anchored into it.",
         body: [
           "When a file is ingested, its extracted text becomes the single source of truth, and every chunk records the exact character range it occupies in that text. That one invariant pays for most of the app's precision: a citation can highlight the exact sentences used rather than saying “document 2, score 0.71”, the chunk inspector can draw boundaries over the original, and the evaluation suite can label answers by position in a way that survives any re-chunking.",
-          "It also enables re-indexing without the original files: change the chunk size and the corpus is re-cut from stored text in seconds.",
+          "Parsing now also emits structure: every document carries typed blocks — headings with levels, paragraphs, tables — each anchored to a span of the same text. Structure is what the structural chunker cuts along and what breadcrumb contexts are built from, so a parser that recovers it well quietly improves two other stages.",
+          "It also enables re-indexing without the original files: change the chunk size and the corpus is re-cut from stored text in seconds. The one thing re-indexing cannot do is re-parse — the original bytes are gone — so changing the parser backend asks for a re-upload instead of pretending.",
           "Parsing is also where silent quality loss happens. A scanned PDF with no text layer extracts as nothing — detected and refused with a pointer to OCR, rather than indexed as an empty document that can never be retrieved."
         ],
         seeIt: "Every citation lists its character range (“chars 1799–3913”); the Library draws those same ranges over the source text."
+      },
+      {
+        id: "parser-backends",
+        title: "PDF parsing backends",
+        summary: "The hardest stage of RAG, made pluggable, visible — and measured three ways.",
+        body: [
+          "A PDF contains no paragraphs, headings, columns or tables — only positioned glyphs and drawn lines. Everything a parser reports is inference from that geometry, which makes parsing the stage where RAG systems quietly lose the most and explain the least. Here it is a config knob like any retrieval technique: `naive` (flat pypdf extraction, the baseline), `primitives` (a hand-rolled layout parser: column detection, heading inference, header/footer stripping, ruled and aligned tables), and `docling` / `marker` — the ML-model parsers — as optional extras behind the same interface.",
+          "Correctness is established differentially, the same way this project tests BM25 against FTS5. The SEC benchmark corpus is built from filings whose HTML source is downloaded alongside the rendered PDFs, so ground-truth text exists for every page — `clear-rag parse-quality` scores each backend on word recovery (did the words survive?) and order similarity (did they come out in reading order?). That test caught two real bugs during development: a page carrying 186 table-shading rectangles was being read as one page-wide grid that swallowed the prose between two tables into phantom cells, and part-page column layouts were interleaving side-by-side lines. Order similarity jumped from 0.78 to 0.99 when they were fixed — a number, not an impression.",
+          "The measured result inverts the folklore. On this corpus the hand-rolled parser matches or beats docling's 300 MB of layout models on both parse fidelity (recovery 0.996 vs 0.989) and retrieval (recall@5 0.846 vs 0.718 — docling's aggressive table reconstruction loses labels and buries table content in worse-ranking chunks). And flat extraction beats both, because these are born-digital single-column renders: pypdf's best case. The honest conclusion is scoped, not triumphant: on clean PDFs, structure buys retrieval nothing — its value flows to the stages that consume it, and the corpus where ML parsing should win (scans, native multi-column) does not exist here yet.",
+          "Scope is deliberate: no OCR, no nested tables. A missing backend degrades loudly — the trace records the fallback to `naive` and names the install command — because a knob that silently does nothing is worse than one that says so."
+        ],
+        seeIt: "Lab → Ingestion → PDF parser picks the backend for new uploads; Library → structure shows what it recovered. `clear-rag parse-quality` prints the differential table, and a PDF's ingest trace records which backend actually ran — including any fallback."
       },
       {
         id: "chunking",
@@ -135,6 +148,28 @@ export const TOPIC_GROUPS: TopicGroup[] = [
           "The general lesson: past a modest floor, chunking tunes the generator's job, not the retriever's."
         ],
         seeIt: "Lab → change chunk size → re-index, then compare runs; Library shows the new boundaries immediately."
+      },
+      {
+        id: "semantic-chunking",
+        title: "Structural (semantic) chunking",
+        summary: "Cutting where the document changes topic — and the table that says when not to.",
+        body: [
+          "Fixed-size chunking cuts wherever the token budget lands, which is how a résumé chunk ends up holding half of one job plus two unrelated sections — the attribution failure this project measured in its answer-side suite. The structural chunker cuts where the document says its topics change instead: whole heading-bounded sections pack together up to the budget, and only a section too big for one chunk gets subdivided — by embedding adjacent passages and splitting where the similarity between neighbours drops, so the cut lands at the topic shift rather than at an arbitrary token count. No overlap, deliberately: overlap is insurance against arbitrary cuts, and these cuts aren't.",
+          "The measured result is a warning, not a victory lap. On the SEC corpus, semantic chunking *lost* to fixed-size chunking — recall@5 0.769 vs 0.846, and on financial-table questions it halved, 0.545 → 0.273. The mechanism is visible in the misses: packing folds a statement's table into one large section chunk whose search profile is diluted by the surrounding prose, while dumb fixed-size cutting accidentally isolates table rows into chunks that match queries cleanly.",
+          "That negative number is the system working as designed — the knob shipped with a before-and-after instead of a claim, and it points at its own fix: tables are already typed blocks, so treating them as atomic chunks instead of packing them into sections is a small change with a metric already waiting to judge it."
+        ],
+        seeIt: "Lab → Ingestion → Chunker → semantic, re-index, then compare a table question against fixed-size in side-by-side runs. Library → structure shows the section boundaries it cuts along."
+      },
+      {
+        id: "contextual-retrieval",
+        title: "Contextual retrieval",
+        summary: "Situating each chunk before it's indexed — free breadcrumbs vs paid LLM prose.",
+        body: [
+          "A chunk that says “the Company's revenue grew 12%” is unambiguous inside its document and meaningless in an index holding several companies' filings. Contextual retrieval prepends situating context to each chunk before embedding and keyword-indexing — only to the *indexed* text, never the stored text, so spans, citations and highlighting are untouched.",
+          "Two modes, priced very differently. `breadcrumb` derives the context from parse structure — `apple-10k-2023 › Item 1A Risk Factors › …` — deterministic, instant, free. `llm` is the technique as Anthropic describes it: a model writes one or two situating sentences per chunk, one generation each at index time, cached by content hash so re-indexing an unchanged document costs nothing.",
+          "Measured on the SEC corpus: neither moved retrieval at all — recall@5 0.846 under no context, breadcrumbs, and LLM prose alike. The two companies' vocabularies are distinct enough that chunks were never ambiguous in the way the technique repairs; its motivating case is many near-identical documents, and this corpus isn't that. So the free breadcrumb is the default and the paid mode stays a knob — with one open question the retrieval metrics can't answer: the context is also visible to the *generator*, so the answer-side suite may yet separate what the ranked list cannot."
+        ],
+        seeIt: "Lab → Ingestion → Contextual retrieval → breadcrumb, re-index, then pin any chunk in the Library — the readout shows the exact preamble it was indexed under (“indexed as: …”)."
       },
       {
         id: "overlap",
@@ -191,10 +226,11 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         summary: "Labels anchored to quotes, resolved to spans — so the benchmark survives its own experiments.",
         body: [
           "A benchmark needs ground truth: for each question, where does the answer live? The tempting label — “the answer is chunk #12” — self-destructs, because chunk ids change the moment chunking configuration changes, and comparing chunking configurations is a primary purpose of the benchmark.",
-          "Labels here are quotes: a verbatim snippet of the source document, resolved to exact character positions at load time. Quotes survive re-chunking, re-indexing and reformatting; whitespace is matched flexibly so a label can span a line wrap. A quote that matches nothing — or matches twice — fails loudly at load, because an ambiguous label is worse than no label.",
+          "Labels here are quotes: a verbatim snippet of the source document, resolved to exact character positions at load time. Quotes anchor content words in order, with everything between them matched flexibly — whitespace, line wraps, and the punctuation renderers disagree about (a PDF writes `(77,046)` where HTML writes `( 77,046 )`, a table row is `a | b` to one parser and `a b` to another). A quote that matches nothing — or matches ambiguously — fails loudly at authoring time, because an ambiguous label is worse than no label.",
+          "The SEC suite adds a twist the parser ablation forced: quotes resolve against *parsed* text, and different parser backends produce different text. In ablation runs a quote the parse lost scores as a retrieval miss for that backend — the parse losing the answer is a result to measure, not a crash — while authoring-time validation stays strict.",
           "The set also includes questions the corpus cannot answer, with no labels at all. They exist to measure refusal: a system that never says “I don't know” is not measuring one of the two ways RAG fails."
         ],
-        seeIt: "`evals/golden.jsonl` — every line is one question with its quote-anchored labels; a test fails CI if any quote stops resolving."
+        seeIt: "`evals/golden.jsonl` and `evals/sec/golden.jsonl` — every line is one question with its quote-anchored labels; a test fails CI if any quote stops resolving."
       },
       {
         id: "ablation",
@@ -208,6 +244,60 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         seeIt: "The hash in the header chip is the current configuration's fingerprint; every Lab run card carries the hash it ran under."
       }
     ]
+  },
+  {
+    title: "Future improvements",
+    topics: [
+      {
+        id: "queued-experiments",
+        title: "The queued experiments",
+        summary: "Three items the existing measurements already ordered — no new ideas required.",
+        body: [
+          "**Atomic table chunks.** The Phase 4 ablation measured structural chunking *hurting* financial-table questions: recall@5 fell from 0.545 to 0.273, because heading-bounded packing folds a statement's table into one large section chunk whose BM25 term statistics and embedding are diluted by surrounding prose. The fix falls out of the block model: in the structural chunker, a block of kind `table` becomes its own chunk instead of packing into its section — a table's rows are a retrieval unit in a way prose paragraphs are not. The sec suite's `table`-tagged questions are the judge, already waiting.",
+          "**The answer-side sec run.** Retrieval metrics scored breadcrumb context, LLM-written context and no context identically (recall@5 0.846 across all three) — but the context string is prepended to what the *generator* reads too, and answer-side metrics (grounding, citation precision, wrong-section bleed) may separate what the ranked list cannot. The command is `clear-rag ablate --suite sec --generate`. It is an overnight run for plain arithmetic reasons: six-plus configurations × 42 questions × one full local generation each, plus the LLM-context variant paying one generation per chunk at index time — a few seconds per generation on local hardware compounds to hours of wall-clock. Start it before bed; read the table over coffee.",
+          "**The marker row.** marker is wired as a fourth parser backend and passes its contract test, but its ablation row was cancelled: surya's recognition model needs an inference server, and CPU llama.cpp was impractically slow. Completing the three-way ML-parser comparison needs a GPU path — either `nvidia-container-toolkit` so surya's vllm container can run, or a CUDA build of `llama-server` with `SURYA_INFERENCE_BACKEND=llamacpp`."
+        ],
+        seeIt: "`evals/sec/README.md` holds the tables these experiments extend; every result lands as a new row, not a claim."
+      },
+      {
+        id: "phase5-query-understanding",
+        title: "Query understanding (Phase 5)",
+        summary: "The greyed-out Lab knobs: four techniques that transform the question before retrieval sees it.",
+        body: [
+          "**HyDE** (hypothetical document embeddings): ask the LLM to *answer* the question from imagination, embed that hypothetical answer, and search with its vector instead of the question's. The logic: questions and passages occupy different registers — \"why is my build slow?\" shares little vocabulary or embedding-space geometry with the dense prose that answers it, but a hallucinated answer is register-matched to real answers. Costs one generation per query; helps most when question phrasing diverges from document phrasing, does nothing when they already match.",
+          "**Multi-query expansion**: generate two or three rephrasings, retrieve for each, and fuse all rankings with RRF — the fusion stage is already n-ary, so this is more retrieval calls, not new machinery. Recall insurance against unlucky phrasing, priced at one generation plus n retrievals.",
+          "**Decomposition**: split a compound question (\"compare Apple's and Microsoft's tax rates\") into sub-questions, retrieve per sub-question, and pack the union. The sec suite's `cross-company` questions are the ready-made test set — today a single query has to hope both companies' passages surface in one ranking.",
+          "**Self-correction**: after retrieval, have the model grade whether the candidates can answer the question; if not, rewrite the query and retry once — bounded at one retry, because an unbounded loop is a latency bug wearing a quality costume.",
+          "One discipline applies to all four: before building any of them, add golden questions that *should* benefit. A technique ablated against a corpus it cannot help measures zero and teaches nothing — the corpus has to contain the failure the technique exists to fix."
+        ],
+        seeIt: "Lab → Conversation: HyDE, multi-query and self-correction sit there greyed out with honest notes — the UI half already exists."
+      },
+      {
+        id: "retrieval-beyond",
+        title: "Retrieval beyond Phase 5",
+        summary: "Four measured experiments on the index itself: granularity, embedders, compression, tokenisation.",
+        body: [
+          "**Sentence-window / parent expansion**: retrieve small, precise chunks, then expand each hit to its neighbours or its parent section at assembly time. This attacks the tension the chunk-size ablation documented — small chunks retrieve precisely but orphan context; large ones blur sections together. The block model makes \"parent section\" a free lookup: every chunk's span nests inside a heading-bounded section span.",
+          "**A second embedder**: `ollama pull mxbai-embed-large` (1024-dim vs nomic's 768) and the comparison becomes runnable — the header's model selector switches it, the embedding-space guard forces the re-index that keeps vectors comparable, and the golden set scores the difference. Embedding choice is the single most cargo-culted decision in RAG; here it can be a table row.",
+          "**Vector compression**: quantise stored vectors (int8, or binary with Hamming distance) or truncate Matryoshka dimensions, and plot recall against index size. At this corpus scale the win is educational rather than practical — which is exactly the project's lane — and the method pairs with Phase 6's HNSW experiment, which only becomes interesting near ~100k chunks (a corpus-synthesis script is the real prerequisite there).",
+          "**BM25 refinements**: porter stemming and stopword removal as toggles on the hand-rolled index, differentially tested against SQLite FTS5's porter tokenizer the same way the base implementation was. Stemming trades exact-identifier precision (the corpus's `X-RateLimit-Remaining` strength) for morphological recall (\"deployments\" matching \"deployment\") — a genuine tension worth a number."
+        ],
+        seeIt: "`clear-rag ablate` is the harness for every one of these — each lands as a row with a config hash, or it did not happen."
+      },
+      {
+        id: "product-completeness",
+        title: "Product completeness",
+        summary: "The non-experimental backlog: closing gaps rather than measuring techniques.",
+        body: [
+          "**OCR**: the one documented parser scope hole. Scanned PDFs currently refuse with a pointer to `ocrmypdf`; integrating that as an opt-in preprocessing step (detect empty extraction → offer OCR → re-parse) closes it without dragging OCR models into the core install.",
+          "**A traces history view**: every query's full trace is already persisted to SQLite and served at `/api/traces`, but no page renders them — the stored pipeline history is invisible. A `/traces` route is the natural next use of the router, and replaying an old trace through the existing inspector components is mostly wiring.",
+          "**Conversation persistence**: the chat session deliberately lives in memory and dies with the tab. Persisting it (localStorage first; a Zustand store if it grows into multiple named sessions) was the concrete trigger identified when state management was designed — the architecture is waiting for the requirement, not the other way around.",
+          "**URL ingestion**: paste a link, ingest the page. The HTML-to-blocks extraction written for the SEC corpus fetcher is most of the implementation; what remains is an endpoint and a paste target.",
+          "**Electron packaging** (Phase 6): only if \"installable local app for non-terminal users\" becomes a goal — `make serve` already covers everyone comfortable with a terminal."
+        ],
+        seeIt: "`clear-rag serve` on a LAN address is the zero-work deployment today; everything above widens who can use it and what it remembers."
+      }
+    ]
   }
 ];
 
@@ -215,6 +305,8 @@ export const ALL_TOPICS: Topic[] = TOPIC_GROUPS.flatMap((g) => g.topics);
 
 /** Stage name → topic id, for “explain” links from the pipeline strip. */
 export const STAGE_TOPIC: Record<string, string> = {
+  parse: "parser-backends",
+  chunk: "chunking",
   transform: "query-rewriting",
   bm25: "keyword-search",
   dense: "embeddings",

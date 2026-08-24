@@ -111,9 +111,35 @@ export const KNOB_GROUPS: KnobGroup[] = [
     ]
   },
   {
-    title: "Chunking",
-    hint: "How documents are split. These change the stored index, so applying them offers a re-index of everything already uploaded.",
+    title: "Ingestion",
+    hint: "How documents become indexed chunks. These change the stored index, so applying them offers a re-index of everything already uploaded.",
     knobs: [
+      {
+        key: "parser",
+        label: "PDF parser",
+        type: "segmented",
+        implemented: true,
+        reindexes: true,
+        hint: "Which backend turns PDF geometry into text and structure. naive is flat pypdf extraction; primitives is the hand-rolled layout parser (columns, headings, tables); docling and marker are optional ML extras — if one isn't installed, ingestion falls back to naive and the trace says so. Re-indexing cannot re-parse: a parser change applies to files uploaded after it.",
+        options: [
+          { value: "naive", label: "naive" },
+          { value: "primitives", label: "primitives" },
+          { value: "docling", label: "docling" },
+          { value: "marker", label: "marker" }
+        ]
+      },
+      {
+        key: "chunker",
+        label: "Chunker",
+        type: "segmented",
+        implemented: true,
+        reindexes: true,
+        hint: "recursive cuts at natural boundaries within a fixed token budget. semantic cuts along parsed structure — whole heading-bounded sections, with embedding-drop splits inside over-long ones — and uses no overlap. Measured honestly: on the SEC benchmark semantic *lost* on financial-table questions (recall 0.545 → 0.273), because packing folds tables into large mixed chunks.",
+        options: [
+          { value: "recursive", label: "recursive" },
+          { value: "semantic", label: "semantic" }
+        ]
+      },
       {
         key: "chunk_size",
         label: "Chunk size (tokens)",
@@ -132,15 +158,21 @@ export const KNOB_GROUPS: KnobGroup[] = [
         max: 1024,
         implemented: true,
         reindexes: true,
-        hint: "Text duplicated between neighbouring chunks so an answer sitting on a boundary is still retrievable. Insurance, not free: 50% overlap doubles the index. Around 10–15% is typical."
+        visibleWhen: (d) => d.chunker !== "semantic",
+        hint: "Text duplicated between neighbouring chunks so an answer sitting on a boundary is still retrievable. Insurance, not free: 50% overlap doubles the index. Around 10–15% is typical. (Semantic chunking uses none — its cuts land at topic boundaries, which is what overlap insures against.)"
       },
       {
-        key: "contextualize",
+        key: "context_mode",
         label: "Contextual retrieval",
-        type: "toggle",
-        implemented: false,
+        type: "segmented",
+        implemented: true,
         reindexes: true,
-        hint: "Prepend an LLM-written situating sentence to each chunk before indexing (Anthropic's contextual retrieval). Not built yet."
+        hint: "Prepend situating context to each chunk before it is embedded and keyword-indexed — the stored text, spans and citations are untouched. breadcrumb derives it from parse structure for free; llm has a model write it (Anthropic's technique), one generation per chunk at index time, cached by content. Measured on the SEC benchmark: no retrieval difference between any mode — the corpus's documents were never ambiguous enough to need it.",
+        options: [
+          { value: "none", label: "none" },
+          { value: "breadcrumb", label: "breadcrumb" },
+          { value: "llm", label: "LLM" }
+        ]
       }
     ]
   },

@@ -72,6 +72,22 @@ cp .env.example .env
 pip install -e ".[byok]"
 ```
 
+### Optional ML parser backends
+
+The default parsers (`naive`, `primitives`) are dependency-light and always available.
+The ML backends install as extras — they bring torch:
+
+```bash
+pip install -e ".[docling]"   # IBM docling (MIT): layout + TableFormer models
+pip install -e ".[marker]"    # datalab marker (GPL-3.0; surya weights carry a
+                              # commercial-use restriction above a revenue threshold)
+```
+
+marker's surya models additionally need an inference server: a GPU vllm container, or
+a local `llama-server` binary (`LLAMA_CPP_BINARY=/path/to/llama-server` with
+`SURYA_INFERENCE_BACKEND=llamacpp`). A configured backend that is not installed never
+breaks ingestion — PDFs fall back to `naive` and the trace records the degradation.
+
 ---
 
 ## How it works
@@ -79,12 +95,20 @@ pip install -e ".[byok]"
 ### Ingestion
 
 ```
-Parse → Chunk → Embed → Index
+Parse (backend) → Chunk (recursive | structural) → Contextualize → Embed → Index
 ```
 
 Documents are content-hashed, so re-uploading an unchanged file costs nothing. Every
 chunk records the **character span** it occupies in the source document — the invariant
 that makes exact citation highlighting and span-anchored evaluation possible.
+
+Parsing is a pluggable backend and a measured variable: `naive` (flat pypdf
+extraction), `primitives` (a hand-rolled layout parser — columns, headings,
+header/footer stripping, ruled and aligned tables — built from pdfplumber word
+geometry), and `docling` / `marker` as optional ML extras. Every backend also emits
+**typed blocks** (headings, paragraphs, tables) anchored to spans of the same text;
+structural chunking cuts along them and contextual retrieval builds its breadcrumbs
+from them. See *Phase 4 results* below for what each choice measurably does.
 
 ### Query
 
@@ -265,6 +289,8 @@ directly comparable.
 
 ```bash
 clear-rag eval                    # score the golden set with real models
+clear-rag eval --suite sec        # the 10-K corpus: parsing/chunking/context measurable
+clear-rag parse-quality           # differential-test parser backends vs HTML ground truth
 clear-rag eval --generate         # also generate answers: refusal + required-mention accuracy
 clear-rag ablate                  # sweep configurations, print the table above
 clear-rag ablate --fake           # deterministic, no models needed
@@ -294,17 +320,72 @@ four — so the score would shift without retrieval having changed at all.
 
 ---
 
+## Phase 4 results: parsing, structural chunking, contextual retrieval
+
+Phase 4 made three more stages measurable, on a new benchmark built for the purpose:
+curated sections of two real SEC 10-K filings (Apple and Microsoft FY2023) as rendered
+PDFs, with tag-stripped text from the same filings' HTML kept as **parse ground truth**
+— so parser backends are differentially tested (`clear-rag parse-quality`) the same way
+BM25 is tested against FTS5. A 42-question golden set tags `table`, `structure` and
+`cross-company` questions; `clear-rag ablate --suite sec` sweeps parser × chunker ×
+context with real models.
+
+| Configuration | recall@1 | recall@5 | table | cross-company |
+|---|---|---|---|---|
+| naive parser (pypdf) | 0.564 | 0.872 | 0.636 | 0.889 |
+| primitives parser | 0.462 | 0.846 | 0.545 | 0.778 |
+| docling parser | 0.385 | 0.718 | 0.455 | 0.667 |
+| primitives + semantic chunking | 0.487 | 0.769 | **0.273** | 0.778 |
+| primitives + breadcrumb context | 0.462 | 0.846 | 0.545 | 0.778 |
+| primitives + LLM context | 0.436 | 0.846 | 0.545 | 0.778 |
+
+Three findings, none of them the marketing version (full tables and caveats in
+[`evals/sec/README.md`](evals/sec/README.md)):
+
+1. **Flat extraction wins on born-digital PDFs — and the hand-rolled parser beats the
+   ML one.** These Chromium-rendered filings are pypdf's best case, and the ~400-line
+   geometric parser (`primitives`) outscores docling's layout models on both parse
+   fidelity (word recovery 0.996 vs 0.989) and retrieval, while docling's aggressive
+   table reconstruction loses two labelled answers outright. Structure's value flows to
+   the stages that consume it (structural chunking, breadcrumbs, the Library's
+   structure view), not to raw retrieval on clean renders. The differential test also
+   caught two real parser bugs during development — a page-wide phantom grid built
+   from 186 table-shading rects, and part-page column bands interleaving side-by-side
+   lines — worth 0.78 → 0.99 in reading-order fidelity.
+2. **Semantic chunking regresses financial tables** (table recall 0.545 → 0.273):
+   heading-bounded packing folds a statement's table into one large mixed chunk that
+   ranks worse than the accidental isolation fixed-size cutting provides. The block
+   model points at its own fix — atomic table chunks — and the metric to judge it is
+   already in place.
+3. **Contextual retrieval measured a null** on this corpus: identical recall under no
+   context, breadcrumbs, and LLM-written context. Two companies with distinct
+   vocabulary give the technique nothing to disambiguate; its motivating case is many
+   near-identical documents. The free breadcrumb is the default; the LLM mode (cached
+   by content hash so re-indexing is free) stays a knob.
+
+`marker` is wired as a fourth backend (optional extra; note its GPL-3.0 licence and
+surya model-weight restrictions) and passes its contract test, but its ablation row is
+pending — surya inference needs a GPU path or a local `llama-server`, and the CPU run
+was impractically slow.
+
+---
+
 ## Interface
 
 Three views. **Chat** streams each retrieval stage as it completes, then the answer.
-**Library** shows how a document was split, with chunk boundaries drawn over the source
-text and overlap regions shaded darker. **Lab** turns every pipeline knob into a control:
+**Library** shows how a document was split — chunk boundaries drawn over the source
+text, overlap regions shaded darker, and a *structure* view of the typed blocks the
+parser recovered (headings sized by level, tables boxed), which is what structural
+chunking cuts along. Pin a chunk and the readout shows the contextual-retrieval
+preamble it was indexed under. **Lab** turns every pipeline knob into a control:
 change one setting, ask the same question again, and the runs sit side by side with the
-changed setting highlighted — hybrid vs vector-only, chunk size 512 vs 192, RRF damping
-5 vs 60. Settings that rewrite the index (chunk size, overlap) trigger an explicit
-re-index, rebuilt from stored text without needing the original files. Knobs that exist
-in the config but are not implemented yet (semantic chunking, HyDE, reranking,
-self-correction) appear disabled with a note, so the interface never pretends.
+changed setting highlighted — hybrid vs vector-only, chunk size 512 vs 192, recursive
+vs semantic chunking, parser backend, contextual retrieval on or off. Settings that
+rewrite the index trigger an explicit re-index, rebuilt from stored text without
+needing the original files (a parser change is called out as the one exception —
+re-indexing cannot re-parse, so it applies to files uploaded afterwards). Knobs that
+exist in the config but are not implemented yet (HyDE, multi-query, self-correction)
+appear disabled with a note, so the interface never pretends.
 
 A one-click **sample corpus** (the evaluation documents — 10 files, ~60 chunks at small
 chunk sizes) exists because a three-chunk résumé makes every comparison degenerate:
@@ -391,9 +472,13 @@ pytest                       # full suite incl. regression gate, no models requi
 ruff check . && ruff format .
 mypy src
 
-cd web && npm run dev        # Vite on :5173, proxying /api to :8000
-clear-rag serve --reload     # backend with auto-reload
+make dev                     # backend (auto-reload) + frontend (HMR), open :5173
 ```
+
+`make dev` runs both halves of the development loop in one command: uvicorn with
+`--reload` for Python changes and Vite with hot-module-replacement for the UI,
+proxying `/api` to :8000. One Ctrl-C stops both. `make serve` is the other mode —
+a single server with the *built* UI, which is what production and Docker run.
 
 Tests run entirely on **fake providers** — a deterministic bag-of-words hash embedder and
 a scripted chat model. That is the one piece of infrastructure that makes a RAG project
@@ -412,7 +497,7 @@ assert real ranking behaviour rather than merely that the plumbing connects.
 | **2** | Lab: live config, side-by-side comparison, re-index from stored text | ✅ done |
 | **3** | Cross-encoder reranking (ONNX), embedding map, Learn section | ✅ done |
 | **3.5** | Answer-side evaluation: attribution suite, grounding & refusal metrics | ✅ done |
-| **4** | docling parsing, semantic chunking, contextual retrieval | |
+| **4** | Pluggable parser backends (hand-rolled `primitives` + docling/marker extras), SEC 10-K benchmark with differential parse testing, structural chunking, contextual retrieval | ✅ done |
 | **5** | HyDE, multi-query, decomposition, self-correction | |
 | **6** | Approximate index as a measured experiment; Electron packaging | |
 

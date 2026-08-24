@@ -43,6 +43,20 @@ export interface Trace {
   total_ms: number;
 }
 
+/** One row of /api/traces — enough per-stage detail to chart, without payloads. */
+export interface TraceSummary {
+  id: string;
+  query: string;
+  config_hash: string;
+  created_at: number;
+  total_ms: number;
+  stages: { name: string; label: string; duration_ms: number }[];
+  ttft_ms: number | null;
+  tokens: number | null;
+  tokens_per_second: number | null;
+  n_citations: number;
+}
+
 export interface ContextChunk {
   marker: number;
   chunk_id: string;
@@ -76,6 +90,13 @@ export interface DocumentDetail {
   filename: string;
   text: string;
   meta: Record<string, unknown>;
+  /** Parse structure over `text`: what the parser recovered before chunking. */
+  blocks: {
+    kind: "heading" | "paragraph" | "table";
+    span: [number, number];
+    level: number;
+    page: number | null;
+  }[];
   chunks: {
     id: string;
     ordinal: number;
@@ -91,6 +112,8 @@ export interface HealthCheck {
   provider?: string;
   model?: string | null;
   ok: boolean;
+  /** A failing optional component degrades quality; it does not stop queries. */
+  optional?: boolean;
   error?: string;
   remedy?: string | null;
 }

@@ -27,6 +27,7 @@ web/*.tsbuildinfo
 
 # Local-only working notes (design specs stay on disk, not in the public repo)
 docs/specs/
+docs/superpowers/
 
 # Generated eval reports (the committed inputs are evals/golden.jsonl,
 # evals/corpus/ and evals/baseline.json; run outputs are disposable)

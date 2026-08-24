@@ -33,6 +33,17 @@ def main() -> int:
     _add_eval_args(ab)
     ab.add_argument("--markdown", type=Path, default=None, help="Write the table to a file.")
 
+    pq = sub.add_parser(
+        "parse-quality",
+        help="Score parser backends against HTML-derived ground truth (word recovery "
+        "and reading order), the differential test for the parse stage.",
+    )
+    pq.add_argument("--corpus", type=Path, default=EVAL_DIR / "sec" / "corpus")
+    pq.add_argument("--ground-truth", type=Path, default=EVAL_DIR / "sec" / "ground_truth")
+    pq.add_argument(
+        "--parser", default=None, help="Score only this backend (default: every installed one)."
+    )
+
     args = parser.parse_args()
     settings = get_settings()
 
@@ -42,6 +53,8 @@ def main() -> int:
         return _eval(settings, args)
     if args.command == "ablate":
         return _ablate(settings, args)
+    if args.command == "parse-quality":
+        return _parse_quality(args)
 
     host = args.host or settings.host
     port = args.port or settings.port
@@ -95,13 +108,14 @@ def _check(settings) -> int:
 def _add_eval_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--suite",
-        choices=["retrieval", "attribution"],
+        choices=["retrieval", "attribution", "sec"],
         default="retrieval",
         help=(
             "Which bundled benchmark to run. 'retrieval' measures search quality over a "
             "multi-document corpus; 'attribution' is a single structured document where "
             "retrieval is trivially perfect and the entire burden falls on generation -- "
-            "run it with --generate."
+            "run it with --generate. 'sec' is the 10-K corpus (real PDFs): parsing, "
+            "chunking and contextual retrieval all become measurable variables."
         ),
     )
     parser.add_argument("--corpus", type=Path, default=None)
@@ -126,7 +140,7 @@ def _add_eval_args(parser: argparse.ArgumentParser) -> None:
 
 def _resolve_suite(args) -> tuple[Path, Path]:
     """Explicit --corpus/--golden win; otherwise the named suite picks both."""
-    base = EVAL_DIR if args.suite == "retrieval" else EVAL_DIR / "attribution"
+    base = EVAL_DIR if args.suite == "retrieval" else EVAL_DIR / args.suite
     return (args.corpus or base / "corpus", args.golden or base / "golden.jsonl")
 
 
@@ -188,11 +202,18 @@ def _ablate(settings, args) -> int:
     import tempfile
 
     from .eval.runner import ablate, markdown_table, write_report
-    from .eval.variants import standard_variants
+    from .eval.variants import sec_variants, standard_variants
 
     chat_factory, embeddings_factory, reranker_factory = _providers(settings, args.fake)
     workspace = args.workspace or Path(tempfile.mkdtemp(prefix="clearrag-ablate-"))
-    variants = standard_variants()
+    table_tags = ("lexical", "semantic", "distractor")
+    if args.suite == "sec":
+        variants, skipped = sec_variants()
+        table_tags = ("table", "structure", "cross-company")
+        for name in skipped:
+            print(f"note: {name} backend not installed — pip install -e '.[{name}]'")
+    else:
+        variants = standard_variants()
 
     print(
         f"Sweeping {len(variants)} configurations ({'fake' if args.fake else 'real'} providers)…\n"
@@ -211,8 +232,11 @@ def _ablate(settings, args) -> int:
         )
     )
 
-    table = markdown_table(runs, k=args.k)
+    table = markdown_table(runs, k=args.k, tags=table_tags)
     print(f"\n{table}\n")
+    lost = max((run.parse_lost for run in runs), default=0)
+    if lost:
+        print(f"note: up to {lost} labelled quote(s) unresolved in some runs (parse loss).\n")
 
     if args.markdown:
         args.markdown.write_text(table + "\n")
@@ -223,13 +247,56 @@ def _ablate(settings, args) -> int:
     return 0
 
 
+def _parse_quality(args) -> int:
+    from .eval.parse_quality import parse_quality
+    from .ingest.parsers import available_backends, parse_pdf
+
+    pdfs = sorted(args.corpus.glob("*.pdf")) if args.corpus.is_dir() else []
+    if not pdfs:
+        print(f"No PDFs found in {args.corpus}. Run scripts/fetch_sec.py first?")
+        return 1
+
+    backends = (
+        [args.parser] if args.parser else [name for name, ok in available_backends().items() if ok]
+    )
+    print(f"{'file':<36} {'backend':<12} {'recovery':>9} {'order':>7}")
+    worst = 1.0
+    for pdf in pdfs:
+        truth_path = args.ground_truth / f"{pdf.stem}.txt"
+        if not truth_path.exists():
+            print(f"{pdf.name:<36} (no ground truth at {truth_path.name}, skipped)")
+            continue
+        truth = truth_path.read_text()
+        data = pdf.read_bytes()
+        for backend in backends:
+            try:
+                result = parse_pdf(data, backend)
+            except Exception as exc:  # a backend crashing on one file is itself a result
+                print(f"{pdf.name:<36} {backend:<12} FAILED: {exc}")
+                worst = 0.0
+                continue
+            scores = parse_quality(result.text, truth)
+            worst = min(worst, scores["word_recovery"])
+            print(
+                f"{pdf.name:<36} {backend:<12} "
+                f"{scores['word_recovery']:>9.3f} {scores['order_similarity']:>7.3f}"
+            )
+    return 0 if worst > 0 else 1
+
+
 def _print_run(run, k: int) -> None:
     agg = run.at_k.get(k)
     if agg is None:
         print("No results.")
         return
 
-    print(f"{agg.n_questions} questions ({agg.n_answerable} answerable)\n")
+    print(f"{agg.n_questions} questions ({agg.n_answerable} answerable)")
+    if run.parse_lost:
+        print(
+            f"  {run.parse_lost} labelled quote(s) not found in this run's parsed text "
+            "(parse loss, scored as misses)"
+        )
+    print()
     for cutoff in sorted(run.at_k):
         a = run.at_k[cutoff]
         print(

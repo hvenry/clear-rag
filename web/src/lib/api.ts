@@ -4,7 +4,8 @@ import type {
   DocumentSummary,
   Health,
   RuntimeStatus,
-  StreamEvent
+  StreamEvent,
+  TraceSummary
 } from "./types";
 
 const BASE = "/api";
@@ -27,12 +28,27 @@ export const api = {
       "/config",
       { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }
     ),
+  models: () => json<{ chat: string[]; embedding: string[] }>("/models"),
+  updateProviders: (patch: { chat_model?: string; embed_model?: string }) =>
+    json<{
+      providers: {
+        chat: { provider: string; model: string };
+        embeddings: { provider: string; model: string };
+      };
+      reindex_needed: boolean;
+    }>("/providers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    }),
   reindex: () =>
     json<{ status: string; total_chunks: number; duration_ms: number }>("/reindex", {
       method: "POST"
     }),
   loadSample: () =>
     json<{ indexed: number; unchanged: number }>("/documents/sample", { method: "POST" }),
+
+  traces: (limit = 30) => json<TraceSummary[]>(`/traces?limit=${limit}`),
 
   documents: () => json<DocumentSummary[]>("/documents"),
   document: (id: string) => json<DocumentDetail>(`/documents/${id}`),

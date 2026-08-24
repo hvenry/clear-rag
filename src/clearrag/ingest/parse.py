@@ -4,20 +4,28 @@ The invariant every downstream stage relies on: ``Document.text`` is the authori
 string, and every chunk span indexes into it. That is what lets a citation highlight an
 exact region of the original file instead of naming a chunk number.
 
-Phase 3 replaces the PDF path with docling for real table and heading structure. pypdf is
-adequate for prose and keeps Phase 0 dependency-light.
+Phase 4 adds two things. PDF parsing is a pluggable *backend* (naive pypdf extraction,
+the hand-rolled primitives parser, or docling/marker as optional extras), because
+parsing quality is a measured variable in the ablation table, not an implementation
+detail. And every format now yields ``Block`` structure — headings, paragraphs, tables
+with spans into the canonical text — which structural chunking and breadcrumb contexts
+consume downstream.
 """
 
 from __future__ import annotations
 
 import hashlib
 import io
+import re
 import time
 from dataclasses import dataclass
 
-from ..core.types import Document
+from ..core.types import Block, Document
+from .parsers import parse_pdf
 
 SUPPORTED = {".pdf", ".txt", ".md", ".markdown", ".docx", ".csv"}
+
+_MD_HEADING = re.compile(r"^(#{1,6})\s")
 
 
 class UnsupportedFile(ValueError):
@@ -34,7 +42,7 @@ class ParseResult:
     diagnostics: dict
 
 
-def parse(filename: str, data: bytes) -> ParseResult:
+def parse(filename: str, data: bytes, *, parser: str = "primitives") -> ParseResult:
     started = time.perf_counter()
     suffix = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     if suffix not in SUPPORTED:
@@ -42,15 +50,23 @@ def parse(filename: str, data: bytes) -> ParseResult:
             f"'{suffix or filename}' is not supported. Supported: {', '.join(sorted(SUPPORTED))}"
         )
 
+    page_map: list[tuple[int, int]] = []
     match suffix:
         case ".pdf":
-            text, page_map, extra = _parse_pdf(data)
+            backend = parse_pdf(data, parser)
+            text, blocks, page_map = backend.text, backend.blocks, backend.page_map
+            extra = {**backend.diagnostics, "parser": parser}
         case ".docx":
-            text, page_map, extra = _parse_docx(data)
+            text, blocks, extra = _parse_docx(data)
+        case ".md" | ".markdown":
+            text = data.decode("utf-8", errors="replace").strip()
+            blocks = _markdown_blocks(text)
+            extra = {}
         case _:
-            text, page_map, extra = data.decode("utf-8", errors="replace"), [], {}
+            text = data.decode("utf-8", errors="replace").strip()
+            blocks = [Block(kind="paragraph", span=(0, len(text)))] if text else []
+            extra = {}
 
-    text = text.strip()
     if not text:
         raise EmptyExtraction(
             f"No text could be extracted from '{filename}'. If it is a scanned document, "
@@ -66,7 +82,14 @@ def parse(filename: str, data: bytes) -> ParseResult:
         text=text,
         content_hash=content_hash,
         page_map=page_map,
-        meta={"format": suffix.lstrip("."), "bytes": len(data)},
+        meta={
+            "format": suffix.lstrip("."),
+            "bytes": len(data),
+            # Which backend produced this text. Reindex cannot re-parse (the original
+            # bytes are gone), so a parser-knob change needs this to say so honestly.
+            **({"parser": parser} if suffix == ".pdf" else {}),
+        },
+        blocks=blocks,
     )
     return ParseResult(
         document=document,
@@ -74,48 +97,79 @@ def parse(filename: str, data: bytes) -> ParseResult:
             "format": suffix.lstrip("."),
             "characters": len(text),
             "pages": len(page_map) or None,
+            "blocks": len(blocks),
             "extract_ms": round((time.perf_counter() - started) * 1000, 2),
             **extra,
         },
     )
 
 
-def _parse_pdf(data: bytes) -> tuple[str, list[tuple[int, int]], dict]:
-    from pypdf import PdfReader
+def _markdown_blocks(text: str) -> list[Block]:
+    """Heading and paragraph blocks from Markdown, with exact spans into ``text``.
 
-    reader = PdfReader(io.BytesIO(data))
-    parts: list[str] = []
-    page_map: list[tuple[int, int]] = []
+    Deliberately minimal: ATX headings and blank-line-separated paragraphs cover this
+    project's corpora, and anything fancier (setext headings, fenced code) degrades
+    gracefully into paragraph blocks rather than being mis-labelled.
+    """
+    blocks: list[Block] = []
+    para_start: int | None = None
+    para_end = 0
     offset = 0
-    empty_pages = 0
 
-    for number, page in enumerate(reader.pages, start=1):
-        content = (page.extract_text() or "").strip()
-        if not content:
-            empty_pages += 1
-            continue
-        page_map.append((offset, number))
-        parts.append(content)
-        offset += len(content) + 2  # matches the "\n\n" join below
+    def flush() -> None:
+        nonlocal para_start
+        if para_start is not None:
+            blocks.append(Block(kind="paragraph", span=(para_start, para_end)))
+            para_start = None
 
-    return (
-        "\n\n".join(parts),
-        page_map,
-        {"empty_pages": empty_pages, "total_pages": len(reader.pages)},
-    )
+    for line in text.splitlines(keepends=True):
+        stripped = line.rstrip("\n")
+        if not stripped.strip():
+            flush()
+        elif (m := _MD_HEADING.match(stripped)) is not None:
+            flush()
+            blocks.append(
+                Block(kind="heading", span=(offset, offset + len(stripped)), level=len(m.group(1)))
+            )
+        else:
+            if para_start is None:
+                para_start = offset
+            para_end = offset + len(stripped)
+        offset += len(line)
+    flush()
+    return blocks
 
 
-def _parse_docx(data: bytes) -> tuple[str, list[tuple[int, int]], dict]:
+def _parse_docx(data: bytes) -> tuple[str, list[Block], dict]:
     import docx
 
     document = docx.Document(io.BytesIO(data))
-    paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
-    tables = len(document.tables)
-    # Tables are flattened to pipe-delimited rows. Crude, but it keeps their content
-    # searchable; docling in Phase 3 preserves real structure.
-    rows = [
-        " | ".join(cell.text.strip() for cell in row.cells)
-        for table in document.tables
-        for row in table.rows
-    ]
-    return "\n\n".join(paragraphs + rows), [], {"tables": tables}
+    # (text, kind, level) items assembled into the canonical string below.
+    items: list[tuple[str, str, int]] = []
+    for p in document.paragraphs:
+        stripped = p.text.strip()
+        if not stripped:
+            continue
+        style = (p.style.name or "") if p.style is not None else ""
+        if style.startswith("Heading"):
+            digits = "".join(ch for ch in style if ch.isdigit())
+            level = min(int(digits), 3) if digits else 1
+            items.append((stripped, "heading", level))
+        else:
+            items.append((stripped, "paragraph", 0))
+
+    # Tables are flattened to pipe-delimited rows — one block per table so downstream
+    # stages know a table is a table even without cell geometry.
+    for table in document.tables:
+        rows = [" | ".join(cell.text.strip() for cell in row.cells) for row in table.rows]
+        if rows:
+            items.append(("\n".join(rows), "table", 0))
+
+    blocks: list[Block] = []
+    parts: list[str] = []
+    offset = 0
+    for text_part, kind, level in items:
+        blocks.append(Block(kind=kind, span=(offset, offset + len(text_part)), level=level))
+        parts.append(text_part)
+        offset += len(text_part) + 2  # matches the "\n\n" join
+    return "\n\n".join(parts), blocks, {"tables": len(document.tables)}

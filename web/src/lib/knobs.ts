@@ -25,21 +25,27 @@ export interface Knob {
   implemented: boolean;
   /** Changing this invalidates the stored chunks/vectors and needs a re-index. */
   reindexes?: boolean;
+  /** Learn-page topic id this knob's hint card links to. */
+  learn?: string;
 }
 
 export interface KnobGroup {
   title: string;
   hint: string;
+  /** Learn-page topic id this group's hint card links to. */
+  learn?: string;
   knobs: Knob[];
 }
 
 export const KNOB_GROUPS: KnobGroup[] = [
   {
     title: "Retrieval",
+    learn: "hybrid-fusion",
     hint: "How candidate chunks are found and ranked before the model sees anything.",
     knobs: [
       {
         key: "retrieval",
+        learn: "hybrid-fusion",
         label: "Mode",
         type: "segmented",
         implemented: true,
@@ -52,15 +58,18 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "k_candidates",
+        learn: "hybrid-fusion",
         label: "Candidates per search",
-        type: "number",
+        type: "range",
         min: 1,
         max: 500,
+        step: 1,
         implemented: true,
         hint: "How many chunks each search returns before merging. More candidates give fusion more to work with at almost no cost — this is not the number the model sees."
       },
       {
         key: "fusion",
+        learn: "hybrid-fusion",
         label: "Fusion",
         type: "segmented",
         implemented: true,
@@ -73,16 +82,19 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "rrf_k",
+        learn: "hybrid-fusion",
         label: "RRF damping (k)",
-        type: "number",
+        type: "range",
         min: 1,
-        max: 500,
+        max: 200,
+        step: 1,
         implemented: true,
         visibleWhen: (d) => d.retrieval === "hybrid" && d.fusion === "rrf",
         hint: "The constant in 1/(k + rank). Small k lets a single #1 dominate; large k flattens the rankings so agreement between searches matters more than position. 60 is the value from the original paper."
       },
       {
         key: "dense_weight",
+        learn: "hybrid-fusion",
         label: "Vector weight",
         type: "range",
         min: 0,
@@ -94,15 +106,18 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "k_final",
+        learn: "context-assembly",
         label: "Chunks to the model",
-        type: "number",
+        type: "range",
         min: 1,
         max: 50,
+        step: 1,
         implemented: true,
         hint: "How many top chunks are packed into the prompt. More context can help — or bury the answer in noise a small model cannot attribute correctly."
       },
       {
         key: "rerank",
+        learn: "reranking",
         label: "Cross-encoder rerank",
         type: "toggle",
         implemented: true,
@@ -112,10 +127,12 @@ export const KNOB_GROUPS: KnobGroup[] = [
   },
   {
     title: "Ingestion",
+    learn: "chunking",
     hint: "How documents become indexed chunks. These change the stored index, so applying them offers a re-index of everything already uploaded.",
     knobs: [
       {
         key: "parser",
+        learn: "parser-backends",
         label: "PDF parser",
         type: "segmented",
         implemented: true,
@@ -130,6 +147,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "chunker",
+        learn: "chunking",
         label: "Chunker",
         type: "segmented",
         implemented: true,
@@ -142,20 +160,24 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "chunk_size",
+        learn: "chunking",
         label: "Chunk size (tokens)",
-        type: "number",
+        type: "range",
         min: 64,
         max: 4096,
+        step: 64,
         implemented: true,
         reindexes: true,
         hint: "The unit of retrieval. Large chunks carry more context but blur together unrelated sections — a one-page resume at 512 tokens becomes three chunks that each mix several jobs. Small chunks are precise but can orphan their context."
       },
       {
         key: "chunk_overlap",
+        learn: "overlap",
         label: "Overlap (tokens)",
-        type: "number",
+        type: "range",
         min: 0,
         max: 1024,
+        step: 16,
         implemented: true,
         reindexes: true,
         visibleWhen: (d) => d.chunker !== "semantic",
@@ -163,6 +185,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "context_mode",
+        learn: "contextual-retrieval",
         label: "Contextual retrieval",
         type: "segmented",
         implemented: true,
@@ -178,10 +201,12 @@ export const KNOB_GROUPS: KnobGroup[] = [
   },
   {
     title: "Conversation",
+    learn: "query-rewriting",
     hint: "What happens to your question before any search runs.",
     knobs: [
       {
         key: "rewrite_followups",
+        learn: "query-rewriting",
         label: "Rewrite follow-ups",
         type: "toggle",
         implemented: true,
@@ -189,6 +214,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "query_transform",
+        learn: "query-rewriting",
         label: "Query expansion",
         type: "segmented",
         implemented: false,
@@ -210,10 +236,12 @@ export const KNOB_GROUPS: KnobGroup[] = [
   },
   {
     title: "Generation",
+    learn: "generation-citations",
     hint: "How the answer itself is produced from the packed context.",
     knobs: [
       {
         key: "max_context_tokens",
+        learn: "context-assembly",
         label: "Context budget (tokens)",
         type: "number",
         min: 256,
@@ -223,6 +251,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
       },
       {
         key: "temperature",
+        learn: "generation-citations",
         label: "Temperature",
         type: "range",
         min: 0,

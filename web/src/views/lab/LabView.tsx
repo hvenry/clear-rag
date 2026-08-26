@@ -1,21 +1,29 @@
 import {
+  ArrowCounterClockwiseIcon,
   ChatsCircleIcon,
-  DatabaseIcon,
   MagnifyingGlassIcon,
   ScissorsIcon,
   SparkleIcon,
   type Icon
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent
+} from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Composer } from "../../components/Composer";
 import { EmptyState } from "../../components/EmptyState";
-import { HoverInfo } from "../../components/HoverInfo";
 import { Loader } from "../../components/Loader";
 import { PanelTrigger, SidePanel } from "../../components/SidePanel";
 import { api } from "../../lib/api";
 import { diffConfigs, KNOB_GROUPS, REINDEX_KEYS } from "../../lib/knobs";
-import { useDocuments, useHealth, useLoadSample, useReindex, useUpdateConfig } from "../../lib/queries";
+import { formatElapsed, useElapsedSeconds } from "../../lib/importer";
+import { useDocuments, useHealth, useInvalidateCorpus, useUpdateConfig } from "../../lib/queries";
 import { formatMs, mergeStage } from "../../lib/stages";
 import type { Turn } from "../../lib/types";
 import { KnobControl } from "./KnobControl";
@@ -41,20 +49,32 @@ const GROUP_ICON: Record<string, Icon> = {
 
 let runCounter = 0;
 
+/** Hints preference survives view switches but not a reload — a mode, not an address. */
+let hintsPref = true;
+
 export function LabView() {
   const { data: health } = useHealth();
   const { data: documents = [] } = useDocuments();
   const updateConfig = useUpdateConfig();
-  const reindexMutation = useReindex();
-  const loadSampleMutation = useLoadSample();
+  const invalidateCorpus = useInvalidateCorpus();
   const chunkCount = health?.chunks ?? 0;
   const docCount = documents.length;
 
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
   const [applied, setApplied] = useState<Record<string, unknown> | null>(null);
+  const [defaults, setDefaults] = useState<Record<string, unknown> | null>(null);
   const [needsReindex, setNeedsReindex] = useState(false);
   const [reindexing, setReindexing] = useState(false);
-  const [loadingSample, setLoadingSample] = useState(false);
+  const [reindexProgress, setReindexProgress] = useState<{
+    filename: string;
+    index: number;
+    total: number;
+  } | null>(null);
+  const [reindexStartedAt, setReindexStartedAt] = useState<number | null>(null);
+  const reindexElapsed = useElapsedSeconds(
+    reindexStartedAt ?? 0,
+    reindexStartedAt === null ? 0 : null
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
   const [runs, setRuns] = useState<LabRun[]>([]);
@@ -63,12 +83,66 @@ export function LabView() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [railCollapsed, setRailCollapsed] = useState(false);
 
+  // ── Hint card: slides out from under the rail's right border, at the hovered
+  // row's height. Content persists while hidden so the slide-back animates. ──
+  const navigate = useNavigate();
+  const [hintsOn, setHintsOn] = useState(hintsPref);
+  const [hintCard, setHintCard] = useState<{
+    title: string;
+    text: string;
+    learn: string | null;
+    top: number;
+    left: number;
+  } | null>(null);
+  const [hintVisible, setHintVisible] = useState(false);
+  const hintHideTimer = useRef<number | undefined>(undefined);
+
+  const showHint = (
+    e: ReactMouseEvent<HTMLElement>,
+    title: string,
+    text: string,
+    learn?: string
+  ) => {
+    if (!hintsOn) return;
+    window.clearTimeout(hintHideTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHintCard({
+      title,
+      text,
+      learn: learn ?? null,
+      top: Math.max(8, Math.min(rect.top, window.innerHeight - 220)),
+      left: rect.right
+    });
+    setHintVisible(true);
+  };
+  // A short grace, not a delay: the card shows instantly, but the pointer needs a
+  // moment to cross from the row into the card without it sliding away.
+  const hideHint = () => {
+    window.clearTimeout(hintHideTimer.current);
+    hintHideTimer.current = window.setTimeout(() => setHintVisible(false), 150);
+  };
+  const holdHint = () => window.clearTimeout(hintHideTimer.current);
+  const toggleHints = () => {
+    setHintsOn((on) => {
+      hintsPref = !on;
+      if (on) setHintVisible(false);
+      return !on;
+    });
+  };
+  const hintRow = `-mx-4 px-4 py-1 transition-colors ${hintsOn ? "hover:bg-foreground/5" : ""}`;
+
   useEffect(() => {
     api.config().then((response) => {
       setDraft(response.config);
       setApplied(response.config);
+      setDefaults(response.defaults);
     });
   }, []);
+
+  const isDefault = useMemo(
+    () => defaults !== null && JSON.stringify(draft) === JSON.stringify(defaults),
+    [draft, defaults]
+  );
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(applied),
@@ -98,37 +172,48 @@ export function LabView() {
 
   const runReindex = useCallback(async () => {
     setReindexing(true);
+    setReindexStartedAt(Date.now());
+    // The backend's note flags what a re-index could NOT do — e.g. PDFs keeping
+    // text from a different parser backend. Dropping it made the parser knob look
+    // broken after a re-index, and a warning deserves more screen time than a count.
+    let linger = 6000;
     try {
       await applyDraft();
-      const report = await reindexMutation.mutateAsync();
-      setNeedsReindex(false);
-      setNotice(
-        `Re-indexed ${report.total_chunks} chunks in ${formatMs(report.duration_ms)}.`
-      );
+      for await (const event of api.reindexStream()) {
+        switch (event.type) {
+          case "start":
+            setReindexProgress({ filename: "", index: 0, total: event.filenames.length });
+            break;
+          case "doc":
+            setReindexProgress({
+              filename: event.filename,
+              index: event.index,
+              total: event.total
+            });
+            break;
+          case "done":
+            setNeedsReindex(false);
+            if (event.note) linger = 15000;
+            setNotice(
+              `Re-indexed ${event.total_chunks} chunks in ${formatMs(event.duration_ms)}.` +
+                (event.note ? ` ${event.note}` : "")
+            );
+            break;
+          case "error":
+            setNotice(event.message + (event.remedy ? ` — ${event.remedy}` : ""));
+            break;
+        }
+      }
     } catch (error) {
       setNotice(String(error));
     } finally {
       setReindexing(false);
-      setTimeout(() => setNotice(null), 6000);
+      setReindexProgress(null);
+      setReindexStartedAt(null);
+      void invalidateCorpus();
+      setTimeout(() => setNotice(null), linger);
     }
-  }, [applyDraft, reindexMutation]);
-
-  const loadSample = useCallback(async () => {
-    setLoadingSample(true);
-    try {
-      const report = await loadSampleMutation.mutateAsync();
-      setNotice(
-        report.indexed
-          ? `Indexed ${report.indexed} sample documents.`
-          : "Sample corpus already indexed."
-      );
-    } catch (error) {
-      setNotice(String(error));
-    } finally {
-      setLoadingSample(false);
-      setTimeout(() => setNotice(null), 6000);
-    }
-  }, [loadSampleMutation]);
+  }, [applyDraft, invalidateCorpus]);
 
   const ask = useCallback(async () => {
     const text = question.trim();
@@ -220,76 +305,110 @@ export function LabView() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         collapsed={railCollapsed}
-        onCollapse={setRailCollapsed}
+        onCollapse={(collapsed) => {
+          setRailCollapsed(collapsed);
+          // Unmount, not just slide away: "hidden" tucks the card under the wide
+          // panel, and the collapsed strip is too narrow to cover it.
+          if (collapsed) {
+            window.clearTimeout(hintHideTimer.current);
+            setHintVisible(false);
+            setHintCard(null);
+          }
+        }}
+        headerExtra={
+          <button
+            onClick={toggleHints}
+            className="font-display text-[9px] tracking-[0.14em] text-subtle uppercase transition-colors hover:text-foreground"
+          >
+            {hintsOn ? "hide hints" : "show hints"}
+          </button>
+        }
+        footer={
+          // Only when something actually deviates from the defaults — a reset
+          // button with nothing to reset is furniture. Restores the backend's own
+          // defaults into the draft; it applies on the next ask like any other
+          // edit, so the re-index banner still guards chunking changes.
+          defaults !== null && !isDefault ? (
+            <div className="px-4 py-3">
+              <button
+                onClick={() => setDraft({ ...defaults })}
+                className="flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1 font-mono text-[10px] text-subtle transition-colors hover:border-foreground/50"
+              >
+                <ArrowCounterClockwiseIcon size={12} />
+                reset to defaults
+              </button>
+            </div>
+          ) : undefined
+        }
       >
-        <div className="px-4 pt-3 pb-1">
-          <p className="text-[11px] leading-relaxed text-subtle">
-            Settings apply when you ask. Greyed-out controls are on the roadmap but not
-            built yet — they are shown so the config never pretends.
-          </p>
-        </div>
-
         {KNOB_GROUPS.map((group) => {
           const GroupIcon = GROUP_ICON[group.title];
           return (
             <section key={group.title} className="border-b border-line/60 px-4 py-3">
-              <HoverInfo text={group.hint} className="mb-2">
+              <div
+                onMouseEnter={(e) => showHint(e, group.title, group.hint, group.learn)}
+                onMouseLeave={hideHint}
+                className={`mb-1 ${hintRow}`}
+              >
                 <h3 className="flex items-center gap-1.5 font-display text-[10px] tracking-[0.16em] text-subtle uppercase">
                   {GroupIcon ? <GroupIcon size={12} /> : null}
                   {group.title}
-                  {/* One marker for the whole group; the banner above the composer
-                      carries the explanation. */}
-                  {group.knobs.some((k) => k.reindexes) ? (
-                    <span className="ml-auto font-mono text-[8px] tracking-wide text-slow">
-                      re-index
-                    </span>
-                  ) : null}
                 </h3>
-              </HoverInfo>
-              <div className="space-y-2.5">
+              </div>
+              <div className="space-y-1">
                 {group.knobs
                   .filter((knob) => !knob.visibleWhen || knob.visibleWhen(draft))
                   .map((knob) => (
-                    <KnobControl
+                    <div
                       key={knob.key}
-                      knob={knob}
-                      value={draft[knob.key]}
-                      onChange={(value) => setDraft((d) => ({ ...d!, [knob.key]: value }))}
-                    />
+                      onMouseEnter={(e) => showHint(e, knob.label, knob.hint, knob.learn)}
+                      onMouseLeave={hideHint}
+                      className={hintRow}
+                    >
+                      <KnobControl
+                        knob={knob}
+                        value={draft[knob.key]}
+                        onChange={(value) => setDraft((d) => ({ ...d!, [knob.key]: value }))}
+                      />
+                    </div>
                   ))}
               </div>
             </section>
           );
         })}
 
-        {/* Corpus */}
-        <section className="px-4 py-3">
-          <h3 className="mb-2 flex items-center gap-1.5 font-display text-[10px] tracking-[0.16em] text-subtle uppercase">
-            <DatabaseIcon size={12} />
-            Corpus
-          </h3>
-          <p className="tabular font-mono text-[10px] text-subtle">
-            {docCount} documents · {chunkCount} chunks indexed
-          </p>
-          {chunkCount < 20 ? (
-            <p className="mt-1.5 text-[11px] leading-relaxed text-subtle">
-              With this few chunks every search returns everything and settings barely
-              differ. The bundled corpus (10 documents, ~60 chunks) makes comparisons
-              meaningful.
-            </p>
-          ) : null}
-          <button
-            onClick={() => void loadSample()}
-            disabled={loadingSample}
-            className="mt-2 border border-line px-2.5 py-1 font-mono text-[10px] transition-colors hover:border-foreground/50 disabled:opacity-40"
-          >
-            {loadingSample ? "indexing…" : "load sample corpus"}
-          </button>
-          {notice ? (
-            <p className="mt-2 font-mono text-[10px] text-subtle">{notice}</p>
-          ) : null}
-        </section>
       </SidePanel>
+
+      {/* ── The hint card: fixed at the hovered row's height, sliding out from
+          under the rail's right border (the rail paints above it at z-10).
+          Hovering the card itself keeps it open. Desktop only — on mobile the
+          settings drawer covers the screen and there is no hover. ── */}
+      {hintCard ? (
+        <div
+          onMouseEnter={holdHint}
+          onMouseLeave={hideHint}
+          style={{ left: hintCard.left, top: hintCard.top }}
+          className={[
+            // Same elevation as the header dropdown cards.
+            "fixed z-[5] hidden w-72 border border-line bg-background py-3 pr-3 pl-5 shadow-[0_8px_28px_rgb(0_0_0/0.4)] lg:block",
+            "transition-all duration-150 ease-out",
+            hintVisible && hintsOn ? "translate-x-0" : "pointer-events-none -translate-x-full"
+          ].join(" ")}
+        >
+          <p className="menu-label mb-1">{hintCard.title}</p>
+          <p className="text-[11px] leading-relaxed text-muted">{hintCard.text}</p>
+          {hintCard.learn ? (
+            // Same affordance as the chat's stage inspector: one step from a
+            // setting to the concept page explaining it.
+            <button
+              onClick={() => navigate(`/learn/${hintCard.learn}`)}
+              className="mt-2 w-full border border-line px-2 py-1 text-left font-mono text-[10px] text-subtle transition-colors hover:border-foreground/50 hover:text-foreground"
+            >
+              more info →
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* ── Runs on top; the composer is pinned to the bottom, matching Chat ── */}
       <section className="flex min-w-0 flex-1 flex-col">
@@ -321,14 +440,46 @@ export function LabView() {
                   ? " The parser change only affects files uploaded from now on — re-indexing rebuilds from stored text and cannot re-parse."
                   : ""}
               </p>
-              <button
-                onClick={() => void runReindex()}
-                disabled={reindexing}
-                className="border border-slow/60 px-2.5 py-1 font-display text-[10px] tracking-[0.14em] text-slow uppercase transition-colors hover:bg-slow hover:text-background disabled:opacity-40"
-              >
-                {reindexing ? "re-indexing…" : "re-index now"}
-              </button>
+              {!reindexing ? (
+                <button
+                  onClick={() => void runReindex()}
+                  className="border border-slow/60 px-2.5 py-1 font-display text-[10px] tracking-[0.14em] text-slow uppercase transition-colors hover:bg-slow hover:text-background"
+                >
+                  re-index now
+                </button>
+              ) : null}
             </div>
+            {reindexing && reindexProgress ? (
+              <div className="mt-2">
+                <div className="h-1 w-full bg-slow/15">
+                  <div
+                    className="h-full bg-slow transition-[width] duration-300"
+                    style={{
+                      width: `${
+                        reindexProgress.total
+                          ? Math.round((reindexProgress.index / reindexProgress.total) * 100)
+                          : 0
+                      }%`
+                    }}
+                  />
+                </div>
+                <p className="tabular mt-1 flex justify-between gap-2 font-mono text-[10px] text-subtle">
+                  <span className="truncate">
+                    {reindexProgress.index}/{reindexProgress.total}
+                    {reindexProgress.filename ? ` · ${reindexProgress.filename}` : ""}
+                  </span>
+                  <span className="shrink-0">{formatElapsed(reindexElapsed)}</span>
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Re-index results surface here now that the corpus section is gone —
+            document management itself lives in the Library. */}
+        {notice ? (
+          <div className="border-t border-line px-3 py-1.5 sm:px-5">
+            <p className="tabular font-mono text-[10px] text-subtle">{notice}</p>
           </div>
         ) : null}
 

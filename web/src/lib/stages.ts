@@ -23,46 +23,44 @@ export interface StageInfo {
 export const STAGE_INFO: Record<string, StageInfo> = {
   transform: {
     short: "Rewrite",
-    what: "Rewrites a follow-up question into one that stands on its own, so “what about his school?” becomes “what school did Henry attend?” before anything is searched.",
-    timing:
-      "Skipped entirely on the first question of a conversation. On later turns it is a full LLM call, so it costs about as much as generating a short answer.",
+    what: "Rewrites a follow-up question into one that stands on its own before searching.",
+    timing: "Skipped on the first question; later turns cost one LLM call.",
   },
   bm25: {
     short: "Keyword",
-    what: "Classic keyword search over a hand-built inverted index, scored with BM25. Strong on exact terms — names, error codes, API headers — and blind to synonyms.",
+    what: "BM25 keyword search over an inverted index. Strong on exact terms, blind to synonyms.",
     count: "Chunks returned, ranked best first.",
-    timing: "Pure arithmetic over an in-memory index. Single-digit milliseconds is normal.",
+    timing: "In-memory arithmetic; single-digit milliseconds.",
   },
   dense: {
     short: "Vector",
-    what: "Semantic search. Your question is turned into a vector and compared against every chunk by cosine similarity, so it matches on meaning rather than shared words.",
+    what: "Semantic search: the question is embedded and compared to every chunk by cosine similarity — matching meaning, not shared words.",
     count: "Chunks returned, ranked best first.",
-    timing:
-      "Dominated by embedding the question — one round trip to the embedding model. The search itself is a single matrix multiply.",
+    timing: "Dominated by embedding the question; the search is one matrix multiply.",
   },
   fuse: {
     short: "Fuse",
-    what: "Merges the keyword and vector rankings using Reciprocal Rank Fusion: each chunk scores Σ 1/(60 + rank) across both lists. A chunk both methods liked beats one that only a single method ranked first.",
-    count: "Unique chunks after merging the two lists.",
-    timing: "Arithmetic on two short lists. Effectively free.",
+    what: "Merges the keyword and vector rankings with Reciprocal Rank Fusion — a chunk both methods liked beats one only a single method ranked first.",
+    count: "Unique chunks after merging.",
+    timing: "Arithmetic on two short lists; effectively free.",
   },
   rerank: {
     short: "Rerank",
-    what: "A cross-encoder reads the question and each chunk together and re-scores them. More accurate than either retriever, and far too slow to run over the whole corpus — which is why it only sees the fused shortlist.",
+    what: "A cross-encoder reads question and chunk together and re-scores the fused shortlist — too slow for the whole corpus, more accurate than either retriever.",
     count: "Chunks kept after re-scoring.",
-    timing: "Runs a model over every candidate, so it scales with the shortlist length.",
+    timing: "One model pass per candidate; scales with shortlist length.",
   },
   assemble: {
     short: "Context",
-    what: "Packs the surviving chunks into the model’s token budget, drops chunks whose text is already covered by a higher-ranked one, and numbers them so the answer can cite [1], [2].",
-    count: "Chunks that actually reached the model.",
-    timing: "Counts tokens for each chunk. Milliseconds.",
+    what: "Packs the surviving chunks into the token budget, drops overlap-duplicates, and numbers them for citations.",
+    count: "Chunks that reached the model.",
+    timing: "Token counting; milliseconds.",
   },
   generate: {
     short: "Generate",
-    what: "The language model writes the answer using only the packed context, citing each claim by number. Citations pointing at passages that were never supplied are discarded rather than shown.",
+    what: "The model writes the answer from the packed context only, citing by number. Citations to passages never supplied are discarded.",
     timing:
-      "By far the slowest stage, and the only one worth splitting in two. `ttft_ms` is the model reading the packed context before it writes anything — shrink it with fewer or smaller chunks. `tokens_per_second` is the rate it writes at afterwards — that one is a property of the model, not the retrieval. A reasoning model also spends extra time thinking before its first word; clear-rag disables that by default.",
+      "The slowest stage. `ttft_ms` is the model reading the context before writing — shrink with fewer or smaller chunks. `tokens_per_second` is the model's own writing speed.",
   },
 };
 

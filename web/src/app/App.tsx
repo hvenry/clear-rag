@@ -28,6 +28,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/chat" replace />} />
         <Route path="/chat" element={<ChatView />} />
+        <Route path="/chat/:sessionId" element={<ChatView />} />
         <Route path="/library" element={<LibraryView />} />
         <Route path="/library/map" element={<LibraryView />} />
         <Route path="/library/:docId" element={<LibraryView />} />

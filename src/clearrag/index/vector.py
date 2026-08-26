@@ -65,13 +65,28 @@ class VectorIndex:
         self._ids = [self._ids[i] for i in keep]
         self._row_of = {cid: i for i, cid in enumerate(self._ids)}
 
-    def search(self, query_vector: np.ndarray, k: int = 50) -> list[Candidate]:
+    def search(
+        self, query_vector: np.ndarray, k: int = 50, allowed: set[str] | None = None
+    ) -> list[Candidate]:
+        """Top-k by cosine. ``allowed`` restricts results to those chunk ids — applied
+        before top-k selection, so a scoped search still returns k real candidates
+        from its scope instead of a starved remainder."""
         if len(self._ids) == 0:
             return []
         query = np.asarray(query_vector, dtype=np.float32).reshape(-1)
         scores = self._vectors @ query
 
-        k = min(k, len(scores))
+        eligible = len(scores)
+        if allowed is not None:
+            mask = np.fromiter(
+                (cid in allowed for cid in self._ids), dtype=bool, count=len(self._ids)
+            )
+            eligible = int(mask.sum())
+            if eligible == 0:
+                return []
+            scores = np.where(mask, scores, -np.inf)
+
+        k = min(k, eligible)
         # argpartition finds the top k without fully sorting the rest -- the sort then
         # only touches k elements instead of the whole corpus.
         top = np.argpartition(-scores, k - 1)[:k]

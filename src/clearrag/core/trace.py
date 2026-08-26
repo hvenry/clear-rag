@@ -81,6 +81,8 @@ class Trace:
     answer: str | None = None
     citations: list[Citation] = field(default_factory=list)
     total_ms: float = 0.0
+    session_id: str | None = None
+    """The chat session this query ran in — what scopes the telemetry panel."""
 
     def stage(self, name: str, label: str, **config: Any) -> StageRecord:
         """Open a stage record and append it immediately.
@@ -106,4 +108,5 @@ class Trace:
             "answer": self.answer,
             "citations": [asdict(c) for c in self.citations],
             "total_ms": round(self.total_ms, 2),
+            "session_id": self.session_id,
         }

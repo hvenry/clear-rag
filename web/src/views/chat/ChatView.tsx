@@ -7,7 +7,7 @@ import {
   QuotesIcon
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { Navigate, useOutletContext, useParams } from "react-router-dom";
 
 import { useExplainStage, useOpenCitation } from "../../app/navigation";
 import type { AppOutletContext } from "../../app/session";
@@ -20,9 +20,11 @@ import { SourceLegend } from "../../components/retrieval/Legend";
 import { MIN_CANDIDATES_FOR_FLOW, RankFlow } from "../../components/retrieval/RankFlow";
 import { RetrievalTable } from "../../components/retrieval/RetrievalTable";
 import { StageStrip } from "../../components/retrieval/StageStrip";
-import { useDocuments } from "../../lib/queries";
+import { PanelTrigger } from "../../components/SidePanel";
+import { useDocuments, useSessions } from "../../lib/queries";
 import { formatMs } from "../../lib/stages";
 import type { StageRecord, Turn } from "../../lib/types";
+import { SessionRail } from "./SessionRail";
 import { TelemetryPanel } from "./TelemetryPanel";
 
 /**
@@ -31,21 +33,49 @@ import { TelemetryPanel } from "./TelemetryPanel";
  * back never wipes a conversation. This component only renders it.
  */
 export function ChatView() {
-  const { session, uploading } = useOutletContext<AppOutletContext>();
+  const { sessionId } = useParams<{ sessionId?: string }>();
+  const { session, uploading, upload } = useOutletContext<AppOutletContext>();
   const { turns, question, setQuestion, ask, busy } = session;
   const { data: documents = [] } = useDocuments();
+  const { data: sessions = [] } = useSessions();
   const openCitation = useOpenCitation();
   const explainStage = useExplainStage();
   const [selectedChunk, setSelectedChunk] = useState<string | null>(null);
+  const [railOpen, setRailOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const wasEmpty = useRef(true);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Opening a conversation with history lands at the bottom instantly — a
+    // smooth scroll over a long transcript gets cut short by initial layout.
+    // Smooth is for turns arriving while you watch.
+    const behavior = wasEmpty.current && turns.length > 0 ? "auto" : "smooth";
+    wasEmpty.current = turns.length === 0;
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
   }, [turns]);
 
+  // /chat is not an address any more — a conversation is. Land on the newest
+  // session; the server mints a default one when none exist.
+  if (!sessionId) {
+    return sessions.length > 0 ? <Navigate to={`/chat/${sessions[0].id}`} replace /> : null;
+  }
+
   return (
-    <main className="flex min-h-0 flex-1 flex-col">
-      <TelemetryPanel refreshKey={turns.filter((t) => !t.streaming).length} />
+    <div className="flex min-h-0 flex-1">
+      <SessionRail
+        activeId={sessionId}
+        open={railOpen}
+        onClose={() => setRailOpen(false)}
+        onUpload={upload}
+      />
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex items-center border-b border-line px-3 py-2 lg:hidden">
+          <PanelTrigger label="Chats" onOpen={() => setRailOpen(true)} />
+        </div>
+      <TelemetryPanel
+        refreshKey={turns.filter((t) => !t.streaming).length}
+        sessionId={sessionId}
+      />
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-6">
           {turns.length === 0 ? <ChatEmptyState /> : null}
@@ -111,7 +141,8 @@ export function ChatView() {
         placeholder={documents.length ? "Ask about your documents…" : "Add a document to begin…"}
         notice={uploading}
       />
-    </main>
+      </main>
+    </div>
   );
 }
 

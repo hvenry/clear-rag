@@ -22,20 +22,27 @@ import { ChartLegend, ColumnChart, SegmentBar, StatTile, type Column } from "../
  * the query log. Data comes from /api/traces — the same traces the store already
  * persists — so history survives reloads and covers Lab runs too.
  */
-export function TelemetryPanel({ refreshKey }: { refreshKey: number }) {
+export function TelemetryPanel({
+  refreshKey,
+  sessionId
+}: {
+  refreshKey: number;
+  /** Scope the readout to one chat session's queries; omit for everything. */
+  sessionId?: string;
+}) {
   const [traces, setTraces] = useState<TraceSummary[] | null>(null);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const rows = await api.traces(30);
+      const rows = await api.traces(30, sessionId);
       // A server built before stage summaries existed sends bare rows; charts
       // degrade to totals-only rather than crashing the whole chat view.
       setTraces(rows.map((t) => ({ ...t, stages: t.stages ?? [] })));
     } catch {
       // Telemetry is a readout, not a feature the chat depends on; fail quiet.
     }
-  }, []);
+  }, [sessionId]);
 
   useEffect(() => {
     void load();

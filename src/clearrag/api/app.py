@@ -18,6 +18,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,26 +55,55 @@ def _find_web_dist() -> Path:
 WEB_DIST = _find_web_dist()
 
 
-def _find_sample_corpus() -> Path | None:
-    """The bundled evaluation corpus doubles as a demo corpus.
+# The bundled evaluation corpora double as demo corpora. A three-chunk resume makes
+# every retrieval comparison degenerate -- all retrievers return everything -- so the
+# UI offers these in one click rather than asking the user to find files to drop.
+# Sets are identified by filename: sample documents keep their bundled names, which
+# is what lets "remove set" find them again without a tagging scheme.
+SAMPLE_SETS: list[dict[str, str]] = [
+    {
+        "id": "dev-docs",
+        "label": "Engineering docs",
+        "description": "Ten short internal docs (~60 chunks) — the corpus the Lab "
+        "comparisons and the bundled evals assume.",
+        "rel": "evals/corpus",
+        "glob": "*.md",
+    },
+    {
+        "id": "sec-10k",
+        "label": "SEC 10-K sections",
+        "description": "Apple and Microsoft FY2023 10-K sections as PDFs — financial "
+        "tables and dense vocabulary, the parser comparison corpus.",
+        "rel": "evals/sec/corpus",
+        "glob": "*.pdf",
+    },
+]
 
-    A three-chunk resume makes every retrieval comparison degenerate -- all retrievers
-    return everything. Ten documents (~60 chunks) is where hybrid-vs-dense differences,
-    the rank-flow chart, and the Lab's comparisons become visible, so the UI offers to
-    load this corpus in one click rather than asking the user to find files to drop.
-    """
+
+def _sample_files(spec: dict[str, str]) -> list[Path]:
+    """Resolve a sample set to files, tolerating the same three install shapes as the
+    web bundle: source checkout, container, site-packages install run from the repo."""
     here = Path(__file__).resolve()
-    candidates = [
-        here.parents[3] / "evals" / "corpus",
-        Path("/app/evals/corpus"),
-        Path.cwd() / "evals" / "corpus",
-    ]
-    return next((c for c in candidates if c.is_dir() and any(c.glob("*.md"))), None)
+    for root in (here.parents[3], Path("/app"), Path.cwd()):
+        directory = root / spec["rel"]
+        if directory.is_dir():
+            files = sorted(directory.glob(spec["glob"]))
+            if files:
+                return files
+    return []
+
+
+def _sample_set(set_id: str) -> dict[str, str]:
+    spec = next((s for s in SAMPLE_SETS if s["id"] == set_id), None)
+    if spec is None:
+        raise HTTPException(404, f"No sample set named '{set_id}'.")
+    return spec
 
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     history: list[dict[str, str]] = Field(default_factory=list)
+    session_id: str | None = None
 
 
 class State:
@@ -181,6 +211,9 @@ async def health() -> dict[str, Any]:
 async def read_config() -> dict[str, Any]:
     return {
         "config": state.config.model_dump(),
+        # Out-of-the-box values, so a "reset to defaults" in the UI restores the
+        # model's actual defaults rather than a hardcoded copy that can drift.
+        "defaults": PipelineConfig().model_dump(),
         "config_hash": state.config.config_hash,
         "providers": {
             "chat": {"provider": state.settings.chat_provider, "model": state.settings.chat_model},
@@ -338,12 +371,12 @@ async def upload(files: list[UploadFile] = File(...), eng: Engine = Depends(engi
 
 @app.post("/api/documents/sample")
 async def load_sample_corpus(eng: Engine = Depends(engine)) -> dict[str, Any]:
-    """Ingest the bundled evaluation corpus. Idempotent: unchanged files are skipped."""
-    corpus = _find_sample_corpus()
-    if corpus is None:
+    """One-shot import of the default sample set. Idempotent; the Lab still calls it."""
+    files = _sample_files(SAMPLE_SETS[0])
+    if not files:
         raise HTTPException(404, "The bundled sample corpus is not available in this install.")
     results: list[dict[str, Any]] = []
-    for path in sorted(corpus.glob("*.md")):
+    for path in files:
         try:
             results.append(await eng.ingest(path.name, path.read_bytes()))
         except ProviderError as exc:
@@ -355,6 +388,106 @@ async def load_sample_corpus(eng: Engine = Depends(engine)) -> dict[str, Any]:
     }
 
 
+@app.delete("/api/documents")
+async def clear_documents(eng: Engine = Depends(engine)) -> dict[str, Any]:
+    """Empty the index entirely: every document, chunk and vector."""
+    docs = eng.store.list_documents()
+    chunks_removed = sum(eng.delete_document(d["id"]) for d in docs)
+    return {"removed": len(docs), "chunks_removed": chunks_removed}
+
+
+# ── Sample sets ─────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/samples")
+async def list_sample_sets(eng: Engine = Depends(engine)) -> list[dict[str, Any]]:
+    """The bundled sample sets available in this install, with how much of each is
+    already indexed — that difference is what makes the UI's import/remove buttons
+    honest instead of stateless."""
+    indexed = {d["filename"] for d in eng.store.list_documents()}
+    listing = []
+    for spec in SAMPLE_SETS:
+        files = _sample_files(spec)
+        if not files:
+            continue
+        listing.append(
+            {
+                "id": spec["id"],
+                "label": spec["label"],
+                "description": spec["description"],
+                "file_count": len(files),
+                "indexed_count": sum(1 for f in files if f.name in indexed),
+            }
+        )
+    return listing
+
+
+@app.post("/api/samples/{set_id}")
+async def import_sample_set(set_id: str, eng: Engine = Depends(engine)) -> StreamingResponse:
+    """Ingest a sample set, streaming per-file progress as SSE.
+
+    Indexing embeds every chunk, so a set takes seconds to minutes depending on the
+    embedding provider. A single blocking JSON response leaves the user staring at a
+    dead button for that long; this stream is what the progress bar reads.
+    """
+    files = _sample_files(_sample_set(set_id))
+    if not files:
+        raise HTTPException(404, f"Sample set '{set_id}' is not available in this install.")
+
+    async def events() -> AsyncIterator[str]:
+        # The full plan first, so the client can draw every pending file before the
+        # slow part starts rather than discovering the set one embed at a time.
+        yield sse({"type": "start", "filenames": [p.name for p in files]})
+        # A degraded parse (e.g. the configured backend is not installed) is recorded
+        # in each file's trace; surface it once so the fallback is not silent in the UI.
+        warned: set[str] = set()
+        # Resuming a stopped import must not pay for the files that already landed.
+        # The engine's content-hash short-circuit only fires *after* parsing, which for
+        # a PDF is most of the cost — but sample sets are static bundles, so a filename
+        # already in the store is the same file and can be skipped without reading it.
+        already = {d["filename"] for d in eng.store.list_documents()}
+        indexed = unchanged = 0
+        for position, path in enumerate(files):
+            yield sse(
+                {"type": "file", "filename": path.name, "index": position, "total": len(files)}
+            )
+            if path.name in already:
+                unchanged += 1
+                continue
+            try:
+                result = await eng.ingest(path.name, path.read_bytes())
+            except (UnsupportedFile, EmptyExtraction) as exc:
+                yield sse({"type": "error", "message": f"{path.name}: {exc}"})
+                continue
+            except ProviderError as exc:
+                yield sse({"type": "error", "message": str(exc), "remedy": exc.remedy})
+                return
+            if result["status"] == "indexed":
+                indexed += 1
+            elif result["status"] == "unchanged":
+                unchanged += 1
+            for stage in result.get("trace", {}).get("stages", []):
+                if stage.get("degraded") and stage.get("error") and stage["error"] not in warned:
+                    warned.add(stage["error"])
+                    yield sse({"type": "warning", "message": stage["error"]})
+        yield sse({"type": "done", "indexed": indexed, "unchanged": unchanged})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.delete("/api/samples/{set_id}")
+async def remove_sample_set(set_id: str, eng: Engine = Depends(engine)) -> dict[str, Any]:
+    """Remove a sample set's documents from the index, matched by bundled filename."""
+    names = {p.name for p in _sample_files(_sample_set(set_id))}
+    docs = [d for d in eng.store.list_documents() if d["filename"] in names]
+    chunks_removed = sum(eng.delete_document(d["id"]) for d in docs)
+    return {"removed": len(docs), "chunks_removed": chunks_removed}
+
+
 @app.post("/api/reindex")
 async def reindex(eng: Engine = Depends(engine)) -> dict[str, Any]:
     """Rebuild chunks, vectors and the keyword index under the current configuration."""
@@ -364,16 +497,38 @@ async def reindex(eng: Engine = Depends(engine)) -> dict[str, Any]:
         raise HTTPException(503, {"message": str(exc), "remedy": exc.remedy}) from exc
 
 
+@app.post("/api/reindex/stream")
+async def reindex_stream(eng: Engine = Depends(engine)) -> StreamingResponse:
+    """The same rebuild, streamed as per-document SSE progress for the Lab's bar."""
+
+    async def events() -> AsyncIterator[str]:
+        try:
+            async for event in eng.reindex_events():
+                yield sse(event)
+        except ProviderError as exc:
+            yield sse({"type": "error", "message": str(exc), "remedy": exc.remedy})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @app.get("/api/documents/{doc_id}")
 async def get_document(doc_id: str, eng: Engine = Depends(engine)) -> dict[str, Any]:
     document = eng.store.get_document(doc_id)
     if document is None:
         raise HTTPException(404, f"No document with id '{doc_id}'.")
     chunks = eng.store.chunks_for_doc(doc_id)
+    created_at = next(
+        (d["created_at"] for d in eng.store.list_documents() if d["id"] == doc_id), None
+    )
     return {
         "id": document.id,
         "filename": document.filename,
         "text": document.text,
+        "created_at": created_at,
         "meta": document.meta,
         # Parse structure, so the Library view can draw what the parser recovered —
         # headings, paragraphs, tables — before it ever became chunks.
@@ -403,6 +558,81 @@ async def delete_document(doc_id: str, eng: Engine = Depends(engine)) -> dict[st
     return {"deleted": doc_id, "chunks_removed": eng.delete_document(doc_id)}
 
 
+# ── Chat sessions ───────────────────────────────────────────────────────────────
+
+DEFAULT_SESSION_TITLE = "New chat"
+
+
+def _new_session_id() -> str:
+    return f"s_{uuid4().hex[:12]}"
+
+
+class SessionCreate(BaseModel):
+    title: str | None = None
+    doc_ids: list[str] | None = None
+    """Documents this session's retrieval is scoped to. None = the whole corpus,
+    including documents added later."""
+
+
+class SessionUpdate(BaseModel):
+    title: str | None = None
+    doc_ids: list[str] | None = None
+    all_documents: bool = False
+    """True widens the scope back to the whole corpus — distinct from omitting
+    ``doc_ids``, which leaves the scope untouched."""
+
+
+@app.get("/api/sessions")
+async def list_sessions(eng: Engine = Depends(engine)) -> list[dict[str, Any]]:
+    """All sessions, newest first. An empty store gets a default unscoped session,
+    so the chat view always has somewhere to land."""
+    sessions = eng.store.list_sessions()
+    if not sessions:
+        sessions = [eng.store.create_session(_new_session_id(), DEFAULT_SESSION_TITLE, None)]
+    return sessions
+
+
+@app.post("/api/sessions")
+async def create_session(body: SessionCreate, eng: Engine = Depends(engine)) -> dict[str, Any]:
+    title = (body.title or "").strip() or DEFAULT_SESSION_TITLE
+    return eng.store.create_session(_new_session_id(), title, body.doc_ids)
+
+
+@app.get("/api/sessions/{session_id}")
+async def get_session(session_id: str, eng: Engine = Depends(engine)) -> dict[str, Any]:
+    session = eng.store.get_session(session_id)
+    if session is None:
+        raise HTTPException(404, f"No session with id '{session_id}'.")
+    # Assistant messages carry their full trace, so a reopened conversation keeps
+    # its stage strips and citations rather than degrading to bare text.
+    messages = eng.store.session_messages(session_id)
+    for message in messages:
+        message["trace"] = eng.store.get_trace(message["trace_id"]) if message["trace_id"] else None
+    return {**session, "messages": messages}
+
+
+@app.patch("/api/sessions/{session_id}")
+async def update_session(
+    session_id: str, body: SessionUpdate, eng: Engine = Depends(engine)
+) -> dict[str, Any]:
+    if eng.store.get_session(session_id) is None:
+        raise HTTPException(404, f"No session with id '{session_id}'.")
+    title = (body.title or "").strip() or None
+    updated = eng.store.update_session(
+        session_id, title=title, doc_ids=body.doc_ids, clear_doc_filter=body.all_documents
+    )
+    assert updated is not None
+    return updated
+
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str, eng: Engine = Depends(engine)) -> dict[str, Any]:
+    if eng.store.get_session(session_id) is None:
+        raise HTTPException(404, f"No session with id '{session_id}'.")
+    eng.store.delete_session(session_id)
+    return {"deleted": session_id}
+
+
 # ── Chat ────────────────────────────────────────────────────────────────────────
 
 
@@ -414,9 +644,31 @@ async def chat(request: ChatRequest, eng: Engine = Depends(engine)) -> Streaming
         if m.get("content")
     ]
 
+    session = None
+    if request.session_id is not None:
+        session = eng.store.get_session(request.session_id)
+        if session is None:
+            raise HTTPException(404, f"No session with id '{request.session_id}'.")
+
     async def events() -> AsyncIterator[str]:
+        doc_ids = session["doc_ids"] if session is not None else None
+        if session is not None:
+            # The first question becomes the title; the placeholder name says nothing.
+            if session["n_messages"] == 0 and session["title"] == DEFAULT_SESSION_TITLE:
+                eng.store.update_session(session["id"], title=request.question[:60])
+            eng.store.add_session_message(session["id"], "user", request.question)
         try:
-            async for event in eng.query(request.question, history):
+            async for event in eng.query(
+                request.question,
+                history,
+                doc_ids=doc_ids,
+                session_id=session["id"] if session is not None else None,
+            ):
+                if session is not None and event["type"] == "done":
+                    trace = event["trace"]
+                    eng.store.add_session_message(
+                        session["id"], "assistant", trace.get("answer") or "", trace.get("id")
+                    )
                 yield sse(event)
         except Exception as exc:  # pragma: no cover - last-resort guard
             yield sse({"type": "error", "message": f"{type(exc).__name__}: {exc}"})
@@ -509,8 +761,11 @@ async def runtime() -> dict[str, Any]:
 
 
 @app.get("/api/traces")
-async def list_traces(limit: int = 50, eng: Engine = Depends(engine)) -> list[dict[str, Any]]:
-    return eng.store.list_traces(limit)
+async def list_traces(
+    limit: int = 50, session_id: str | None = None, eng: Engine = Depends(engine)
+) -> list[dict[str, Any]]:
+    """Recent traces — all of them, or one chat session's with ``session_id``."""
+    return eng.store.list_traces(limit, session_id=session_id)
 
 
 @app.get("/api/traces/{trace_id}")

@@ -21,6 +21,7 @@ ENV PYTHONUNBUFFERED=1 \
     CLEARRAG_WORKSPACE=/data \
     CLEARRAG_WEB_DIST=/app/web/dist \
     CLEARRAG_HOST=0.0.0.0 \
+    CLEARRAG_PORT=8010 \
     CLEARRAG_OLLAMA_URL=http://host.docker.internal:11434
 
 WORKDIR /app
@@ -40,10 +41,10 @@ RUN useradd --create-home --uid 10001 clearrag \
 USER clearrag
 
 VOLUME ["/data"]
-EXPOSE 8000
+EXPOSE 8010
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/config', timeout=4).status==200 else 1)"
+    CMD python -c "import os,urllib.request,sys; p=os.environ.get('CLEARRAG_PORT','8010'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/config', timeout=4).status==200 else 1)"
 
 CMD ["clear-rag", "serve", "--no-browser"]
 

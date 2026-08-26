@@ -25,7 +25,7 @@ export function ConfigMenu({ config }: { config: ConfigResponse }) {
         onClick={menu.toggle}
         {...menu.hover}
         className={[
-          "border px-2 py-1 font-mono text-[10px] transition-colors",
+          "cursor-default border px-2 py-1 font-mono text-[10px] transition-colors",
           menu.open
             ? "border-foreground/50 text-foreground"
             : "border-transparent text-subtle hover:border-line hover:text-foreground"

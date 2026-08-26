@@ -61,7 +61,7 @@ export function RuntimePanel() {
         onClick={menu.toggle}
         {...menu.hover}
         className={[
-          "flex items-center gap-2 border px-2 py-1 font-mono text-[10px] transition-colors",
+          "flex cursor-default items-center gap-2 border px-2 py-1 font-mono text-[10px] transition-colors",
           menu.open ? "border-foreground/50" : "border-line hover:border-foreground/40",
           // Amber stays amber — the spill colour is data, not chrome. Only the
           // neutral state brightens on hover, matching the model chip beside it.

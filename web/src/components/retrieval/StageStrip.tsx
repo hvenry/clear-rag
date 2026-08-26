@@ -199,20 +199,22 @@ function StageChip({
   };
   useEffect(() => clearTimers, []);
 
-  // The detail card opens on hover — no separate hover hint, no click required.
-  // A short open delay stops cards flashing while the cursor crosses the strip,
-  // and a grace period on leave lets the pointer cross the 6px gap between the
-  // chip and the card without the card snapping shut. Touch has no hover, so
+  // The detail card opens on hover — instantly, no separate hover hint, no click
+  // required. A grace period on leave lets the pointer cross the 6px gap between
+  // the chip and the card without the card snapping shut. Touch has no hover, so
   // there the click toggles and the backdrop closes.
   const hoverOpen = (e: React.PointerEvent) => {
     if (e.pointerType !== "mouse") return;
     clearTimers();
-    openTimer.current = window.setTimeout(() => setOpen(true), 150);
+    setOpen(true);
   };
+  // A 0ms timer, not a direct close: the card hangs below the wrapper's box, so
+  // chip → card briefly reads as leave-then-enter, and the timer lets the enter
+  // cancel the close within the same event turn.
   const hoverClose = (e: React.PointerEvent) => {
     if (e.pointerType !== "mouse") return;
     clearTimers();
-    closeTimer.current = window.setTimeout(() => setOpen(false), 200);
+    closeTimer.current = window.setTimeout(() => setOpen(false), 0);
   };
 
   return (
@@ -222,7 +224,7 @@ function StageChip({
           window.matchMedia("(hover: hover)").matches ? setOpen(true) : setOpen((v) => !v)
         }
         className={[
-          "stage-enter glass flex items-center gap-2 border-l-2 px-3 py-1.5 text-left transition-colors",
+          "stage-enter glass flex cursor-default items-center gap-2 border-l-2 px-3 py-1.5 text-left transition-colors",
           stage.error ? "border-critical/50" : "hover:border-foreground/35",
           open ? "border-foreground/50" : ""
         ].join(" ")}
@@ -255,7 +257,10 @@ function StageChip({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-30 cursor-default bg-background/50 lg:hidden"
           />
-          <div className="glass-popover fixed inset-x-4 top-1/2 z-40 max-h-[70vh] -translate-y-1/2 overflow-auto p-3 text-[11px] lg:absolute lg:inset-x-auto lg:top-full lg:left-0 lg:mt-1.5 lg:max-h-80 lg:w-[min(24rem,calc(100vw-2rem))] lg:-translate-y-0"
+          {/* The visual gap under the chip is padding inside this wrapper, so the
+              hover area is contiguous and the instant close cannot fire mid-gap. */}
+          <div className="fixed inset-x-4 top-1/2 z-40 -translate-y-1/2 lg:absolute lg:inset-x-auto lg:top-full lg:left-0 lg:translate-y-0 lg:pt-1.5">
+          <div className="glass-popover max-h-[70vh] overflow-auto p-3 text-[11px] lg:max-h-80 lg:w-[min(24rem,calc(100vw-2rem))]"
             style={{ borderTopColor: color, borderTopWidth: 2 }}
           >
           <p className="tabular mb-2 font-mono text-[10px]">
@@ -283,6 +288,7 @@ function StageChip({
               why does this stage exist? →
             </button>
           ) : null}
+          </div>
           </div>
         </>
       ) : null}

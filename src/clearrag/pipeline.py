@@ -189,6 +189,7 @@ class Engine:
         rec = trace.stage("index", "Index")
         async with atimed(rec):
             index = await self._vector_index()
+            document.meta.update(self._index_meta())
             self.store.upsert_document(document)
             self.store.replace_chunks(document.id, chunks)
             index.add([c.id for c in chunks], vectors)
@@ -210,8 +211,28 @@ class Engine:
             "trace": trace.to_dict(),
         }
 
+    def _index_meta(self) -> dict[str, Any]:
+        """What this document's chunks and vectors were built with — stamped at ingest
+        and re-stamped on re-index, so the inspector can say which settings a document
+        actually carries rather than which the config currently shows."""
+        return {
+            "chunker": self.config.chunker,
+            "chunk_size": self.config.chunk_size,
+            "chunk_overlap": self.config.chunk_overlap,
+            "context_mode": self.config.context_mode,
+            "embedder": self.embeddings.id,
+        }
+
     async def reindex(self) -> dict[str, Any]:
-        """Re-chunk and re-embed every stored document under the current configuration.
+        """One-shot re-index: drain the event stream, return the final report."""
+        async for event in self.reindex_events():
+            if event["type"] == "done":
+                return {key: value for key, value in event.items() if key != "type"}
+        raise RuntimeError("reindex stream ended without a result")  # pragma: no cover
+
+    async def reindex_events(self) -> AsyncIterator[dict[str, Any]]:
+        """Re-chunk and re-embed every stored document under the current configuration,
+        yielding per-document progress and a final ``done`` report.
 
         Documents keep their full extracted text in SQLite, so changing an ingestion
         setting (chunk size, overlap) does not require the original files -- the corpus
@@ -222,9 +243,13 @@ class Engine:
         This is also the recovery path for a changed embedding model: it deliberately
         does NOT go through the embedding-space guard, because rebuilding every vector
         is exactly what the guard's error message asks for.
+
+        Streamed rather than returned because re-embedding a corpus takes seconds to
+        minutes -- a silent button for that long reads as broken.
         """
         summaries = self.store.list_documents()
         started = time.perf_counter()
+        yield {"type": "start", "filenames": [row["filename"] for row in summaries]}
 
         # Probe dimensionality directly rather than via _vector_index(), which would
         # refuse to load an index written by a different embedder.
@@ -240,7 +265,13 @@ class Engine:
         total_chunks = 0
 
         stale_parses = 0
-        for row in summaries:
+        for position, row in enumerate(summaries):
+            yield {
+                "type": "doc",
+                "filename": row["filename"],
+                "index": position,
+                "total": len(summaries),
+            }
             document = self.store.get_document(row["id"])
             if document is None:
                 continue
@@ -253,6 +284,8 @@ class Engine:
             chunked = await self._chunk(document)
             chunks = await self._contextualize(document, chunked.chunks)
             vectors = await self.embeddings.embed([c.indexed_text for c in chunks], kind="document")
+            document.meta.update(self._index_meta())
+            self.store.upsert_document(document)
             self.store.replace_chunks(document.id, chunks)
             fresh_vectors.add([c.id for c in chunks], vectors)
             for chunk in chunks:
@@ -273,6 +306,7 @@ class Engine:
         self._persist_indexes()
 
         result = {
+            "type": "done",
             "status": "reindexed",
             "documents": documents,
             "total_chunks": total_chunks,
@@ -285,7 +319,7 @@ class Engine:
                 f"{stale_parses} PDF(s) keep text from a different parser backend — "
                 "re-indexing cannot re-parse. Re-upload the files to apply the new parser."
             )
-        return result
+        yield result
 
     def delete_document(self, doc_id: str) -> int:
         chunk_ids = self.store.delete_document(doc_id)
@@ -299,15 +333,27 @@ class Engine:
     # ── Query ───────────────────────────────────────────────────────────────────
 
     async def query(
-        self, question: str, history: Sequence[Message] = (), *, generate: bool = True
+        self,
+        question: str,
+        history: Sequence[Message] = (),
+        *,
+        generate: bool = True,
+        doc_ids: Sequence[str] | None = None,
+        session_id: str | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Run the query pipeline, yielding events as each stage completes.
 
         ``generate=False`` stops after context assembly. Retrieval quality is measured
         far more often than answer quality, and evaluating a golden set should not cost
         one LLM generation per question just to score what was retrieved.
+
+        ``doc_ids`` scopes retrieval to those documents (a chat session's document
+        filter); None searches the whole corpus. Document ids rather than chunk ids,
+        resolved here at query time, because chunk ids change on every re-index.
         """
-        trace = Trace(query=question, config_hash=self.config.config_hash)
+        trace = Trace(
+            query=question, config_hash=self.config.config_hash, session_id=session_id
+        )
         started = time.perf_counter()
 
         try:
@@ -323,6 +369,18 @@ class Engine:
                 "remedy": "Drag a PDF, DOCX, Markdown or text file onto the window.",
             }
             return
+
+        allowed: set[str] | None = None
+        if doc_ids is not None:
+            allowed = self.store.chunk_ids_for_docs(list(doc_ids))
+            if not allowed:
+                yield {
+                    "type": "error",
+                    "message": "None of this chat's documents are in the index.",
+                    "remedy": "Edit the chat's document scope, or re-import the documents "
+                    "it was scoped to.",
+                }
+                return
 
         # ── Transform ──
         search_query = question
@@ -370,7 +428,7 @@ class Engine:
         async def run_dense() -> list[Candidate]:
             start = time.perf_counter()
             vector = await self.embeddings.embed([search_query], kind="query")
-            results = index.search(vector[0], k=self.config.k_candidates)
+            results = index.search(vector[0], k=self.config.k_candidates, allowed=allowed)
             assert dense_rec is not None
             dense_rec.duration_ms = (time.perf_counter() - start) * 1000
             dense_rec.candidates_out = results
@@ -384,7 +442,7 @@ class Engine:
         async def run_lexical() -> list[Candidate]:
             start = time.perf_counter()
             results = await asyncio.to_thread(
-                self.lexical.search, search_query, self.config.k_candidates
+                self.lexical.search, search_query, self.config.k_candidates, allowed
             )
             assert lexical_rec is not None
             lexical_rec.duration_ms = (time.perf_counter() - start) * 1000

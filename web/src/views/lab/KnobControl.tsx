@@ -1,6 +1,62 @@
-import { HoverInfo } from "../../components/HoverInfo";
+import { useState } from "react";
+
 import { Segmented } from "../../components/Segmented";
 import type { Knob } from "../../lib/knobs";
+
+/**
+ * A slider's numeric readout, editable in place: click, type an exact value,
+ * Enter (or blur) commits. Out-of-range input clamps to the nearer bound.
+ */
+function RangeValue({
+  value,
+  min,
+  max,
+  step,
+  disabled,
+  onCommit
+}: {
+  value: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled: boolean;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (step !== undefined && step < 1 ? value.toFixed(2) : String(value));
+
+  const commit = () => {
+    if (draft !== null) {
+      const parsed = Number(draft);
+      if (!Number.isNaN(parsed)) {
+        let next = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, parsed));
+        if (step === undefined || step >= 1) next = Math.round(next);
+        onCommit(next);
+      }
+    }
+    setDraft(null);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      disabled={disabled}
+      value={shown}
+      onFocus={(e) => {
+        setDraft(String(value));
+        e.target.select();
+      }}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+      }}
+      aria-label="Exact value"
+      className="tabular w-12 shrink-0 border border-transparent bg-transparent px-1 py-0.5 text-right font-mono text-[10px] outline-none transition-colors hover:border-line focus:border-foreground/45"
+    />
+  );
+}
 
 /** One pipeline setting rendered as its control type, disabled state included. */
 export function KnobControl({
@@ -16,16 +72,16 @@ export function KnobControl({
 
   return (
     <div className={disabled ? "opacity-45" : ""}>
-      <HoverInfo text={knob.hint} className="mb-1">
-        <div className="flex items-center justify-between gap-2">
-          <label className="text-[11px] text-muted">{knob.label}</label>
-          {disabled ? (
-            <span className="font-mono text-[8px] tracking-wide text-subtle uppercase">
-              not built yet
-            </span>
-          ) : null}
-        </div>
-      </HoverInfo>
+      {/* The knob's explanation lives in the Lab's slide-out hint card, keyed by
+          hovering this row — not in a per-label popover. */}
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <label className="text-[11px] text-muted">{knob.label}</label>
+        {disabled ? (
+          <span className="font-mono text-[8px] tracking-wide text-subtle uppercase">
+            not built yet
+          </span>
+        ) : null}
+      </div>
 
       {knob.type === "segmented" && knob.options ? (
         <Segmented
@@ -60,9 +116,14 @@ export function KnobControl({
             onChange={(e) => onChange(Number(e.target.value))}
             className="h-px flex-1 appearance-none bg-foreground/25 accent-current"
           />
-          <span className="tabular w-9 text-right font-mono text-[10px]">
-            {Number(value ?? 0).toFixed(knob.step && knob.step < 1 ? 2 : 0)}
-          </span>
+          <RangeValue
+            value={Number(value ?? 0)}
+            min={knob.min}
+            max={knob.max}
+            step={knob.step}
+            disabled={disabled}
+            onCommit={onChange}
+          />
         </div>
       ) : null}
 

@@ -116,7 +116,7 @@ class Settings(BaseSettings):
 
     workspace: Path = Path("./workspace")
     host: str = "127.0.0.1"
-    port: int = 8000
+    port: int = 8010
 
     # Ollama is the default and requires no credentials.
     ollama_url: str = "http://localhost:11434"

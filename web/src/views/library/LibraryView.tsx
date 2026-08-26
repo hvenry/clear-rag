@@ -15,11 +15,19 @@ import { useLocation, useNavigate, useOutletContext, useParams } from "react-rou
 import type { AppOutletContext } from "../../app/session";
 import { EmptyState } from "../../components/EmptyState";
 import { IconButton } from "../../components/IconButton";
+import { Loader } from "../../components/Loader";
 import { Segmented } from "../../components/Segmented";
+import {
+  formatElapsed,
+  useElapsedSeconds,
+  useImportRun,
+  type ImportFileState
+} from "../../lib/importer";
 import { assignSlots, catColor } from "../../lib/palette";
 import { useDeleteDocument, useDocuments } from "../../lib/queries";
 import { ChunkInspector } from "./ChunkInspector";
 import { EmbeddingMap } from "./EmbeddingMap";
+import { SampleSets } from "./SampleSets";
 import { UploadButton } from "./UploadButton";
 
 /**
@@ -38,6 +46,15 @@ export function LibraryView() {
   const { data: documents = [], isLoading } = useDocuments();
   const deleteDocument = useDeleteDocument();
   const [railCollapsed, setRailCollapsed] = useState(false);
+
+  // Files of an in-flight sample import that are not documents yet: rendered as
+  // placeholder rows so the whole set is visible from the first second, instead of
+  // rows popping in one by one as each file finishes embedding.
+  const importRun = useImportRun();
+  const pendingFiles =
+    importRun && importRun.finishedAt === null
+      ? importRun.files.filter((f) => !documents.some((d) => d.filename === f.filename))
+      : [];
 
   const mode: "documents" | "map" = location.pathname === "/library/map" ? "map" : "documents";
   const active = docId ?? null;
@@ -61,11 +78,16 @@ export function LibraryView() {
     [documents]
   );
 
-  if (!isLoading && documents.length === 0) {
+  if (!isLoading && documents.length === 0 && pendingFiles.length === 0) {
     return (
       <div className="mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-6">
-        <EmptyState lead="Nothing indexed yet. Add a PDF, DOCX, Markdown, CSV or text file and it will appear here, split into the chunks retrieval actually searches over.">
+        <EmptyState lead="Nothing indexed yet. Add a PDF, DOCX, Markdown, CSV or text file and it will appear here, split into the chunks retrieval actually searches over — or start from a bundled sample set.">
           <UploadButton onUpload={upload} />
+          <SampleSets
+            showClear={false}
+            collapsible={false}
+            className="mt-4 w-full max-w-xs border border-line px-3 pt-2.5 pb-3 text-left"
+          />
         </EmptyState>
       </div>
     );
@@ -94,14 +116,16 @@ export function LibraryView() {
         </aside>
       ) : null}
 
+      {/* Rail anatomy: header and controls pinned at the top, sample data docked at
+          the bottom, and only the document list between them scrolls. */}
       <aside
         className={[
-          detailShown ? "hidden" : "block",
-          railCollapsed ? "lg:hidden" : "lg:block",
-          "w-full shrink-0 overflow-y-auto border-r border-line lg:w-64"
+          detailShown ? "hidden" : "flex",
+          railCollapsed ? "lg:hidden" : "lg:flex",
+          "w-full shrink-0 flex-col border-r border-line lg:w-64"
         ].join(" ")}
       >
-        <div className="hidden items-center justify-between gap-2 border-b border-line px-3 py-2 lg:flex">
+        <div className="hidden shrink-0 items-center justify-between gap-2 border-b border-line px-3 py-2 lg:flex">
           <span className="font-display text-[10px] tracking-[0.18em] text-subtle uppercase">
             Library
           </span>
@@ -111,32 +135,21 @@ export function LibraryView() {
         </div>
         {/* Stacked rows instead of one crowded line: the mode switch gets the full
             rail width, and upload gets its own row — nothing wraps. */}
-        <div className="space-y-2 px-3 pt-3 pb-2">
+        <div className="shrink-0 space-y-2 px-3 pt-3 pb-2">
           <Segmented
             variant="display"
             grow
-            hintFlyout="right"
             value={mode}
             onChange={(m) => navigate(m === "map" ? "/library/map" : "/library")}
             options={[
-              {
-                value: "documents",
-                label: "Documents",
-                icon: FileTextIcon,
-                hint: "Read each document with its chunk boundaries drawn over the text."
-              },
-              {
-                value: "map",
-                label: "Vector map",
-                icon: ScanIcon,
-                hint: "See every chunk as a point in embedding space, and where a question lands among them."
-              }
+              { value: "documents", label: "Documents", icon: FileTextIcon },
+              { value: "map", label: "Vector map", icon: ScanIcon }
             ]}
           />
           <UploadButton onUpload={upload} compact />
         </div>
 
-        <ul className="pb-3">
+        <ul className="min-h-0 flex-1 overflow-y-auto pb-3">
           {documents.map((doc) => {
             const TypeIcon = fileIcon(doc.filename);
             return (
@@ -183,7 +196,16 @@ export function LibraryView() {
               </li>
             );
           })}
+          {pendingFiles.map((file) => (
+            <PendingRow
+              key={file.filename}
+              file={file}
+              startedAt={importRun!.fileStartedAt}
+            />
+          ))}
         </ul>
+
+        <SampleSets />
       </aside>
 
       <div className={`${detailShown ? "block" : "hidden lg:block"} min-w-0 flex-1 overflow-hidden`}>
@@ -205,6 +227,41 @@ export function LibraryView() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * A document that is about to exist: one file of an in-flight sample import.
+ * Same row anatomy as a real document, dimmed, with its own status line — the
+ * active file gets a loader and a ticking per-file timer.
+ */
+function PendingRow({ file, startedAt }: { file: ImportFileState; startedAt: number }) {
+  const TypeIcon = fileIcon(file.filename);
+  const indexing = file.status === "indexing";
+  const seconds = useElapsedSeconds(startedAt, indexing ? null : 0);
+  return (
+    <li className="border-l-2 border-l-transparent px-3 py-2 opacity-60">
+      <span className="flex items-center gap-2">
+        <TypeIcon size={16} className="shrink-0 text-subtle" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[12px]">{file.filename}</span>
+          <span className="tabular mt-0.5 block font-mono text-[10px] text-subtle">
+            {indexing ? (
+              <span className="flex items-center gap-2">
+                <Loader />
+                embedding · {formatElapsed(seconds)}
+              </span>
+            ) : file.status === "error" ? (
+              <span className="text-critical">failed</span>
+            ) : file.status === "done" ? (
+              "indexed"
+            ) : (
+              "queued"
+            )}
+          </span>
+        </span>
+      </span>
+    </li>
   );
 }
 

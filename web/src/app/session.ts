@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "../lib/api";
-import { keys, useUpload } from "../lib/queries";
+import { keys, useSessionDetail, useUpload } from "../lib/queries";
 import { mergeStage } from "../lib/stages";
-import type { Turn } from "../lib/types";
+import type { SessionMessage, Turn } from "../lib/types";
 
 /** What the layout shares with its routed views, via the router's outlet context. */
 export interface AppOutletContext {
@@ -21,21 +21,70 @@ export interface ChatSession {
   busy: boolean;
 }
 
+/** Rebuild renderable turns from a session's stored messages. Assistant messages
+ * carry their full trace, so stages, citations and the resolved query all come back
+ * — only the ephemeral context-chunk previews are not reconstructed. */
+function turnsFromMessages(messages: SessionMessage[]): Turn[] {
+  const turns: Turn[] = [];
+  for (const message of messages) {
+    if (message.role === "user") {
+      turns.push({
+        question: message.content,
+        answer: "",
+        citations: [],
+        context: [],
+        stages: [],
+        trace: null,
+        error: null,
+        streaming: false
+      });
+    } else if (turns.length > 0) {
+      const turn = turns[turns.length - 1];
+      turn.answer = message.trace?.answer ?? message.content;
+      turn.trace = message.trace;
+      turn.citations = message.trace?.citations ?? [];
+      turn.stages = message.trace?.stages ?? [];
+    }
+  }
+  return turns;
+}
+
 /**
- * The chat session: client-owned state, deliberately outside both the URL and the
- * query cache. Streaming answers are neither an address nor server state — they are
- * a conversation in progress, and they live exactly as long as the tab does. The
- * layout owns this hook so navigating between views never unmounts the session.
+ * The chat session for one server-side conversation. Completed turns are the
+ * server's (hydrated from stored messages and their traces); the turn currently
+ * streaming is client state layered on top. The layout owns this hook so
+ * navigating between views never interrupts a stream in progress.
  */
-export function useChatSession(): ChatSession {
+export function useChatSession(sessionId: string | null): ChatSession {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const client = useQueryClient();
+  const { data: detail } = useSessionDetail(sessionId);
+  const hydratedFor = useRef<string | null>(null);
+
+  // Switching to a DIFFERENT session blanks the view and re-arms hydration; its
+  // turns arrive with its detail. Leaving chat entirely (sessionId null) keeps
+  // everything — navigating to the Library and back must not wipe the
+  // conversation, least of all one still streaming. Re-renders of the same
+  // session never clobber local turns, which are newer than the server's.
+  useEffect(() => {
+    if (sessionId !== null && sessionId !== hydratedFor.current) {
+      hydratedFor.current = null;
+      setTurns([]);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (detail && detail.id !== hydratedFor.current) {
+      hydratedFor.current = detail.id;
+      setTurns(turnsFromMessages(detail.messages));
+    }
+  }, [detail]);
 
   const ask = useCallback(async () => {
     const text = question.trim();
-    if (!text || busy) return;
+    if (!text || busy || !sessionId) return;
 
     setQuestion("");
     setBusy(true);
@@ -68,7 +117,7 @@ export function useChatSession(): ChatSession {
       setTurns((prev) => prev.map((t, i) => (i === index ? fn(t) : t)));
 
     try {
-      for await (const event of api.chat(text, history)) {
+      for await (const event of api.chat(text, history, sessionId)) {
         switch (event.type) {
           case "stage":
             patch((t) => ({ ...t, stages: mergeStage(t.stages, event.stage) }));
@@ -103,28 +152,42 @@ export function useChatSession(): ChatSession {
       patch((t) => ({ ...t, streaming: false }));
       setBusy(false);
       void client.invalidateQueries({ queryKey: keys.traces });
+      // The first question also titles the session, and the stored transcript grew.
+      void client.invalidateQueries({ queryKey: keys.sessions });
     }
-  }, [question, busy, turns, client]);
+  }, [question, busy, turns, client, sessionId]);
 
   return { turns, question, setQuestion, ask, busy };
+}
+
+export interface UploadProgress {
+  filename: string;
+  index: number;
+  total: number;
 }
 
 /** App-wide drag-and-drop upload: dropping a file anywhere indexes it. */
 export function useAppUpload() {
   const uploadMutation = useUpload();
   const [uploading, setUploading] = useState<string | null>(null);
+  // Files upload one at a time so this progress is real, not a guess — parsing
+  // and embedding dominate, and they happen per file anyway.
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
 
   const upload = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
-      setUploading(`Indexing ${files.length} file${files.length > 1 ? "s" : ""}…`);
+      const rejected: { filename: string; message?: string }[] = [];
       try {
-        const { results } = await uploadMutation.mutateAsync(files);
-        const rejected = results.filter(
-          (r) => r.status !== "indexed" && r.status !== "unchanged"
-        );
+        for (const [index, file] of files.entries()) {
+          setUploadProgress({ filename: file.name, index, total: files.length });
+          const { results } = await uploadMutation.mutateAsync([file]);
+          rejected.push(
+            ...results.filter((r) => r.status !== "indexed" && r.status !== "unchanged")
+          );
+        }
         setUploading(
           rejected.length ? rejected.map((r) => `${r.filename}: ${r.message}`).join(" · ") : null
         );
@@ -132,6 +195,8 @@ export function useAppUpload() {
       } catch (error) {
         setUploading(String(error));
         setTimeout(() => setUploading(null), 6000);
+      } finally {
+        setUploadProgress(null);
       }
     },
     [uploadMutation]
@@ -159,5 +224,5 @@ export function useAppUpload() {
     }
   };
 
-  return { upload, uploading, dragging, dragHandlers };
+  return { upload, uploading, uploadProgress, dragging, dragHandlers };
 }

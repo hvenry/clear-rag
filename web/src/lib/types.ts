@@ -85,10 +85,41 @@ export interface DocumentSummary {
   n_chunks: number;
 }
 
+/** A bundled demo corpus, with how much of it is already in the index. */
+export interface SampleSet {
+  id: string;
+  label: string;
+  description: string;
+  file_count: number;
+  indexed_count: number;
+}
+
+/** Per-document progress from a streaming re-index. */
+export type ReindexEvent =
+  | { type: "start"; filenames: string[] }
+  | { type: "doc"; filename: string; index: number; total: number }
+  | {
+      type: "done";
+      total_chunks: number;
+      duration_ms: number;
+      note?: string;
+    }
+  | { type: "error"; message: string; remedy?: string | null };
+
+/** Per-file progress from a streaming sample-set import. */
+export type ImportEvent =
+  | { type: "start"; filenames: string[] }
+  | { type: "file"; filename: string; index: number; total: number }
+  | { type: "warning"; message: string }
+  | { type: "done"; indexed: number; unchanged: number }
+  | { type: "error"; message: string; remedy?: string | null };
+
 export interface DocumentDetail {
   id: string;
   filename: string;
   text: string;
+  /** Unix seconds when the document was first ingested. */
+  created_at: number | null;
   meta: Record<string, unknown>;
   /** Parse structure over `text`: what the parser recovered before chunking. */
   blocks: {
@@ -127,11 +158,35 @@ export interface Health {
 
 export interface ConfigResponse {
   config: Record<string, unknown>;
+  /** The pipeline's out-of-the-box values — what "reset defaults" restores. */
+  defaults: Record<string, unknown>;
   config_hash: string;
   providers: {
     chat: { provider: string; model: string };
     embeddings: { provider: string; model: string };
   };
+}
+
+/** A persisted conversation. `doc_ids` null = the whole corpus, future docs included. */
+export interface SessionSummary {
+  id: string;
+  title: string;
+  created_at: number;
+  n_messages: number;
+  doc_ids: string[] | null;
+}
+
+export interface SessionMessage {
+  role: "user" | "assistant";
+  content: string;
+  trace_id: string | null;
+  created_at: number;
+  /** Full trace for assistant messages — restores stages and citations on reload. */
+  trace: Trace | null;
+}
+
+export interface SessionDetail extends SessionSummary {
+  messages: SessionMessage[];
 }
 
 export interface Turn {

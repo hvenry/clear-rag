@@ -4,11 +4,14 @@ services:
       context: .
       target: slim
     ports:
-      - "8000:8000"
+      # Both sides track CLEARRAG_PORT so the published port can never drift
+      # from the one the app inside the container actually binds.
+      - "${CLEARRAG_PORT:-8010}:${CLEARRAG_PORT:-8010}"
     volumes:
       # Documents, vectors and traces persist across container rebuilds.
       - clearrag-data:/data
     environment:
+      CLEARRAG_PORT: ${CLEARRAG_PORT:-8010}
       # Ollama runs on the HOST, not in a container. Docker on macOS has no GPU access,
       # so a containerised Ollama would be CPU-only and feel broken on the most common
       # laptop. Override this to http://ollama:11434 when using the `ollama` profile.

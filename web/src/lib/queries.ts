@@ -18,6 +18,9 @@ export const keys = {
   config: ["config"] as const,
   documents: ["documents"] as const,
   document: (id: string) => ["documents", id] as const,
+  samples: ["samples"] as const,
+  sessions: ["sessions"] as const,
+  session: (id: string) => ["sessions", id] as const,
   traces: ["traces"] as const
 };
 
@@ -48,8 +51,73 @@ export function useInvalidateCorpus() {
     Promise.all([
       client.invalidateQueries({ queryKey: keys.documents }),
       client.invalidateQueries({ queryKey: keys.health }),
+      client.invalidateQueries({ queryKey: keys.samples }),
       client.invalidateQueries({ queryKey: keys.traces })
     ]);
+}
+
+export function useSessions() {
+  return useQuery({ queryKey: keys.sessions, queryFn: api.sessions, staleTime: 15_000 });
+}
+
+export function useSessionDetail(id: string | null) {
+  return useQuery({
+    queryKey: keys.session(id ?? ""),
+    queryFn: () => api.session(id!),
+    enabled: id !== null
+  });
+}
+
+export function useCreateSession() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.createSession,
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.sessions })
+  });
+}
+
+export function useUpdateSession() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      title?: string;
+      doc_ids?: string[];
+      all_documents?: boolean;
+    }) => api.updateSession(id, body),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.sessions })
+  });
+}
+
+export function useDeleteSession() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteSession,
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.sessions })
+  });
+}
+
+export function useSampleSets() {
+  return useQuery({ queryKey: keys.samples, queryFn: api.sampleSets, staleTime: 30_000 });
+}
+
+export function useRemoveSampleSet() {
+  const invalidate = useInvalidateCorpus();
+  return useMutation({
+    mutationFn: api.removeSampleSet,
+    onSettled: () => void invalidate()
+  });
+}
+
+export function useClearDocuments() {
+  const invalidate = useInvalidateCorpus();
+  return useMutation({
+    mutationFn: api.clearDocuments,
+    onSettled: () => void invalidate()
+  });
 }
 
 export function useUpload() {
@@ -64,22 +132,6 @@ export function useDeleteDocument() {
   const invalidate = useInvalidateCorpus();
   return useMutation({
     mutationFn: api.deleteDocument,
-    onSettled: () => void invalidate()
-  });
-}
-
-export function useReindex() {
-  const invalidate = useInvalidateCorpus();
-  return useMutation({
-    mutationFn: api.reindex,
-    onSettled: () => void invalidate()
-  });
-}
-
-export function useLoadSample() {
-  const invalidate = useInvalidateCorpus();
-  return useMutation({
-    mutationFn: api.loadSample,
     onSettled: () => void invalidate()
   });
 }

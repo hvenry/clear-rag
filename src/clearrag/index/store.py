@@ -56,10 +56,28 @@ CREATE TABLE IF NOT EXISTS traces (
     config_hash TEXT NOT NULL,
     created_at  REAL NOT NULL,
     total_ms    REAL NOT NULL,
-    payload     TEXT NOT NULL
+    payload     TEXT NOT NULL,
+    session_id  TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_traces_created ON traces(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_traces_config  ON traces(config_hash);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id         TEXT PRIMARY KEY,
+    title      TEXT NOT NULL,
+    doc_filter TEXT,
+    created_at REAL NOT NULL DEFAULT (unixepoch('subsec'))
+);
+
+CREATE TABLE IF NOT EXISTS session_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    role       TEXT NOT NULL,
+    content    TEXT NOT NULL,
+    trace_id   TEXT,
+    created_at REAL NOT NULL DEFAULT (unixepoch('subsec'))
+);
+CREATE INDEX IF NOT EXISTS idx_session_messages ON session_messages(session_id, id);
 """
 
 
@@ -80,6 +98,9 @@ class Store:
         cols = {r[1] for r in self.conn.execute("PRAGMA table_info(documents)")}
         if "blocks" not in cols:
             self.conn.execute("ALTER TABLE documents ADD COLUMN blocks TEXT NOT NULL DEFAULT '[]'")
+        trace_cols = {r[1] for r in self.conn.execute("PRAGMA table_info(traces)")}
+        if "session_id" not in trace_cols:
+            self.conn.execute("ALTER TABLE traces ADD COLUMN session_id TEXT")
 
     def close(self) -> None:
         self.conn.close()
@@ -208,12 +229,100 @@ class Store:
         )
         self.conn.commit()
 
+    # ── Chat sessions ──
+
+    def create_session(self, session_id: str, title: str, doc_ids: list[str] | None) -> dict:
+        """A conversation. ``doc_ids`` scopes retrieval to those documents; None means
+        the whole corpus, including documents added later."""
+        self.conn.execute(
+            "INSERT INTO sessions(id, title, doc_filter) VALUES(?,?,?)",
+            (session_id, title, json.dumps(doc_ids) if doc_ids is not None else None),
+        )
+        self.conn.commit()
+        session = self.get_session(session_id)
+        assert session is not None
+        return session
+
+    def get_session(self, session_id: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT s.id, s.title, s.doc_filter, s.created_at, "
+            "(SELECT COUNT(*) FROM session_messages m WHERE m.session_id = s.id) AS n_messages "
+            "FROM sessions s WHERE s.id = ?",
+            (session_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        session = dict(row)
+        session["doc_ids"] = json.loads(row["doc_filter"]) if row["doc_filter"] else None
+        del session["doc_filter"]
+        return session
+
+    def list_sessions(self) -> list[dict]:
+        rows = self.conn.execute("SELECT id FROM sessions ORDER BY created_at DESC").fetchall()
+        return [s for r in rows if (s := self.get_session(r["id"])) is not None]
+
+    def update_session(
+        self,
+        session_id: str,
+        *,
+        title: str | None = None,
+        doc_ids: list[str] | None = None,
+        clear_doc_filter: bool = False,
+    ) -> dict | None:
+        """Rename and/or re-scope. ``clear_doc_filter`` distinguishes "scope to the
+        whole corpus" from "leave the scope alone" — both would otherwise be None."""
+        if title is not None:
+            self.conn.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, session_id))
+        if clear_doc_filter:
+            self.conn.execute("UPDATE sessions SET doc_filter = NULL WHERE id = ?", (session_id,))
+        elif doc_ids is not None:
+            self.conn.execute(
+                "UPDATE sessions SET doc_filter = ? WHERE id = ?",
+                (json.dumps(doc_ids), session_id),
+            )
+        self.conn.commit()
+        return self.get_session(session_id)
+
+    def delete_session(self, session_id: str) -> None:
+        self.conn.execute("DELETE FROM session_messages WHERE session_id = ?", (session_id,))
+        self.conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        self.conn.commit()
+
+    def add_session_message(
+        self, session_id: str, role: str, content: str, trace_id: str | None = None
+    ) -> None:
+        self.conn.execute(
+            "INSERT INTO session_messages(session_id, role, content, trace_id) VALUES(?,?,?,?)",
+            (session_id, role, content, trace_id),
+        )
+        self.conn.commit()
+
+    def session_messages(self, session_id: str) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT role, content, trace_id, created_at FROM session_messages "
+            "WHERE session_id = ? ORDER BY id",
+            (session_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def chunk_ids_for_docs(self, doc_ids: list[str]) -> set[str]:
+        """The chunk ids a document filter allows. Resolved at query time because chunk
+        ids are position-derived and change on re-index; document ids do not."""
+        if not doc_ids:
+            return set()
+        placeholders = ",".join("?" for _ in doc_ids)
+        rows = self.conn.execute(
+            f"SELECT id FROM chunks WHERE doc_id IN ({placeholders})", doc_ids
+        ).fetchall()
+        return {r["id"] for r in rows}
+
     # ── Traces ──
 
     def save_trace(self, trace_dict: dict) -> None:
         self.conn.execute(
-            "INSERT OR REPLACE INTO traces(id, query, config_hash, created_at, total_ms, payload) "
-            "VALUES(?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO traces"
+            "(id, query, config_hash, created_at, total_ms, payload, session_id) "
+            "VALUES(?,?,?,?,?,?,?)",
             (
                 trace_dict["id"],
                 trace_dict["query"],
@@ -221,6 +330,7 @@ class Store:
                 trace_dict["created_at"],
                 trace_dict["total_ms"],
                 json.dumps(trace_dict),
+                trace_dict.get("session_id"),
             ),
         )
         self.conn.commit()
@@ -229,17 +339,20 @@ class Store:
         row = self.conn.execute("SELECT payload FROM traces WHERE id = ?", (trace_id,)).fetchone()
         return json.loads(row["payload"]) if row else None
 
-    def list_traces(self, limit: int = 50) -> list[dict]:
+    def list_traces(self, limit: int = 50, session_id: str | None = None) -> list[dict]:
         """Trace summaries, newest first, with enough per-stage detail to chart.
 
         The full payload stays behind get_trace(); this pulls out only what a
         telemetry readout needs — stage durations and the generate stage's token
         stats — so listing fifty traces does not ship fifty full candidate lists.
+        ``session_id`` scopes the list to one chat's queries.
         """
+        where = "WHERE session_id = ? " if session_id is not None else ""
+        params: tuple = (session_id, limit) if session_id is not None else (limit,)
         rows = self.conn.execute(
             "SELECT id, query, config_hash, created_at, total_ms, payload FROM traces "
-            "ORDER BY created_at DESC LIMIT ?",
-            (limit,),
+            f"{where}ORDER BY created_at DESC LIMIT ?",
+            params,
         ).fetchall()
 
         summaries = []

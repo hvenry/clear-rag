@@ -477,8 +477,23 @@ make dev                     # backend (auto-reload) + frontend (HMR), open :517
 
 `make dev` runs both halves of the development loop in one command: uvicorn with
 `--reload` for Python changes and Vite with hot-module-replacement for the UI,
-proxying `/api` to :8000. One Ctrl-C stops both. `make serve` is the other mode —
+proxying `/api` to the backend. One Ctrl-C stops both. `make serve` is the other mode —
 a single server with the *built* UI, which is what production and Docker run.
+
+Before starting either half, `make dev` checks the things whose failure is otherwise
+invisible: that the virtualenv exists and still matches `pyproject.toml` (a dependency
+added after the venv was built does not crash — it silently degrades), that the port is
+free, and that Ollama is answering. It then waits for the backend to serve a real request
+before handing the terminal to Vite. This ordering is the whole point: Vite prints a
+ready banner and proxies `/api` whether or not the backend came up, so a backend that
+died at boot presents as a broken app rather than a missing process — and if something
+else owns the port, as *someone else's* 404s.
+
+**The port lives in one place.** `CLEARRAG_PORT` (default `8010`) is read by
+`Settings.port`, by the Vite dev proxy, and by `docker-compose.yml`. Change it in `.env`
+and every consumer follows. It deliberately avoids 8000, which is the default for Django,
+`http.server`, and half the containers on a working laptop — a collision there answers
+with a plausible-looking 404 instead of refusing the connection.
 
 Tests run entirely on **fake providers** — a deterministic bag-of-words hash embedder and
 a scripted chat model. That is the one piece of infrastructure that makes a RAG project

@@ -24,7 +24,7 @@ export function HealthMenu({ health }: { health: Health | null }) {
         {...menu.hover}
         aria-label={ok ? "All providers reachable" : "A provider check failed"}
         className={[
-          "flex items-center border px-2 py-[7px] transition-colors",
+          "flex cursor-default items-center border px-2 py-[7px] transition-colors",
           menu.open ? "border-foreground/50" : "border-line hover:border-foreground/40"
         ].join(" ")}
       >

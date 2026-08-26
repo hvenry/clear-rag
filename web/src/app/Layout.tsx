@@ -4,7 +4,7 @@ import {
   FlaskIcon,
   GraduationCapIcon
 } from "@phosphor-icons/react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useMatch } from "react-router-dom";
 
 import { useConfig, useDocuments, useHealth } from "../lib/queries";
 import { ConfigMenu } from "./ConfigMenu";
@@ -24,8 +24,11 @@ export function Layout() {
   const { data: health } = useHealth();
   const { data: config } = useConfig();
   const { data: documents = [] } = useDocuments();
-  const session = useChatSession();
-  const { upload, uploading, dragging, dragHandlers } = useAppUpload();
+  // The active chat session follows the URL, but its state lives here — above the
+  // routes — so navigating to the Library mid-stream never interrupts the answer.
+  const chatMatch = useMatch("/chat/:sessionId");
+  const session = useChatSession(chatMatch?.params.sessionId ?? null);
+  const { upload, uploading, uploadProgress, dragging, dragHandlers } = useAppUpload();
 
   const context: AppOutletContext = { session, uploading, upload };
 
@@ -75,6 +78,25 @@ export function Layout() {
       <div className="flex min-h-0 flex-1 flex-col">
         <Outlet context={context} />
       </div>
+
+      {/* Indexing toast: uploads run from any page (drag-drop, library, the chat
+          dialog), so their progress lives above all of them. */}
+      {uploadProgress ? (
+        <div className="fixed right-4 bottom-4 z-50 w-64 border border-line bg-background py-2.5 pr-3 pl-3 shadow-[0_8px_28px_rgb(0_0_0/0.4)]">
+          <p className="menu-label mb-1.5">Indexing</p>
+          <div className="h-1 w-full bg-foreground/10">
+            <div
+              className="h-full bg-foreground transition-[width] duration-300"
+              style={{
+                width: `${Math.round((uploadProgress.index / uploadProgress.total) * 100)}%`
+              }}
+            />
+          </div>
+          <p className="tabular mt-1 truncate font-mono text-[10px] text-subtle">
+            {uploadProgress.index + 1}/{uploadProgress.total} · {uploadProgress.filename}
+          </p>
+        </div>
+      ) : null}
 
       {dragging ? (
         <div className="glass-strong pointer-events-none fixed inset-0 z-50 flex items-center justify-center">

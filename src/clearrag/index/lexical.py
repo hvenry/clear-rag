@@ -74,12 +74,13 @@ class LexicalIndex:
             return 0.0
         return math.log(1 + (self.n_docs - df + 0.5) / (df + 0.5))
 
-    def search(self, query: str, k: int = 50) -> list[Candidate]:
+    def search(self, query: str, k: int = 50, allowed: set[str] | None = None) -> list[Candidate]:
         """Score every chunk containing at least one query term, best first.
 
         Only chunks that appear in some query term's postings list are scored, which is
         the entire point of an inverted index: the corpus size stops mattering and only
-        the number of matching documents does.
+        the number of matching documents does. ``allowed`` restricts scoring to those
+        chunk ids — applied while accumulating, so top-k is drawn from the scope.
         """
         if self.n_docs == 0:
             return []
@@ -95,6 +96,8 @@ class LexicalIndex:
                 continue
             idf = self.idf(term)
             for chunk_id, freq in postings.items():
+                if allowed is not None and chunk_id not in allowed:
+                    continue
                 norm = 1 - B + B * (self.doc_len[chunk_id] / avgdl)
                 scores[chunk_id] += idf * (freq * (K1 + 1)) / (freq + K1 * norm)
                 matched[chunk_id][term] = freq

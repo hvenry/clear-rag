@@ -55,10 +55,13 @@ export function AnchoredPopover({
   useLayoutEffect(() => {
     const rect = anchorRef.current?.getBoundingClientRect();
     if (!rect) return;
+    // Positioned flush against the trigger; the visual gap is transparent padding
+    // INSIDE the hover area, so the pointer never crosses dead space — which is
+    // what lets the close fire without a perceptible grace delay.
     if (placement === "right") {
-      setPos({ top: Math.max(8, rect.top - 4), left: rect.right + 8 });
+      setPos({ top: Math.max(8, rect.top - 4), left: rect.right });
     } else {
-      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+      setPos({ top: rect.bottom, right: window.innerWidth - rect.right });
     }
   }, [anchorRef, placement]);
 
@@ -75,7 +78,7 @@ export function AnchoredPopover({
       ) : null}
       <div
         ref={cardRef}
-        className={`glass-popover fixed z-40 ${className}`}
+        className={`fixed z-40 ${placement === "right" ? "pl-2" : "pt-1.5"}`}
         style={{ top: pos.top, left: pos.left, right: pos.right }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={() => {
@@ -88,7 +91,7 @@ export function AnchoredPopover({
           onMouseLeave?.();
         }}
       >
-        {children}
+        <div className={`glass-popover ${className}`}>{children}</div>
       </div>
     </>,
     document.body
@@ -130,12 +133,13 @@ export function HintCard({
 
 /**
  * The header-menu interaction pattern: hovering the trigger opens the card and
- * leaving closes it (after a short grace delay, so crossing the gap between
- * trigger and card does not flicker it shut). No pinning — a click simply
- * toggles, which is what makes the menus reachable on touch screens, where
- * hover does not exist.
+ * leaving closes it. The close always goes through a timer — even at 0ms — so
+ * that leaving the trigger straight into the (gap-bridged) card cancels the
+ * close in the same event turn instead of unmounting the card mid-crossing.
+ * No pinning — a click simply toggles, which is what makes the menus reachable
+ * on touch screens, where hover does not exist.
  */
-export function useHoverMenu(closeDelayMs = 150, openDelayMs = 0) {
+export function useHoverMenu(closeDelayMs = 0, openDelayMs = 0) {
   const [open, setOpen] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -164,7 +168,10 @@ export function useHoverMenu(closeDelayMs = 150, openDelayMs = 0) {
   };
   const toggle = () => {
     cancel();
-    setOpen((v) => !v);
+    // Where a pointer exists, hover owns open and close — a click on an already
+    // open menu must not snap it shut. Touch has no hover, so there click toggles.
+    if (window.matchMedia("(hover: hover)").matches) setOpen(true);
+    else setOpen((v) => !v);
   };
   const close = () => {
     cancel();

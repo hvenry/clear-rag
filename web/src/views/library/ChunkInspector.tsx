@@ -1,11 +1,19 @@
 import {
   ChartBarIcon,
+  ClockIcon,
+  CubeIcon,
+  FileMagnifyingGlassIcon,
   FileTextIcon,
+  IntersectIcon,
+  ScissorsIcon,
   SquaresFourIcon,
+  TextIndentIcon,
+  TextTIcon,
   TreeStructureIcon,
-  XIcon
+  XIcon,
+  type Icon
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { HintCard, useHoverMenu } from "../../components/Popover";
 import { IconButton } from "../../components/IconButton";
@@ -38,6 +46,109 @@ function BandsToggle({ showBands, onToggle }: { showBands: boolean; onToggle: ()
   );
 }
 
+/** How each non-PDF format is extracted — fixed per format, not a backend choice. */
+const FORMAT_EXTRACTORS: Record<string, string> = {
+  md: "markdown",
+  markdown: "markdown",
+  docx: "docx",
+  txt: "plain text",
+  csv: "plain text"
+};
+
+function MetaCell({
+  icon: CellIcon,
+  label,
+  value,
+  wide = false
+}: {
+  icon: Icon;
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "col-span-2 min-w-0" : "min-w-0"}>
+      <div className="flex items-center gap-1 font-display text-[9px] tracking-[0.14em] text-subtle uppercase">
+        <CellIcon size={10} aria-hidden />
+        {label}
+      </div>
+      <div className="tabular mt-0.5 truncate font-mono text-[10px]" title={value}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The document's vital signs: parse-level stats plus what its chunks and vectors
+ * were actually built with — the settings stamped at ingest (and re-stamped on
+ * re-index), not whatever the config currently says. Documents indexed before
+ * stamping existed show only their stats and ingestion time.
+ */
+function MetaGrid({
+  doc,
+  stats
+}: {
+  doc: DocumentDetail;
+  stats: { chunks: number; chars: number; overlapPct: number } | null;
+}) {
+  const meta = doc.meta;
+  const str = (key: string) => (typeof meta[key] === "string" ? (meta[key] as string) : null);
+  const num = (key: string) => (typeof meta[key] === "number" ? (meta[key] as number) : null);
+
+  const cells: { icon: Icon; label: string; value: string; wide?: boolean }[] = [];
+  if (stats) {
+    cells.push(
+      { icon: TextTIcon, label: "chars", value: stats.chars.toLocaleString() },
+      { icon: IntersectIcon, label: "overlap", value: `${stats.overlapPct.toFixed(1)}%` }
+    );
+  }
+  if (doc.blocks.length > 0) {
+    cells.push({ icon: TreeStructureIcon, label: "blocks", value: String(doc.blocks.length) });
+  }
+  // The parser backend knob applies to PDFs only; every other format has one fixed
+  // extraction path, and naming it here is more honest than leaving the cell blank
+  // (or worse, echoing a PDF backend the file never went through).
+  const extractor = str("parser") ?? FORMAT_EXTRACTORS[str("format") ?? ""] ?? null;
+  if (extractor) {
+    cells.push({ icon: FileMagnifyingGlassIcon, label: "parser", value: extractor });
+  }
+  const chunker = str("chunker");
+  if (chunker && num("chunk_size") !== null) {
+    cells.push({
+      icon: ScissorsIcon,
+      label: "chunker",
+      value: `${chunker} ${num("chunk_size")}/${num("chunk_overlap") ?? 0} tok`,
+      wide: true
+    });
+  }
+  const contextMode = str("context_mode");
+  if (contextMode) cells.push({ icon: TextIndentIcon, label: "context", value: contextMode });
+  const embedder = str("embedder");
+  if (embedder) cells.push({ icon: CubeIcon, label: "embedding", value: embedder, wide: true });
+  if (doc.created_at !== null) {
+    cells.push({
+      icon: ClockIcon,
+      label: "ingested",
+      value: new Date(doc.created_at * 1000).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    });
+  }
+
+  if (cells.length === 0) return null;
+  return (
+    <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-x-4 gap-y-2">
+      {cells.map((cell) => (
+        <MetaCell key={cell.label} {...cell} />
+      ))}
+    </div>
+  );
+}
+
 /**
  * Draws chunk boundaries directly over the source text.
  *
@@ -66,14 +177,18 @@ export function ChunkInspector({
   const [pinned, setPinned] = useState<number | null>(null);
   const [view, setView] = useState<"chunks" | "structure" | "raw">("chunks");
   const [showBands, setShowBands] = useState(true);
+  const [scrollOrdinal, setScrollOrdinal] = useState(0);
   const markRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const scrollTick = useRef(false);
 
   useEffect(() => {
     setDoc(null);
     setError(null);
     setPinned(null);
     setHovered(null);
+    setScrollOrdinal(0);
+    if (textRef.current) textRef.current.scrollTop = 0;
     api.document(docId).then(setDoc).catch((e) => setError(String(e)));
   }, [docId]);
 
@@ -131,29 +246,78 @@ export function ChunkInspector({
     });
   };
 
+  /** Centre a chunk's rendered region — not just its first character — in the view. */
   const scrollToChunk = (ordinal: number) => {
-    const el = textRef.current?.querySelector(`[data-chunk-first="${ordinal}"]`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const el = textRef.current;
+    if (!el) return;
+    const anchors = [...el.querySelectorAll<HTMLElement>("[data-chunk-first]")];
+    const index = anchors.findIndex((a) => Number(a.dataset.chunkFirst) === ordinal);
+    if (index < 0) return;
+    const elTop = el.getBoundingClientRect().top;
+    const contentY = (anchor: HTMLElement) =>
+      anchor.getBoundingClientRect().top - elTop + el.scrollTop;
+    const start = contentY(anchors[index]);
+    const end = index + 1 < anchors.length ? contentY(anchors[index + 1]) : el.scrollHeight;
+    el.scrollTo({ top: (start + end) / 2 - el.clientHeight / 2, behavior: "smooth" });
   };
+
+  /**
+   * Where the reader is, as a chunk — measured from the rendered layout, not
+   * estimated from character counts (wrapping makes rendered height per char
+   * uneven, which drifted the indicator off small chunks). The current chunk is
+   * the one whose region contains the viewport's centre line — the same line
+   * `scrollToChunk` centres on, so clicking a bar lands the indicator under that
+   * bar. The scroll extremes are pinned: at the very top the reader is at chunk
+   * one, at the very bottom the last chunk, whatever happens to sit at centre.
+   */
+  const updateScrollOrdinal = useCallback(() => {
+    const el = textRef.current;
+    if (!el || !doc || doc.chunks.length === 0) return;
+    const range = el.scrollHeight - el.clientHeight;
+    if (range <= 0 || el.scrollTop <= 1) {
+      setScrollOrdinal(0);
+      return;
+    }
+    if (el.scrollTop >= range - 1) {
+      setScrollOrdinal(doc.chunks[doc.chunks.length - 1].ordinal);
+      return;
+    }
+    const centerY = el.getBoundingClientRect().top + el.clientHeight / 2;
+    let current = 0;
+    el.querySelectorAll<HTMLElement>("[data-chunk-first]").forEach((anchor) => {
+      if (anchor.getBoundingClientRect().top <= centerY) {
+        current = Number(anchor.dataset.chunkFirst);
+      }
+    });
+    setScrollOrdinal(current);
+  }, [doc]);
+
+  /** Coalesce scroll events to one measurement per frame. */
+  const onTextScroll = () => {
+    if (scrollTick.current) return;
+    scrollTick.current = true;
+    requestAnimationFrame(() => {
+      scrollTick.current = false;
+      updateScrollOrdinal();
+    });
+  };
+
+  // A fresh document (or returning to the chunks view) needs one measurement
+  // before any scroll happens.
+  useEffect(() => {
+    if (view === "chunks") updateScrollOrdinal();
+  }, [view, updateScrollOrdinal]);
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 truncate font-display text-[13px] tracking-wide">
+      <div className="border-b border-line px-4 py-3">
+        {/* Title and actions share one row; the metadata grid gets the full width below. */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 truncate font-display text-[13px] tracking-wide">
             <FileTextIcon size={14} className="shrink-0 text-subtle" />
             {doc?.filename ?? "Loading…"}
           </div>
-          {stats ? (
-            <div className="tabular font-mono text-[10px] text-subtle">
-              {stats.chunks} chunks · {stats.chars.toLocaleString()} chars ·{" "}
-              {stats.overlapPct.toFixed(1)}% overlapped
-              {doc && doc.blocks.length > 0 ? ` · ${doc.blocks.length} blocks` : ""}
-              {doc && typeof doc.meta.parser === "string" ? ` · ${doc.meta.parser}` : ""}
-            </div>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
           {view === "chunks" ? (
             <BandsToggle showBands={showBands} onToggle={() => setShowBands((v) => !v)} />
           ) : null}
@@ -182,12 +346,14 @@ export function ChunkInspector({
               }
             ]}
           />
-          {onClose ? (
-            <IconButton label="Close document" onClick={onClose}>
-              <XIcon size={12} />
-            </IconButton>
-          ) : null}
+            {onClose ? (
+              <IconButton label="Close document" onClick={onClose}>
+                <XIcon size={12} />
+              </IconButton>
+            ) : null}
+          </div>
         </div>
+        {doc ? <MetaGrid doc={doc} stats={stats} /> : null}
       </div>
 
       {error ? <p className="p-4 font-mono text-[11px] text-critical">{error}</p> : null}
@@ -232,6 +398,23 @@ export function ChunkInspector({
                 );
               })}
             </div>
+            {/* ── Reading position: an underline tracking the scroll, cell-aligned
+                with the bars above so it always sits under the current chunk ── */}
+            <div aria-hidden className="mt-[3px] flex gap-[2px]">
+              {doc.chunks.map((chunk) => (
+                <div
+                  key={chunk.id}
+                  className="h-[2px] min-w-[3px] flex-1 transition-colors duration-150"
+                  style={{
+                    maxWidth: 18,
+                    background:
+                      chunk.ordinal === scrollOrdinal
+                        ? "rgb(var(--foreground))"
+                        : "rgb(var(--foreground) / 0.08)"
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           {/* ── Stable readout: chunk-level, pinned on click ── */}
@@ -269,6 +452,7 @@ export function ChunkInspector({
 
           <div
             ref={textRef}
+            onScroll={onTextScroll}
             className="flex-1 overflow-auto p-4 font-mono text-[12px] leading-[1.85] whitespace-pre-wrap"
           >
             {segments.map((segment, i) => {

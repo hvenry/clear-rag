@@ -351,9 +351,7 @@ class Engine:
         filter); None searches the whole corpus. Document ids rather than chunk ids,
         resolved here at query time, because chunk ids change on every re-index.
         """
-        trace = Trace(
-            query=question, config_hash=self.config.config_hash, session_id=session_id
-        )
+        trace = Trace(query=question, config_hash=self.config.config_hash, session_id=session_id)
         started = time.perf_counter()
 
         try:

@@ -9,38 +9,36 @@ project rebuilt its entire index on every launch.
 ``query`` runs Transform -> [BM25 || Dense] -> Fuse -> Rerank -> Assemble -> Generate as an
 async generator of events. The events are the point: the UI receives each stage as it
 completes, so the retrieval process is visible *while it happens* rather than summarised
-after the answer arrives.
+after the answer arrives. Each of those stages is its own module under ``clearrag.query``;
+this file composes them and owns nothing about how any one of them works.
 """
 
 from __future__ import annotations
 
-import asyncio
 import time
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
 from .config import PipelineConfig, Settings
-from .core.stage import atimed, degradable
-from .core.trace import StageRecord, Trace
-from .core.types import Candidate, Message
-from .generate.prompt import (
-    build_answer_messages,
-    build_rewrite_messages,
-    extract_citations,
-    hallucinated_markers,
-    is_refusal,
-)
+from .core.stage import atimed
+from .core.trace import Trace
+from .core.types import Message
 from .index.lexical import LexicalIndex
 from .index.store import Store
 from .index.vector import VectorIndex
-from .ingest.chunk import ChunkResult, chunk_document, count_tokens
+from .ingest.chunk import ChunkResult, chunk_document
 from .ingest.contextualize import apply_breadcrumbs, apply_llm_context
 from .ingest.parse import parse
 from .ingest.parsers import available_backends, backend_remedy
 from .ingest.structural import chunk_structural
 from .providers.base import ChatProvider, EmbeddingProvider, ProviderError, Reranker
-from .query.assemble import assemble
-from .query.fuse import reciprocal_rank_fusion, weighted_fusion
+from .query.assemble import assemble_stage, context_event, filenames_for
+from .query.context import QueryContext, stage_event
+from .query.fuse import fuse_stage
+from .query.generate import Generation
+from .query.rerank import rerank_stage
+from .query.retrieve import retrieve
+from .query.transform import transform_query
 
 
 class EmbeddingSpaceMismatch(RuntimeError):
@@ -343,6 +341,11 @@ class Engine:
     ) -> AsyncIterator[dict[str, Any]]:
         """Run the query pipeline, yielding events as each stage completes.
 
+        The stages themselves live in ``clearrag.query``, one module each. This method
+        only composes them, in order, and turns every finished stage into an event --
+        so adding a technique is a new module plus one line here, and the machinery
+        that makes retrieval visible (the trace, the events) needs no change at all.
+
         ``generate=False`` stops after context assembly. Retrieval quality is measured
         far more often than answer quality, and evaluating a golden set should not cost
         one LLM generation per question just to score what was retrieved.
@@ -380,200 +383,47 @@ class Engine:
                 }
                 return
 
-        # ── Transform ──
-        search_query = question
-        rec = trace.stage(
-            "transform",
-            "Rewrite query",
-            mode=self.config.query_transform,
-            rewrite_followups=self.config.rewrite_followups,
+        ctx = QueryContext(
+            config=self.config,
+            trace=trace,
+            chat=self.chat,
+            embeddings=self.embeddings,
+            reranker=self.reranker,
+            store=self.store,
+            lexical=self.lexical,
+            vectors=index,
+            allowed=allowed,
         )
-        async with atimed(rec):
-            if self.config.rewrite_followups and history:
-                try:
-                    rewritten = (
-                        await self.chat.complete(
-                            build_rewrite_messages(question, history), temperature=0.0
-                        )
-                    ).strip()
-                    if rewritten:
-                        search_query = rewritten.splitlines()[0][:512]
-                except ProviderError as exc:
-                    rec.error = str(exc)
-                    rec.degraded = True
-            rec.diagnostics = {
-                "original": question,
-                "search_query": search_query,
-                "rewritten": search_query != question,
-            }
-        trace.resolved_query = search_query
-        yield {"type": "stage", "stage": rec.to_dict()}
+
+        # ── Transform ──
+        search_query, transform_rec = await transform_query(ctx, question, history)
+        yield stage_event(transform_rec)
 
         # ── Retrieve (concurrently) ──
-        rankings: dict[str, list[Candidate]] = {}
-        use_dense = self.config.retrieval in ("dense", "hybrid")
-        use_lexical = self.config.retrieval in ("lexical", "hybrid")
-
-        dense_rec = (
-            trace.stage("dense", "Vector search", k=self.config.k_candidates) if use_dense else None
-        )
-        lexical_rec = (
-            trace.stage("bm25", "Keyword search (BM25)", k=self.config.k_candidates)
-            if use_lexical
-            else None
-        )
-
-        async def run_dense() -> list[Candidate]:
-            start = time.perf_counter()
-            vector = await self.embeddings.embed([search_query], kind="query")
-            results = index.search(vector[0], k=self.config.k_candidates, allowed=allowed)
-            assert dense_rec is not None
-            dense_rec.duration_ms = (time.perf_counter() - start) * 1000
-            dense_rec.candidates_out = results
-            dense_rec.diagnostics = {
-                "corpus_size": len(index),
-                "returned": len(results),
-                "top_score": results[0].score if results else None,
-            }
-            return results
-
-        async def run_lexical() -> list[Candidate]:
-            start = time.perf_counter()
-            results = await asyncio.to_thread(
-                self.lexical.search, search_query, self.config.k_candidates, allowed
-            )
-            assert lexical_rec is not None
-            lexical_rec.duration_ms = (time.perf_counter() - start) * 1000
-            lexical_rec.candidates_out = results
-            lexical_rec.diagnostics = {
-                "vocabulary_terms": len(self.lexical.postings),
-                "returned": len(results),
-                "query_terms": sorted(
-                    {t for c in results for t in c.detail.get("matched_terms", {})}
-                ),
-            }
-            return results
-
-        tasks = []
-        if use_dense:
-            tasks.append(("dense", run_dense()))
-        if use_lexical:
-            tasks.append(("bm25", run_lexical()))
-
         try:
-            results = await asyncio.gather(*(t for _, t in tasks))
+            rankings, retrieval_recs = await retrieve(ctx, search_query)
         except ProviderError as exc:
             yield _error_event(exc)
             return
-        for (name, _), result in zip(tasks, results, strict=True):
-            rankings[name] = result
-
-        for retrieval_rec in (lexical_rec, dense_rec):
-            if retrieval_rec is not None:
-                yield {"type": "stage", "stage": retrieval_rec.to_dict()}
+        for rec in retrieval_recs:
+            yield stage_event(rec)
 
         # ── Fuse ──
-        if len(rankings) > 1:
-            rec = trace.stage(
-                "fuse", "Fuse (RRF)", method=self.config.fusion, rrf_k=self.config.rrf_k
-            )
-            async with atimed(rec):
-                if self.config.fusion == "rrf":
-                    fused = reciprocal_rank_fusion(rankings, k=self.config.rrf_k)
-                else:
-                    fused = weighted_fusion(
-                        rankings,
-                        weights={
-                            "dense": self.config.dense_weight,
-                            "bm25": 1.0 - self.config.dense_weight,
-                        },
-                    )
-                rec.candidates_out = fused
-                rec.diagnostics = {
-                    "inputs": {k: len(v) for k, v in rankings.items()},
-                    "unique_candidates": len(fused),
-                    "found_by_both": sum(1 for c in fused if len(c.detail.get("found_by", [])) > 1),
-                }
-            yield {"type": "stage", "stage": rec.to_dict()}
-        else:
-            fused = next(iter(rankings.values()), [])
+        fused, fuse_rec = fuse_stage(ctx, rankings)
+        if fuse_rec is not None:
+            yield stage_event(fuse_rec)
 
         # ── Rerank (optional; degrades to fusion order) ──
         chunk_map = self.store.get_chunks([c.chunk_id for c in fused])
-        if self.config.rerank and self.reranker is not None:
-            reranker = self.reranker
-
-            async def do_rerank(rec: StageRecord) -> list[Candidate]:
-                rec.candidates_in = fused
-                texts = [chunk_map[c.chunk_id].text for c in fused if c.chunk_id in chunk_map]
-                out = await reranker.rerank(search_query, fused, texts, top_k=self.config.k_final)
-                rec.candidates_out = out
-                before = {c.chunk_id: c.rank for c in fused}
-                rec.diagnostics = {
-                    "moves": {c.chunk_id: before.get(c.chunk_id, 0) - c.rank for c in out}
-                }
-                return out
-
-            selected = await degradable(
-                trace,
-                "rerank",
-                "Rerank (cross-encoder)",
-                do_rerank,
-                fallback=fused[: self.config.k_final],
-                model=reranker.name,
-            )
-            if (rerank_rec := trace.find("rerank")) is not None:
-                yield {"type": "stage", "stage": rerank_rec.to_dict()}
-        else:
-            if self.config.rerank and self.reranker is None:
-                # Requested but unavailable. A config knob that silently does nothing is
-                # worse than one that says so; the trace records the skip so the UI can
-                # show it rather than implying a stage ran.
-                rec = trace.stage("rerank", "Rerank (unavailable)", requested=True)
-                rec.candidates_in = fused
-                rec.candidates_out = fused[: self.config.k_final]
-                rec.degraded = True
-                rec.error = "Reranking is enabled in config but no reranker is installed."
-                rec.diagnostics = {
-                    "skipped": True,
-                    "remedy": "Not yet implemented — fusion order was used unchanged.",
-                }
-                yield {"type": "stage", "stage": rec.to_dict()}
-            selected = fused[: self.config.k_final]
+        selected, rerank_rec = await rerank_stage(ctx, search_query, fused, chunk_map)
+        if rerank_rec is not None:
+            yield stage_event(rerank_rec)
 
         # ── Assemble ──
-        rec = trace.stage("assemble", "Assemble context", max_tokens=self.config.max_context_tokens)
-        async with atimed(rec):
-            packed = assemble(selected, chunk_map, max_tokens=self.config.max_context_tokens)
-            rec.candidates_in = list(selected)
-            rec.candidates_out = [
-                c for c in selected if c.chunk_id in {ch.id for _, ch in packed.used}
-            ]
-            rec.diagnostics = packed.diagnostics
-        yield {"type": "stage", "stage": rec.to_dict()}
-        packed_filenames = {
-            doc_id: (doc.filename if (doc := self.store.get_document(doc_id)) else "unknown")
-            for doc_id in {chunk.doc_id for _, chunk in packed.used}
-        }
-        yield {
-            "type": "context",
-            "chunks": [
-                {
-                    "marker": marker,
-                    "chunk_id": chunk.id,
-                    "doc_id": chunk.doc_id,
-                    "filename": packed_filenames.get(chunk.doc_id, "unknown"),
-                    # Position within its document. Without it a chunk is an opaque id,
-                    # and a preview drawn from an overlap region looks like it belongs to
-                    # the neighbouring chunk.
-                    "ordinal": chunk.ordinal,
-                    "text": chunk.text,
-                    "span": list(chunk.span),
-                    "page": chunk.page,
-                }
-                for marker, chunk in packed.used
-            ],
-        }
+        packed, assemble_rec = assemble_stage(ctx, selected, chunk_map)
+        yield stage_event(assemble_rec)
+        filenames = filenames_for(self.store, packed)
+        yield context_event(packed, filenames)
 
         if not generate:
             trace.total_ms = (time.perf_counter() - started) * 1000
@@ -581,56 +431,19 @@ class Engine:
             return
 
         # ── Generate ──
-        rec = trace.stage("generate", "Generate", model=getattr(self.chat, "model", "unknown"))
-        answer_parts: list[str] = []
-        start = time.perf_counter()
-        first_token_at: float | None = None
+        generation = Generation(ctx, question, history, packed, filenames)
         try:
-            async for token in self.chat.stream(
-                build_answer_messages(question, packed.prompt_context, history),
-                temperature=self.config.temperature,
-            ):
-                if first_token_at is None:
-                    first_token_at = time.perf_counter()
-                answer_parts.append(token)
+            async for token in generation.tokens():
                 yield {"type": "token", "text": token}
         except ProviderError as exc:
-            rec.error = str(exc)
-            rec.duration_ms = (time.perf_counter() - start) * 1000
             yield _error_event(exc)
             return
+        generation.finish()
 
-        answer = "".join(answer_parts).strip()
-        rec.duration_ms = (time.perf_counter() - start) * 1000
-
-        filenames = {
-            doc_id: (doc.filename if (doc := self.store.get_document(doc_id)) else "unknown")
-            for doc_id in {chunk.doc_id for _, chunk in packed.used}
-        }
-        citations = extract_citations(answer, packed.used, filenames)
-        invented = hallucinated_markers(answer, packed.used)
-        rec.diagnostics = {
-            "characters": len(answer),
-            **_generation_speed(
-                started=start,
-                first_token_at=first_token_at,
-                finished=start + rec.duration_ms / 1000,
-                answer=answer,
-                prompt_tokens=packed.diagnostics.get("context_tokens", 0),
-            ),
-            "citations": len(citations),
-            # Markers pointing at passages that were never supplied. Dropped rather than
-            # rendered, because a citation UI showing a fabricated source is worse than none.
-            "hallucinated_markers": invented,
-            "refused": is_refusal(answer),
-        }
-
-        trace.answer = answer
-        trace.citations = citations
         trace.total_ms = (time.perf_counter() - started) * 1000
         self.store.save_trace(trace.to_dict())
 
-        yield {"type": "stage", "stage": rec.to_dict()}
+        yield stage_event(generation.rec)
         yield {"type": "done", "trace": trace.to_dict()}
 
     async def healthcheck(self) -> dict[str, Any]:
@@ -702,52 +515,6 @@ class Engine:
                 }
             )
         return report
-
-
-def _generation_speed(
-    *,
-    started: float,
-    first_token_at: float | None,
-    finished: float,
-    answer: str,
-    prompt_tokens: int,
-) -> dict[str, Any]:
-    """Split the generate stage into the two waits that have different causes.
-
-    One duration cannot answer the only question a slow answer actually raises. Before
-    the first token the model is reading: it processes the whole packed context in one
-    compute-bound pass, so that number moves with ``k_final`` and ``chunk_size`` and
-    barely at all with model size. After it, the model is writing: one pass over every
-    weight per token, so that number is set by model size against memory bandwidth and
-    is unaffected by how much context was retrieved.
-
-    Retrieving less fixes the first. A smaller model fixes the second. Reporting a single
-    total tells you to do both, which is how a pipeline ends up with neither its context
-    nor its model chosen on evidence.
-
-    Token counts use the same cl100k approximation the context budget uses, so they are
-    comparable to ``chunk_size`` and ``context_tokens`` -- not to the model's own
-    tokenizer, which nothing else in the app speaks either.
-    """
-    if first_token_at is None:
-        return {"ttft_ms": None, "decode_ms": None, "tokens": 0}
-
-    ttft_ms = (first_token_at - started) * 1000
-    decode_ms = max(0.0, (finished - first_token_at) * 1000)
-    tokens = count_tokens(answer)
-
-    return {
-        "ttft_ms": round(ttft_ms, 1),
-        "decode_ms": round(decode_ms, 1),
-        "tokens": tokens,
-        # Decode rate excludes the prefill wait; including it would make a long context
-        # look like a slow model.
-        "tokens_per_second": round(tokens / (decode_ms / 1000), 1) if decode_ms > 0 else None,
-        "prompt_tokens": prompt_tokens,
-        "prefill_tokens_per_second": (
-            round(prompt_tokens / (ttft_ms / 1000), 1) if ttft_ms > 0 and prompt_tokens else None
-        ),
-    }
 
 
 def _error_event(exc: Exception) -> dict[str, Any]:

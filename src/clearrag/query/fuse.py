@@ -11,7 +11,7 @@ retuned whenever the corpus changes. Ranks are already comparable.
 retriever placing something first cannot by itself dominate agreement between retrievers.
 
 Every fused candidate records where its score came from, per retriever. That breakdown is
-the data behind the rank-flow diagram -- without it the UI could show *that* a document
+the data behind the rank-flow diagram - without it the UI could show *that* a document
 moved but not *why*.
 """
 
@@ -19,8 +19,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
+from ..core.stage import timed
+from ..core.trace import StageRecord
 from ..core.types import Candidate
+
+if TYPE_CHECKING:
+    from .context import QueryContext
 
 
 def reciprocal_rank_fusion(
@@ -106,3 +112,33 @@ def weighted_fusion(
         )
         for i, (chunk_id, score) in enumerate(ordered)
     ]
+
+
+def fuse_stage(
+    ctx: QueryContext, rankings: Mapping[str, list[Candidate]]
+) -> tuple[list[Candidate], StageRecord | None]:
+    """Merge the retrievers' rankings, or pass a lone ranking through untouched.
+
+    With a single retriever there is nothing to fuse and no stage is recorded: the
+    interface would otherwise draw a merge step that merged nothing.
+    """
+    if len(rankings) <= 1:
+        return next(iter(rankings.values()), []), None
+
+    config = ctx.config
+    rec = ctx.trace.stage("fuse", "Fuse (RRF)", method=config.fusion, rrf_k=config.rrf_k)
+    with timed(rec):
+        if config.fusion == "rrf":
+            fused = reciprocal_rank_fusion(rankings, k=config.rrf_k)
+        else:
+            fused = weighted_fusion(
+                rankings,
+                weights={"dense": config.dense_weight, "bm25": 1.0 - config.dense_weight},
+            )
+        rec.candidates_out = fused
+        rec.diagnostics = {
+            "inputs": {k: len(v) for k, v in rankings.items()},
+            "unique_candidates": len(fused),
+            "found_by_both": sum(1 for c in fused if len(c.detail.get("found_by", [])) > 1),
+        }
+    return fused, rec

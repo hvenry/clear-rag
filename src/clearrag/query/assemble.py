@@ -16,9 +16,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
+from ..core.stage import timed
+from ..core.trace import StageRecord
 from ..core.types import Candidate, Chunk
 from ..ingest.chunk import count_tokens
+
+if TYPE_CHECKING:
+    from ..index.store import Store
+    from .context import QueryContext
 
 
 @dataclass
@@ -91,3 +98,48 @@ def _overlaps(chunk: Chunk, seen: list[tuple[str, int, int]]) -> bool:
         if shared > 0 and shared / length > 0.5:
             return True
     return False
+
+
+def assemble_stage(
+    ctx: QueryContext, selected: Sequence[Candidate], chunk_map: dict[str, Chunk]
+) -> tuple[AssembledContext, StageRecord]:
+    """Pack the selected candidates and record what reached the model."""
+    rec = ctx.trace.stage("assemble", "Assemble context", max_tokens=ctx.config.max_context_tokens)
+    with timed(rec):
+        packed = assemble(selected, chunk_map, max_tokens=ctx.config.max_context_tokens)
+        rec.candidates_in = list(selected)
+        used_ids = {chunk.id for _, chunk in packed.used}
+        rec.candidates_out = [c for c in selected if c.chunk_id in used_ids]
+        rec.diagnostics = packed.diagnostics
+    return packed, rec
+
+
+def filenames_for(store: Store, packed: AssembledContext) -> dict[str, str]:
+    """Document id -> filename for every document the packed context draws on."""
+    return {
+        doc_id: (doc.filename if (doc := store.get_document(doc_id)) else "unknown")
+        for doc_id in {chunk.doc_id for _, chunk in packed.used}
+    }
+
+
+def context_event(packed: AssembledContext, filenames: dict[str, str]) -> dict[str, Any]:
+    """The SSE payload carrying the passages the model is about to read."""
+    return {
+        "type": "context",
+        "chunks": [
+            {
+                "marker": marker,
+                "chunk_id": chunk.id,
+                "doc_id": chunk.doc_id,
+                "filename": filenames.get(chunk.doc_id, "unknown"),
+                # Position within its document. Without it a chunk is an opaque id,
+                # and a preview drawn from an overlap region looks like it belongs to
+                # the neighbouring chunk.
+                "ordinal": chunk.ordinal,
+                "text": chunk.text,
+                "span": list(chunk.span),
+                "page": chunk.page,
+            }
+            for marker, chunk in packed.used
+        ],
+    }

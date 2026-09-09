@@ -516,6 +516,7 @@ function LabEmptyState() {
         <li>try: RRF damping k at 5 vs 60</li>
         <li>try: recursive vs semantic chunking on a table question</li>
         <li>try: breadcrumb context on, then pin a chunk in the Library</li>
+        <li>try: query expansion multi on a question worded unlike the document</li>
       </ul>
     </EmptyState>
   );

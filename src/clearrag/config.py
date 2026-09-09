@@ -80,7 +80,19 @@ class PipelineConfig(BaseModel):
     k_final: int = Field(5, ge=1, le=50, description="Chunks handed to the generator.")
 
     # ── Query understanding ──
-    query_transform: Literal["none", "hyde", "multi"] = "none"
+    query_transform: Literal["none", "hyde", "multi"] = Field(
+        "none",
+        description="Query expansion before retrieval. 'multi' has the chat model write "
+        "alternative phrasings of the question, searches every phrasing and fuses each "
+        "retriever's rankings across them. 'hyde' is not built yet.",
+    )
+    query_variants: int = Field(
+        3,
+        ge=1,
+        le=5,
+        description="Alternative phrasings to generate when query_transform='multi'. The "
+        "original question always searches too, so each retriever runs 1 + this many times.",
+    )
     self_correct: bool = Field(False, description="Phase 4: grade retrieval, rewrite, retry once.")
     rewrite_followups: bool = Field(
         True,

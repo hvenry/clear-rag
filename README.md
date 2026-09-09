@@ -113,7 +113,7 @@ from them. See *Phase 4 results* below for what each choice measurably does.
 ### Query
 
 ```
-Rewrite → [ BM25 ∥ Vector ] → Fuse (RRF) → Rerank → Assemble → Generate
+Rewrite → Expand? → [ BM25 ∥ Vector ] → Fuse (RRF) → Rerank → Assemble → Generate
 ```
 
 Keyword and vector search run concurrently. Fusion is Reciprocal Rank Fusion:
@@ -125,6 +125,16 @@ RRF(d) = Σ over retrievers  1 / (60 + rank(d))
 RRF consumes *ranks*, not scores — BM25 scores are unbounded sums of idf terms and cosine
 similarities live in [-1, 1], so they cannot be combined meaningfully without a
 normalisation scheme that needs retuning whenever the corpus changes.
+
+**Multi-query expansion** (`query_transform=multi`) has the chat model write a few
+alternative phrasings of the question and searches every one of them. Each retriever
+fuses its own rankings across the phrasings by reciprocal rank *before* the two
+retrievers are fused, so keyword and vector search still each emit one ranking and the
+inspector can still say which search found a chunk. It exists for questions whose
+wording diverges from the document's — "can a customer be relocated to a different data
+centre?" against a page that says *moving a tenant between regions* — and the golden set
+tags those `paraphrase` so the ablation can say what the technique is worth on exactly
+the questions it was built for.
 
 ---
 
@@ -153,34 +163,44 @@ SQLite and can be replayed offline by the evaluation harness without re-invoking
 
 ## Results
 
-Measured on a 58-question golden set over a 10-document corpus (`evals/`), using
-`nomic-embed-text` via Ollama. Reproduce with `clear-rag ablate`.
+Measured on a 67-question golden set over a 10-document corpus (`evals/`), using
+`nomic-embed-text` via Ollama, with `qwen3.5:9b` writing the phrasings for the
+multi-query rows. Reproduce with `clear-rag ablate`. Re-measured on 2026-09-08 after nine
+`paraphrase` questions joined the set; every row moved a little, because the new
+questions are the hard ones.
 
-| Configuration | recall@1 | recall@5 | MRR | nDCG@5 | lexical | semantic | distractor |
-|---|---|---|---|---|---|---|---|
-| dense only, 50% overlap (2024 baseline) | 0.651 | 0.925 | 0.757 | 0.797 | 0.955 | 0.880 | 0.875 |
-| dense only | 0.632 | 0.887 | 0.737 | 0.773 | 0.909 | 0.840 | 0.875 |
-| keyword only (BM25) | 0.821 | 0.925 | 0.868 | 0.882 | 1.000 | 0.880 | 0.875 |
-| hybrid + weighted fusion | 0.858 | 1.000 | 0.922 | 0.942 | 1.000 | 1.000 | 1.000 |
-| hybrid + RRF | 0.783 | 1.000 | 0.884 | 0.913 | 1.000 | 1.000 | 1.000 |
-| **hybrid + RRF + cross-encoder rerank** | **0.972** | 1.000 | **0.991** | 0.993 | 1.000 | 1.000 | 1.000 |
-| hybrid + RRF, 96-token chunks | 0.764 | 0.962 | 0.858 | 0.931 | 1.000 | 0.960 | 0.875 |
-| hybrid + RRF, 192-token chunks | 0.802 | 0.981 | 0.887 | 0.980 | 1.000 | 1.000 | 0.875 |
-| hybrid + RRF, 256-token chunks | 0.802 | 0.981 | 0.877 | 0.912 | 1.000 | 1.000 | 0.875 |
-| hybrid + RRF, 1024-token chunks | 0.764 | 1.000 | 0.868 | 0.901 | 1.000 | 1.000 | 1.000 |
+| Configuration | recall@1 | recall@5 | MRR | nDCG@5 | lexical | semantic | distractor | paraphrase |
+|---|---|---|---|---|---|---|---|---|
+| dense only, 50% overlap (2024 baseline) | 0.589 | 0.903 | 0.708 | 0.765 | 0.955 | 0.880 | 0.875 | 0.778 |
+| dense only | 0.573 | 0.871 | 0.691 | 0.745 | 0.909 | 0.840 | 0.875 | 0.778 |
+| keyword only (BM25) | 0.766 | 0.903 | 0.823 | 0.843 | 1.000 | 0.880 | 0.875 | 0.778 |
+| hybrid + weighted fusion | 0.782 | 0.968 | 0.866 | 0.900 | 1.000 | 1.000 | 1.000 | 0.778 |
+| hybrid + RRF | 0.734 | 0.968 | 0.841 | 0.874 | 1.000 | 1.000 | 1.000 | 0.778 |
+| hybrid + RRF + multi-query | 0.653 | 0.984 | 0.802 | 0.854 | 0.955 | 1.000 | 1.000 | 1.000 |
+| **hybrid + RRF + cross-encoder rerank** | 0.927 | 1.000 | 0.965 | 0.974 | 1.000 | 1.000 | 1.000 | 1.000 |
+| **hybrid + RRF + rerank + multi-query** | 0.927 | 1.000 | 0.965 | 0.974 | 1.000 | 1.000 | 1.000 | 1.000 |
+| hybrid + RRF, 96-token chunks | 0.702 | 0.887 | 0.790 | 0.855 | 1.000 | 0.960 | 0.875 | 0.444 |
+| hybrid + RRF + multi-query, 96-token chunks | 0.540 | 0.750 | 0.636 | 0.674 | 0.864 | 0.720 | 0.875 | 0.556 |
+| hybrid + RRF, 192-token chunks | 0.750 | 0.919 | 0.826 | 0.908 | 1.000 | 1.000 | 0.875 | 0.556 |
+| hybrid + RRF, 256-token chunks | 0.734 | 0.952 | 0.823 | 0.862 | 1.000 | 1.000 | 0.875 | 0.778 |
+| hybrid + RRF, 1024-token chunks | 0.718 | 0.968 | 0.828 | 0.864 | 1.000 | 1.000 | 1.000 | 0.778 |
 
 `lexical` / `semantic` / `distractor` are recall@5 restricted to question sets tagged
 that way. Distractor questions are ones with a plausible near-miss elsewhere in the
 corpus — production access is described in both `security.md` and `onboarding.md` with
 different answers, and "retention" means thirteen months in one document and thirty-five
-days in another.
+days in another. `paraphrase` questions are worded to share almost no vocabulary with the
+passage that answers them — "can a customer be relocated to a different data centre?"
+against *moving a tenant between regions* — which is the failure query expansion exists
+to fix.
 
 **What the numbers say.** Two techniques carry the table. Hybrid retrieval: dense alone
-reaches 0.887 recall@5 and BM25 alone 0.925, while combining them reaches 1.000 and
+reaches 0.871 recall@5 and BM25 alone 0.903, while combining them reaches 0.968 and
 resolves every distractor question either method alone got wrong. Then reranking — a
 23 MB quantised cross-encoder (ms-marco-MiniLM via ONNX, downloaded on first use, no
 torch) re-scores the fused shortlist and delivers the single largest jump measured:
-recall@1 0.783 → **0.972**, MRR 0.884 → **0.991**, for a few hundred milliseconds per
+recall@1 0.734 → **0.927**, MRR 0.841 → **0.965**, and the two paraphrase questions
+fusion missed outright land at ranks one and three — for a few hundred milliseconds per
 query. Fusion gets the right chunk into the top five; the reranker puts it first. Notably **BM25 beats vector
 search here** — on a technical corpus full of exact identifiers (`422`, `hb bootstrap`,
 `X-RateLimit-Remaining`) lexical matching is genuinely strong, which is the argument
@@ -188,23 +208,44 @@ against the dense-only pipeline this project's predecessor used.
 
 **Three honest caveats**, because a table without them is a sales pitch:
 
-1. **recall@5 saturates.** At 1.000 it can no longer distinguish the top three rows —
-   recall@1 and MRR are doing the discriminating. A larger corpus would fix this; the
-   current one is 22 KB.
-2. **Weighted fusion beating RRF is not a finding.** The gap at recall@1 (0.858 vs 0.783)
-   is four questions out of 53, well inside noise for a set this size. RRF stays the
+1. **recall@5 nearly saturates.** The reranked rows sit at 1.000 and the hybrid rows at
+   0.968, so the column can barely separate them — recall@1 and MRR are doing the
+   discriminating. A larger corpus would fix this; the current one is 22 KB.
+2. **Weighted fusion beating RRF is not a finding.** The gap at recall@1 (0.782 vs 0.734)
+   is three questions out of 62, well inside noise for a set this size. RRF stays the
    default because rank-based fusion needs no per-corpus score normalisation, not because
    this table endorses it.
-3. **The chunk-size rows barely move, and that is itself a finding.** Every size from
-   96 to 1024 tokens lands within a few questions of the others. Retrieval is not
-   sensitive to chunk size on prose where each document covers a distinct topic — the
-   right document gets found either way. See *What this benchmark cannot see* below for
-   where that stops being true.
+3. **The chunk-size rows barely move, with one exception the new questions expose.**
+   From 192 to 1024 tokens every size lands within a few questions of the others:
+   retrieval is not sensitive to chunk size on prose where each document covers a
+   distinct topic. At 96 tokens the `paraphrase` column falls to 0.444 — a chunk that
+   small carries too little of the surrounding wording for a differently-phrased
+   question to land on it. Whether query expansion repairs that is exactly what the
+   multi-query row at that size measures. See *What this benchmark cannot see* below
+   for the other place chunk size matters.
 4. **The overlap row proves nothing.** These documents are short enough to fit in roughly
    one 512-token chunk, so 50% and 12% overlap produce the same 11 chunks and the same
    scores. On a document long enough for overlap to apply, 50% produces 19 chunks against
    10 and duplicates 51% of the indexed text — that is a real index-size cost, it just
    is not visible here.
+
+**Multi-query expansion: measured, and honest about it.** The two `multi-query` rows
+exist because nine `paraphrase` questions were added for them, and on those questions
+the technique does its job: on hybrid + RRF it lifts the `paraphrase` column from 0.778
+to **1.000**, recovering both questions fusion had missed outright. It also has a bill.
+recall@1 falls 0.734 → 0.653 and MRR 0.841 → 0.802, because the extra phrasings pull in
+near-misses that reciprocal rank across phrasings then promotes over the exact hit — the
+first relevant chunk moved up on ten questions and down on fourteen. At 96-token chunks
+the same trade turns bad: `paraphrase` rises 0.444 → 0.556 while every other column
+drops. And stacked on the reranker it changes nothing at all, for a structural reason:
+at 512 tokens this corpus is eleven chunks and each search returns fifty candidates, so
+the shortlist *is* the corpus and the cross-encoder alone decides the order. Expansion
+can only change what enters the shortlist, and here nothing is ever left out. The
+reranker reaches the same 1.000 with a better recall@1 for about 0.5 s per question
+against 3.7 s of `qwen3.5:9b` writing phrasings. So the knob stays, off by default, and
+the case it was built for — a corpus large enough that the shortlist is a real cut — is
+one this benchmark cannot yet make. A recall lever with a precision bill; here the
+reranker is the better buy.
 
 ### What this benchmark cannot see
 
@@ -287,6 +328,12 @@ identical corpus produced different metrics. Ids are now derived from document a
 position, so runs are byte-for-byte reproducible and traces from separate runs are
 directly comparable.
 
+A second gate covers refactors rather than retrieval changes. The baseline compares
+*metrics*, and two implementations can score identically while emitting different stage
+records or diagnostics — which the interface renders. `scripts/snapshot_query_events.py`
+records every query event stream, on fake providers and the real reranker, with ids and
+timings stripped; a refactor that changes nothing observable reproduces it byte for byte.
+
 ```bash
 clear-rag eval                    # score the golden set with real models
 clear-rag eval --suite sec        # the 10-K corpus: parsing/chunking/context measurable
@@ -294,7 +341,9 @@ clear-rag parse-quality           # differential-test parser backends vs HTML gr
 clear-rag eval --generate         # also generate answers: refusal + required-mention accuracy
 clear-rag ablate                  # sweep configurations, print the table above
 clear-rag ablate --fake           # deterministic, no models needed
+clear-rag eval --set rerank=true --set query_transform=multi   # override any knob
 python scripts/refresh_baseline.py  # after a deliberate retrieval change
+python scripts/snapshot_query_events.py out.json --compare before.json  # refactor gate
 ```
 
 ### How the golden set works
@@ -384,7 +433,7 @@ vs semantic chunking, parser backend, contextual retrieval on or off. Settings t
 rewrite the index trigger an explicit re-index, rebuilt from stored text without
 needing the original files (a parser change is called out as the one exception —
 re-indexing cannot re-parse, so it applies to files uploaded afterwards). Knobs that
-exist in the config but are not implemented yet (HyDE, multi-query, self-correction)
+exist in the config but are not implemented yet (HyDE, self-correction)
 appear disabled with a note, so the interface never pretends.
 
 A one-click **sample corpus** (the evaluation documents — 10 files, ~60 chunks at small
@@ -513,7 +562,7 @@ assert real ranking behaviour rather than merely that the plumbing connects.
 | **3** | Cross-encoder reranking (ONNX), embedding map, Learn section | ✅ done |
 | **3.5** | Answer-side evaluation: attribution suite, grounding & refusal metrics | ✅ done |
 | **4** | Pluggable parser backends (hand-rolled `primitives` + docling/marker extras), SEC 10-K benchmark with differential parse testing, structural chunking, contextual retrieval | ✅ done |
-| **5** | HyDE, multi-query, decomposition, self-correction | |
+| **5** | Query understanding: multi-query expansion done; decomposition, HyDE, self-correction pending | ⏳ in progress |
 | **6** | Approximate index as a measured experiment; Electron packaging | |
 
 Evaluation moved ahead of reranking on purpose: build the ruler before the thing you

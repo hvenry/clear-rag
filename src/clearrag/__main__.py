@@ -6,7 +6,10 @@ import argparse
 import sys
 import threading
 import webbrowser
+from collections.abc import Sequence
 from pathlib import Path
+
+from pydantic import ValidationError
 
 from .config import get_settings
 
@@ -136,6 +139,28 @@ def _add_eval_args(parser: argparse.ArgumentParser) -> None:
         "--chunk-size", type=int, default=None, help="Override chunk size (tokens)."
     )
     parser.add_argument("--chunk-overlap", type=int, default=None, help="Override chunk overlap.")
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        dest="overrides",
+        metavar="KEY=VALUE",
+        help=(
+            "Override any pipeline setting for `eval`, e.g. --set query_transform=multi "
+            "--set rerank=true. Repeatable; values are validated exactly as the config is."
+        ),
+    )
+
+
+def parse_overrides(pairs: Sequence[str]) -> dict[str, str]:
+    """``KEY=VALUE`` strings into a dict the config model can validate and coerce."""
+    overrides: dict[str, str] = {}
+    for pair in pairs:
+        key, sep, value = pair.partition("=")
+        if not sep or not key.strip() or not value.strip():
+            raise SystemExit(f"--set expects KEY=VALUE, got {pair!r}")
+        overrides[key.strip()] = value.strip()
+    return overrides
 
 
 def _resolve_suite(args) -> tuple[Path, Path]:
@@ -173,7 +198,11 @@ def _eval(settings, args) -> int:
         overrides["chunk_size"] = args.chunk_size
     if args.chunk_overlap is not None:
         overrides["chunk_overlap"] = args.chunk_overlap
-    config = PipelineConfig(**overrides)
+    overrides.update(parse_overrides(args.overrides))
+    try:
+        config = PipelineConfig(**overrides)
+    except ValidationError as exc:
+        raise SystemExit(f"Invalid --set override:\n{exc}") from exc
 
     corpus_dir, golden_path = _resolve_suite(args)
     runs = asyncio.run(
@@ -206,7 +235,7 @@ def _ablate(settings, args) -> int:
 
     chat_factory, embeddings_factory, reranker_factory = _providers(settings, args.fake)
     workspace = args.workspace or Path(tempfile.mkdtemp(prefix="clearrag-ablate-"))
-    table_tags = ("lexical", "semantic", "distractor")
+    table_tags: tuple[str, ...] = ("lexical", "semantic", "distractor", "paraphrase")
     if args.suite == "sec":
         variants, skipped = sec_variants()
         table_tags = ("table", "structure", "cross-company")

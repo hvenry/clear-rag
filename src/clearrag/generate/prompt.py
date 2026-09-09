@@ -37,6 +37,56 @@ I don't have that information in the provided documents.
 - Be concise. Do not restate the question or describe your process."""
 
 
+EXPAND_SYSTEM = """\
+You rewrite a search query into alternative phrasings, so that a search engine which \
+matches words can find passages the original wording would miss.
+
+Given a question, write {n} different ways of asking the same thing. Vary the vocabulary: \
+prefer synonyms and the terms a technical document would use over the words in the \
+question. Keep each phrasing to a single line.
+
+Do NOT answer the question. Do NOT add information. Do NOT number or explain the lines. \
+Output only the {n} phrasings, one per line."""
+
+
+def build_expand_messages(question: str, n: int) -> list[Message]:
+    return [
+        Message(role="system", content=EXPAND_SYSTEM.format(n=n)),
+        Message(role="user", content=question),
+    ]
+
+
+_LEADING_MARK = re.compile(r"^\s*(?:[-*\u2022]|\d+[.)])\s*")
+_WORDS = re.compile(r"[a-z0-9]+")
+
+
+def parse_expansions(text: str, original: str, n: int) -> list[str]:
+    """Distinct phrasings from the model's reply, in order, at most ``n``.
+
+    Models number and quote their lines despite instructions, so that decoration is
+    stripped. A line that is the original question in different punctuation is dropped:
+    searching it again would only double-count the primary query.
+    """
+    seen = {_normalise(original)}
+    phrasings: list[str] = []
+    for line in text.splitlines():
+        candidate = _LEADING_MARK.sub("", line).strip().strip("\"'").strip()
+        if not candidate:
+            continue
+        key = _normalise(candidate)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        phrasings.append(candidate)
+        if len(phrasings) == n:
+            break
+    return phrasings
+
+
+def _normalise(text: str) -> str:
+    return " ".join(_WORDS.findall(text.lower()))
+
+
 def build_rewrite_messages(question: str, history: Sequence[Message]) -> list[Message]:
     transcript = "\n".join(f"{m.role}: {m.content}" for m in history[-6:])
     return [

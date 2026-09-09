@@ -29,9 +29,33 @@ def standard_variants() -> list[tuple[str, PipelineConfig]]:
             BASE.model_copy(update={"retrieval": "hybrid", "fusion": "weighted"}),
         ),
         ("hybrid + RRF", BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf"})),
+        # Query expansion where the fused order is the final order. With reranking on
+        # (two rows down) the cross-encoder re-scores the whole shortlist, and on a
+        # corpus this small the shortlist is the corpus -- so this row, not that one,
+        # is where expansion can show.
+        (
+            "hybrid + RRF + multi-query",
+            BASE.model_copy(
+                update={"retrieval": "hybrid", "fusion": "rrf", "query_transform": "multi"}
+            ),
+        ),
         (
             "hybrid + RRF + cross-encoder rerank",
             BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf", "rerank": True}),
+        ),
+        # Query expansion on top of the strongest retrieval row. Costs one generation per
+        # question; the `paraphrase`-tagged questions are the ones it exists to help, so
+        # that column is where its worth shows -- or fails to.
+        (
+            "hybrid + RRF + rerank + multi-query",
+            BASE.model_copy(
+                update={
+                    "retrieval": "hybrid",
+                    "fusion": "rrf",
+                    "rerank": True,
+                    "query_transform": "multi",
+                }
+            ),
         ),
         # Chunk size sweep, holding retrieval fixed at the current best. Small sizes are
         # included because structurally dense documents (a resume, a spec, a settings
@@ -40,6 +64,14 @@ def standard_variants() -> list[tuple[str, PipelineConfig]]:
         (
             "hybrid + RRF, 96-token chunks",
             BASE.model_copy(update={"chunk_size": 96, "chunk_overlap": 12}),
+        ),
+        # The one index where each search does NOT return the whole corpus, so the
+        # candidate set itself can change -- the regime expansion was designed for.
+        (
+            "hybrid + RRF + multi-query, 96-token chunks",
+            BASE.model_copy(
+                update={"chunk_size": 96, "chunk_overlap": 12, "query_transform": "multi"}
+            ),
         ),
         (
             "hybrid + RRF, 192-token chunks",

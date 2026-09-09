@@ -23,8 +23,8 @@ export interface StageInfo {
 export const STAGE_INFO: Record<string, StageInfo> = {
   transform: {
     short: "Rewrite",
-    what: "Rewrites a follow-up question into one that stands on its own before searching.",
-    timing: "Skipped on the first question; later turns cost one LLM call.",
+    what: "Rewrites a follow-up question into one that stands on its own before searching — and, with query expansion on, has the model write alternative phrasings that are searched alongside it.",
+    timing: "Skipped on the first question unless expansion is on; a rewrite and an expansion each cost one LLM call.",
   },
   bm25: {
     short: "Keyword",

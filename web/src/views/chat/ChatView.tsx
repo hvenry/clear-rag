@@ -101,6 +101,15 @@ export function ChatView() {
                 </p>
               ) : null}
 
+              {expansionsOf(turn).length > 0 ? (
+                <p
+                  data-hint="Query expansion is on: the model wrote these alternative phrasings and every one of them was searched alongside your question. Each search fused its own results across the phrasings before the two searches were merged."
+                  className="hint mt-1 font-mono text-[10px] text-subtle"
+                >
+                  also searched as: {expansionsOf(turn).map((q) => `“${q}”`).join(" · ")}
+                </p>
+              ) : null}
+
               {turn.stages.some((s) => s.candidates_out) ? (
                 <RetrievalInspector
                   turn={turn}
@@ -273,6 +282,12 @@ function RankFlowSection({
       ) : null}
     </div>
   );
+}
+
+/** The alternative phrasings the transform stage searched, when expansion was on. */
+function expansionsOf(turn: Turn): string[] {
+  const expansions = turn.stages.find((s) => s.name === "transform")?.diagnostics.expansions;
+  return Array.isArray(expansions) ? (expansions as string[]) : [];
 }
 
 /** How many distinct chunks retrieval considered — decides whether a chart earns space. */

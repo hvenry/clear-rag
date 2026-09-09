@@ -226,7 +226,7 @@ def markdown_table(
     runs: Sequence[EvalRun],
     *,
     k: int = 5,
-    tags: Sequence[str] = ("lexical", "semantic", "distractor"),
+    tags: Sequence[str] = ("lexical", "semantic", "distractor", "paraphrase"),
 ) -> str:
     """Render an ablation table ready to paste into the README.
 

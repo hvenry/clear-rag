@@ -16,6 +16,8 @@ const KEYWORD = "var(--color-keyword)";
 const VECTOR = "var(--color-vector)";
 const INK = "rgb(var(--foreground) / 0.8)";
 const RERANK = "var(--color-cat-7)";
+// Query expansion happens in the transform stage, so it borrows that stage's hue.
+const EXPAND = "var(--color-cat-5)";
 
 export interface BenchmarkRow {
   label: string;
@@ -40,8 +42,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "On a corpus full of identifiers like `hb bootstrap` and `422`, exact-term matching beats semantic matching on its own.",
       domain: 1,
       rows: [
-        { label: "Keyword (BM25)", value: 0.821, color: KEYWORD },
-        { label: "Vector", value: 0.632, color: VECTOR }
+        { label: "Keyword (BM25)", value: 0.766, color: KEYWORD },
+        { label: "Vector", value: 0.573, color: VECTOR }
       ]
     }
   ],
@@ -51,8 +53,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Vector search loses to keyword search on this identifier-heavy corpus — and wins on paraphrased questions, which is why the pipeline runs both.",
       domain: 1,
       rows: [
-        { label: "Vector", value: 0.632, color: VECTOR },
-        { label: "Keyword (BM25)", value: 0.821, color: KEYWORD }
+        { label: "Vector", value: 0.573, color: VECTOR },
+        { label: "Keyword (BM25)", value: 0.766, color: KEYWORD }
       ]
     }
   ],
@@ -62,9 +64,9 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Every distractor question either method alone got wrong is resolved by fusing their rankings.",
       domain: 1,
       rows: [
-        { label: "Vector alone", value: 0.887, color: VECTOR },
-        { label: "Keyword alone", value: 0.925, color: KEYWORD },
-        { label: "Hybrid (RRF)", value: 1.0, color: INK }
+        { label: "Vector alone", value: 0.871, color: VECTOR },
+        { label: "Keyword alone", value: 0.903, color: KEYWORD },
+        { label: "Hybrid (RRF)", value: 0.968, color: INK }
       ]
     }
   ],
@@ -74,8 +76,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Fusion already put the right chunk somewhere in the top five; the reranker puts it first.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 0.783, color: INK },
-        { label: "+ Rerank", value: 0.972, color: RERANK }
+        { label: "Fused ranking", value: 0.734, color: INK },
+        { label: "+ Rerank", value: 0.927, color: RERANK }
       ]
     },
     {
@@ -83,8 +85,30 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "The largest measured effect of any single technique in this pipeline.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 0.884, color: INK },
-        { label: "+ Rerank", value: 0.991, color: RERANK }
+        { label: "Fused ranking", value: 0.841, color: INK },
+        { label: "+ Rerank", value: 0.965, color: RERANK }
+      ]
+    }
+  ],
+  "phase5-query-understanding": [
+    {
+      title: "recall@5 on paraphrase questions — what expansion is for",
+      note: "Nine questions worded to share almost no vocabulary with their answers. Expansion recovers both that fusion missed outright — and so does the reranker, without it.",
+      domain: 1,
+      rows: [
+        { label: "Hybrid (RRF)", value: 0.778, color: INK },
+        { label: "+ Multi-query", value: 1.0, color: EXPAND },
+        { label: "+ Rerank, no expansion", value: 1.0, color: RERANK }
+      ]
+    },
+    {
+      title: "recall@1 — the bill",
+      note: "Extra phrasings pull in near-misses that rank fusion promotes over the exact hit; the reranker pays no such price.",
+      domain: 1,
+      rows: [
+        { label: "Hybrid (RRF)", value: 0.734, color: INK },
+        { label: "+ Multi-query", value: 0.653, color: EXPAND },
+        { label: "+ Rerank, no expansion", value: 0.927, color: RERANK }
       ]
     }
   ],
@@ -94,8 +118,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "The interesting movement happens at the top of the ranking.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 0.783, color: INK },
-        { label: "+ Rerank", value: 0.972, color: RERANK }
+        { label: "Fused ranking", value: 0.734, color: INK },
+        { label: "+ Rerank", value: 0.927, color: RERANK }
       ]
     },
     {
@@ -177,10 +201,10 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "One knob at a time: each bar differs from its neighbour by a single setting, so the gaps are each technique's measured worth.",
       domain: 1,
       rows: [
-        { label: "Vector only", value: 0.632, color: VECTOR },
-        { label: "Keyword only", value: 0.821, color: KEYWORD },
-        { label: "Hybrid (RRF)", value: 0.783, color: INK },
-        { label: "Hybrid + rerank", value: 0.972, color: RERANK }
+        { label: "Vector only", value: 0.573, color: VECTOR },
+        { label: "Keyword only", value: 0.766, color: KEYWORD },
+        { label: "Hybrid (RRF)", value: 0.734, color: INK },
+        { label: "Hybrid + rerank", value: 0.927, color: RERANK }
       ]
     }
   ]

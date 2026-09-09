@@ -396,12 +396,13 @@ class Engine:
         )
 
         # ── Transform ──
-        search_query, transform_rec = await transform_query(ctx, question, history)
+        queries, transform_rec = await transform_query(ctx, question, history)
         yield stage_event(transform_rec)
+        search_query = queries[0]
 
         # ── Retrieve (concurrently) ──
         try:
-            rankings, retrieval_recs = await retrieve(ctx, search_query)
+            rankings, retrieval_recs = await retrieve(ctx, queries)
         except ProviderError as exc:
             yield _error_event(exc)
             return

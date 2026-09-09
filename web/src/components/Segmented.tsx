@@ -20,6 +20,8 @@ export interface SegmentedOption<T extends string> {
   label: string;
   icon?: Icon;
   hint?: string;
+  /** Shown but not selectable — a value the config allows but nothing implements yet. */
+  disabled?: boolean;
 }
 
 export function Segmented<T extends string>({
@@ -88,7 +90,7 @@ function OptionButton<T extends string>({
     <>
       <button
         ref={triggerRef}
-        disabled={disabled}
+        disabled={disabled || option.disabled}
         onClick={onSelect}
         data-hint={flyout ? undefined : option.hint}
         {...(flyout ? menu.hover : {})}
@@ -100,6 +102,7 @@ function OptionButton<T extends string>({
           active
             ? "z-10 border-foreground/60 bg-foreground text-background"
             : "border-line text-subtle hover:border-foreground/40 hover:text-foreground",
+          option.disabled ? "opacity-45" : "",
           "disabled:pointer-events-none"
         ]
           .filter(Boolean)

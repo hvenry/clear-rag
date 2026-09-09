@@ -31,7 +31,8 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         body: [
           "A search index has no memory. Ask “what did Priya build?” and then “what about at the club?”, and that second question — the one actually sent to the retrievers — contains none of the words that would find the answer. Query rewriting uses the chat history to turn it into a standalone query (“what did Priya build at Signal Society?”) before any search runs.",
           "The prompt for this step has one job: rewrite, never answer. That distinction is load-bearing. This project's predecessor used a prompt that said “provide a response that directly addresses the user's query” — but the rewriter's output goes straight into the search index, and at that moment no documents have been retrieved to answer from. From the second turn onward it was searching the corpus with a hallucinated answer. The failure was invisible because the query that actually got searched was never shown anywhere.",
-          "It costs one full LLM call per follow-up, which is why the first question of a conversation skips it entirely."
+          "It costs one full LLM call per follow-up, which is why the first question of a conversation skips it entirely.",
+          "Query expansion lives in the same stage. With the Lab's expansion knob on multi, the model also writes a few alternative phrasings of the (rewritten) question and every one of them is searched — see *Query understanding (Phase 5)* for what that measured."
         ],
         seeIt: "Ask a follow-up question in Chat — the “searched as:” line under the stage strip shows exactly what the retrievers received."
       },
@@ -41,7 +42,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         summary: "Exact-term matching over an inverted index, scored by rarity and saturation.",
         body: [
           "An inverted index maps every term to the chunks containing it — so a query only touches chunks sharing at least one word with it, and corpus size stops mattering. BM25 then scores each match on two ideas: rare terms count more than common ones (idf — matching `X-RateLimit-Remaining` means far more than matching `the`), and repeated terms saturate (the second occurrence of a word adds less than the first, so a chunk can't win by spamming).",
-          "Keyword search is strong exactly where vector search is weak: identifiers, error codes, command names, proper nouns. On this project's benchmark corpus — full of strings like `hb bootstrap` and `422` — BM25 alone beats vector search alone (recall@1 0.821 vs 0.632).",
+          "Keyword search is strong exactly where vector search is weak: identifiers, error codes, command names, proper nouns. On this project's benchmark corpus — full of strings like `hb bootstrap` and `422` — BM25 alone beats vector search alone (recall@1 0.766 vs 0.573).",
           "The implementation here is written from the formula, and its correctness is established by a differential test: the same corpus is indexed into SQLite's FTS5 and both implementations must agree on the ranking. A from-scratch scoring function is easy to write plausibly and hard to verify by reading."
         ],
         formula: {
@@ -66,7 +67,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         title: "Hybrid retrieval & RRF",
         summary: "Two searches, one ranking — merged by rank, not by score.",
         body: [
-          "Keyword and vector search fail differently: one misses synonyms, the other misses exact identifiers. Hybrid retrieval runs both and merges the rankings — and on the bundled benchmark, that merge is the whole story: recall@5 goes from 0.887 (vector alone) and 0.925 (keyword alone) to 1.000 combined, and every distractor question that either method alone got wrong is resolved.",
+          "Keyword and vector search fail differently: one misses synonyms, the other misses exact identifiers. Hybrid retrieval runs both and merges the rankings — and on the bundled benchmark, that merge is the whole story: recall@5 goes from 0.871 (vector alone) and 0.903 (keyword alone) to 0.968 combined, and every distractor question that either method alone got wrong is resolved.",
           "The merge cannot simply add scores: BM25 scores are unbounded sums while cosine lives in [−1, 1], so any weighting of raw scores needs per-corpus tuning that rots as the corpus changes. Reciprocal Rank Fusion sidesteps this by consuming only rank positions. A chunk both searches liked beats a chunk only one search ranked first — agreement between independent methods is the strongest signal available.",
           "The damping constant k (60, from the original paper) decides how much a single #1 can dominate: at small k rank one towers over rank two; at large k the curve flattens and consensus matters more than position. The Lab lets you sweep it and watch the fused ranking reorder."
         ],
@@ -83,7 +84,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         body: [
           "The embedding model is a bi-encoder: it reads the query and each chunk separately, and compares the two summaries. That's what makes it fast enough to search everything — and it's also the ceiling on its accuracy, because the model never sees the query and the text together. A cross-encoder does exactly that: one transformer reads the concatenated pair and scores their actual interaction. Far more accurate, and far too slow to run over a corpus.",
           "So the pipeline uses each where it's strong: cheap retrievers propose ~50 candidates, and the cross-encoder re-scores only that shortlist. Here that's ms-marco-MiniLM — 23 MB of quantised ONNX, downloaded on first use, a few hundred milliseconds per query on a laptop CPU, no GPU and no torch.",
-          "The measured effect on the bundled benchmark is the largest of any single technique: recall@1 rises from 0.783 to 0.972 and MRR from 0.884 to 0.991. Fusion already got the right chunk somewhere into the top five; the reranker puts it first — which matters because first is what a small generator actually attends to."
+          "The measured effect on the bundled benchmark is the largest of any single technique: recall@1 rises from 0.734 to 0.927 and MRR from 0.841 to 0.965. Fusion already got the right chunk somewhere into the top five; the reranker puts it first — which matters because first is what a small generator actually attends to."
         ],
         seeIt: "Enable reranking in the Lab and re-ask a question: a fourth column appears in the retrieval table, with ↑/↓ arrows showing what the cross-encoder moved."
       },
@@ -204,7 +205,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         summary: "Three views of one ranked list — found at all, found first, found early.",
         body: [
           "All retrieval metrics score the same object: the ranked list of chunks, against labels saying where the answer actually lives. recall@k asks whether the labelled answer appears anywhere in the top k — the floor, since the generator cannot use what retrieval never surfaced. MRR (mean reciprocal rank) asks how high the first relevant chunk sat: 1 for first place, ½ for second, decaying fast — a proxy for “did we lead with the right thing”. nDCG credits every relevant chunk by position on a gentler curve.",
-          "The k matters more than the metric. On a small corpus recall@5 saturates at 1.000 for every configuration and stops discriminating — the interesting differences live at recall@1 and MRR, which is exactly where reranking shows its 0.783 → 0.972 jump. A results table whose columns cannot distinguish its rows is worse than none, because it looks like evidence.",
+          "The k matters more than the metric. On a small corpus recall@5 sits at or near 1.000 for every hybrid configuration and stops discriminating — the interesting differences live at recall@1 and MRR, which is exactly where reranking shows its 0.734 → 0.927 jump. A results table whose columns cannot distinguish its rows is worse than none, because it looks like evidence.",
           "One definition here is deliberately unusual: recall counts labelled answer spans covered, not relevant chunks retrieved. Chunk counts change whenever chunking changes; spans in the source document don't — so scores stay comparable across every configuration the Lab can produce."
         ],
         seeIt: "`clear-rag ablate` prints these per configuration; the README's results table is its output, verbatim."
@@ -262,15 +263,15 @@ export const TOPIC_GROUPS: TopicGroup[] = [
       {
         id: "phase5-query-understanding",
         title: "Query understanding (Phase 5)",
-        summary: "The greyed-out Lab knobs: four techniques that transform the question before retrieval sees it.",
+        summary: "One built, three queued: the techniques that transform the question before retrieval sees it.",
         body: [
           "**HyDE** (hypothetical document embeddings): ask the LLM to *answer* the question from imagination, embed that hypothetical answer, and search with its vector instead of the question's. The logic: questions and passages occupy different registers — \"why is my build slow?\" shares little vocabulary or embedding-space geometry with the dense prose that answers it, but a hallucinated answer is register-matched to real answers. Costs one generation per query; helps most when question phrasing diverges from document phrasing, does nothing when they already match.",
-          "**Multi-query expansion**: generate two or three rephrasings, retrieve for each, and fuse all rankings with RRF — the fusion stage is already n-ary, so this is more retrieval calls, not new machinery. Recall insurance against unlucky phrasing, priced at one generation plus n retrievals.",
+          "**Multi-query expansion** — built. The chat model writes a few alternative phrasings of the resolved question and every one of them is searched. Fusion happens in two levels rather than one flat merge: each retriever first fuses its own rankings across the phrasings by reciprocal rank, so keyword and vector search still each emit a single ranking and the inspector can still say which search found a chunk; then the two retrievers fuse as before. The price is one generation per question plus one extra search per phrasing. Nine `paraphrase` questions were added to the golden set for it — questions whose wording shares almost no words with the passage that answers them — because a technique ablated against a corpus it cannot help measures zero. Measured: on hybrid + RRF it lifts the paraphrase column from 0.778 to 1.000, recovering both questions fusion missed outright — and lowers recall@1 from 0.734 to 0.653, because the phrasings pull in near-misses that rank fusion then promotes over the exact hit. Stacked on the reranker it changes nothing, for a structural reason: at 512 tokens this corpus is eleven chunks and each search returns fifty, so the shortlist is the corpus and the cross-encoder decides the order alone, at a fraction of the cost. A recall lever with a precision bill; on this corpus the reranker is the better buy, and the case expansion was built for — a corpus large enough that the shortlist is a real cut — is one the benchmark cannot yet make.",
           "**Decomposition**: split a compound question (\"compare Apple's and Microsoft's tax rates\") into sub-questions, retrieve per sub-question, and pack the union. The sec suite's `cross-company` questions are the ready-made test set — today a single query has to hope both companies' passages surface in one ranking.",
           "**Self-correction**: after retrieval, have the model grade whether the candidates can answer the question; if not, rewrite the query and retry once — bounded at one retry, because an unbounded loop is a latency bug wearing a quality costume.",
           "One discipline applies to all four: before building any of them, add golden questions that *should* benefit. A technique ablated against a corpus it cannot help measures zero and teaches nothing — the corpus has to contain the failure the technique exists to fix."
         ],
-        seeIt: "Lab → Conversation: HyDE, multi-query and self-correction sit there greyed out with honest notes — the UI half already exists."
+        seeIt: "Lab → Conversation: switch Query expansion to multi and re-ask a question. The chat shows what else was searched, and the retrieval table's Keyword and Vector columns are each fused across the phrasings. HyDE and self-correction still sit greyed out."
       },
       {
         id: "retrieval-beyond",

@@ -2,10 +2,10 @@
  * The Lab's control metadata: every pipeline knob, what it does in plain language,
  * and — critically — whether it is actually implemented.
  *
- * The config model advertises several settings whose machinery does not exist yet
- * (semantic chunking, contextual retrieval, HyDE, reranking, self-correction). The Lab
- * shows them disabled with an honest note rather than hiding them or letting them
- * pretend: a visible roadmap beats a knob that silently does nothing.
+ * The config model advertises two settings whose machinery does not exist yet (HyDE
+ * and self-correction). The Lab shows them disabled with an honest note rather than
+ * hiding them or letting them pretend: a visible roadmap beats a knob that silently
+ * does nothing.
  */
 
 export type KnobType = "segmented" | "number" | "range" | "toggle";
@@ -15,7 +15,7 @@ export interface Knob {
   label: string;
   type: KnobType;
   hint: string;
-  options?: { value: string; label: string; hint?: string }[];
+  options?: { value: string; label: string; hint?: string; disabled?: boolean }[];
   min?: number;
   max?: number;
   step?: number;
@@ -121,7 +121,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         label: "Cross-encoder rerank",
         type: "toggle",
         implemented: true,
-        hint: "A 23 MB cross-encoder (downloaded on first use) reads question and chunk together and re-scores the shortlist — the biggest measured quality jump in the pipeline: recall@1 0.783 → 0.972 on the bundled benchmark, for a few hundred milliseconds per query."
+        hint: "A 23 MB cross-encoder (downloaded on first use) reads question and chunk together and re-scores the shortlist — the biggest measured quality jump in the pipeline: recall@1 0.734 → 0.927 on the bundled benchmark, for a few hundred milliseconds per query."
       }
     ]
   },
@@ -217,13 +217,25 @@ export const KNOB_GROUPS: KnobGroup[] = [
         learn: "query-rewriting",
         label: "Query expansion",
         type: "segmented",
-        implemented: false,
-        hint: "HyDE (search with a hypothetical answer) and multi-query expansion. Not built yet — only “none” does anything.",
+        implemented: true,
+        hint: "multi has the chat model write alternative phrasings of the question, searches every one of them, and fuses each search's rankings across the phrasings before the two searches are fused. Built for questions whose wording diverges from the document's; it costs one LLM call per question. Measured on the bundled benchmark: on hybrid + RRF it lifts paraphrase recall@5 from 0.778 to 1.000 and lowers recall@1 from 0.734 to 0.653 — a recall lever with a precision bill, about 3.7 s a question with a 9B model — and stacked on the reranker it changed nothing here. HyDE (search with a hypothetical answer) is not built yet.",
         options: [
           { value: "none", label: "none" },
-          { value: "hyde", label: "HyDE" },
-          { value: "multi", label: "multi" }
+          { value: "multi", label: "multi" },
+          { value: "hyde", label: "HyDE", disabled: true, hint: "Not built yet." }
         ]
+      },
+      {
+        key: "query_variants",
+        learn: "query-rewriting",
+        label: "Phrasings",
+        type: "range",
+        min: 1,
+        max: 5,
+        step: 1,
+        implemented: true,
+        visibleWhen: (d) => d.query_transform === "multi",
+        hint: "How many alternative phrasings the model writes. The original question always searches too, so each search runs one more time than this. More phrasings widen the net for a slightly longer expansion; three is the default."
       },
       {
         key: "self_correct",

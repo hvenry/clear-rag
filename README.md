@@ -169,7 +169,11 @@ multi-query rows. Re-measured on 2026-09-08 after nine `paraphrase` questions jo
 set; every row moved a little, because the new questions are the hard ones. The table is
 rendered from `evals/results/retrieval.json`, which `clear-rag ablate --save-results`
 writes, and the app's **Results** view reads the same file — so the README, the interface
-and the file cannot disagree.
+and the file cannot disagree. The embedding model is a dimension of the sweep too:
+`clear-rag ablate` adds a dense-only and a hybrid + RRF row for each of `all-minilm` and
+`mxbai-embed-large` that Ollama has pulled (or any model named with `--embedder`), each
+on its own index, with the model in the row's provenance rather than its config hash —
+because an embedder is the identity of an index, not a setting of a query.
 
 <!-- results:retrieval -->
 | Configuration | recall@1 | recall@5 | MRR | nDCG@5 | lexical | semantic | distractor | paraphrase |
@@ -187,6 +191,10 @@ and the file cannot disagree.
 | hybrid + RRF, 192-token chunks | 0.750 | 0.919 | 0.826 | 0.908 | 1.000 | 1.000 | 0.875 | 0.556 |
 | hybrid + RRF, 256-token chunks | 0.734 | 0.952 | 0.823 | 0.862 | 1.000 | 1.000 | 0.875 | 0.778 |
 | hybrid + RRF, 1024-token chunks | 0.718 | 0.968 | 0.828 | 0.864 | 1.000 | 1.000 | 1.000 | 0.778 |
+| dense only, all-minilm | 0.621 | 0.911 | 0.754 | 0.800 | 0.818 | 0.960 | 0.875 | 1.000 |
+| hybrid + RRF, all-minilm | 0.734 | 1.000 | 0.841 | 0.878 | 1.000 | 1.000 | 1.000 | 1.000 |
+| dense only, mxbai-embed-large | 0.605 | 0.984 | 0.756 | 0.823 | 1.000 | 1.000 | 1.000 | 0.889 |
+| hybrid + RRF, mxbai-embed-large | 0.798 | 0.968 | 0.872 | 0.896 | 1.000 | 1.000 | 1.000 | 0.778 |
 <!-- /results:retrieval -->
 
 `lexical` / `semantic` / `distractor` are recall@5 restricted to question sets tagged
@@ -362,6 +370,7 @@ clear-rag eval --generate         # also generate answers: refusal + required-me
 clear-rag ablate                  # sweep configurations, print the table above
 clear-rag ablate --fake           # deterministic, no models needed
 clear-rag ablate --save-results   # merge the sweep into evals/results/<suite>.json
+clear-rag ablate --embedder all-minilm --save-results   # rows under another embedding model
 clear-rag eval --set rerank=true --set query_transform=multi   # override any knob
 python scripts/refresh_baseline.py  # after a deliberate retrieval change
 python scripts/render_results.py    # re-render the README tables from evals/results/
@@ -527,7 +536,10 @@ SQLite's FTS5 and asserts both implementations agree.
 
 **Changing the embedding model refuses to serve.** Vectors written by a different model
 are not comparable. The embedder identity is stored beside the index; a mismatch stops
-queries and asks for a re-index instead of quietly returning noise.
+queries and asks for a re-index instead of quietly returning noise. The ablation sweep
+leans on the same identity: a variant that names an embedding model gets an index of its
+own, keyed by that identity, so a reused workspace can never hand it vectors from another
+model and score the row as a column of zeros.
 
 ---
 

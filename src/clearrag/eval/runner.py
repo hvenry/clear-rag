@@ -5,14 +5,16 @@ RAG pipeline" is not a claim anyone can check; "hybrid retrieval lifted recall@5
 0.71 to 0.94 on a 26-question golden set" is.
 
 One subtlety drives the structure here: configurations that differ in *ingestion*
-settings need a different index, so the corpus must be re-ingested for them. Runs are
-therefore grouped by their ingestion signature and share a workspace where they can,
-because embedding the corpus is by far the slowest step in a sweep.
+settings, or in the embedding model, need a different index, so the corpus must be
+re-ingested for them. Runs are therefore grouped by ingestion signature and embedder
+and share a workspace where they can, because embedding the corpus is by far the
+slowest step in a sweep.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -26,6 +28,7 @@ from ..pipeline import Engine
 from ..providers.base import ChatProvider, EmbeddingProvider, Reranker
 from .golden import GoldenQuestion, load_corpus, load_golden
 from .metrics import Aggregate, QuestionResult, aggregate, score_answer, score_question
+from .variants import Variant
 
 DEFAULT_KS = (1, 3, 5, 10)
 
@@ -173,37 +176,53 @@ def _ingest_signature(config: PipelineConfig) -> str:
     return "-".join(str(getattr(config, key)) for key in _INGEST_KEYS)
 
 
+def _slug(text: str) -> str:
+    return re.sub(r"[^A-Za-z0-9.-]+", "-", text)
+
+
 async def ablate(
-    variants: Sequence[tuple[str, PipelineConfig]],
+    variants: Sequence[Variant | tuple[str, PipelineConfig]],
     *,
     corpus_dir: Path,
     golden_path: Path,
     workspace_root: Path,
     chat_factory: Callable[[], ChatProvider],
-    embeddings_factory: Callable[[], EmbeddingProvider],
+    embeddings_factory: Callable[[str | None], EmbeddingProvider],
     reranker_factory: Callable[[], Reranker | None] | None = None,
     ks: Sequence[int] = DEFAULT_KS,
     generate: bool = False,
     on_progress: Callable[[str], None] | None = None,
 ) -> list[EvalRun]:
-    """Evaluate each named configuration, re-indexing only when ingestion settings change."""
-    raw_corpus = load_corpus(corpus_dir)
+    """Evaluate each named configuration, re-indexing only when the index would differ.
 
-    # Group by ingestion signature so the expensive embedding step is paid once per
-    # distinct index rather than once per variant.
-    groups: dict[str, list[tuple[str, PipelineConfig]]] = {}
-    for label, config in variants:
-        groups.setdefault(_ingest_signature(config), []).append((label, config))
+    ``embeddings_factory`` is called with the model a variant asks for, or None for the
+    process default. Plain ``(label, config)`` pairs are accepted as variants with no
+    embedder of their own.
+    """
+    raw_corpus = load_corpus(corpus_dir)
+    rows = [v if isinstance(v, Variant) else Variant(*v) for v in variants]
+
+    # Group by ingestion signature and embedder so the expensive embedding step is
+    # paid once per distinct index rather than once per variant.
+    groups: dict[tuple[str, str | None], list[Variant]] = {}
+    for variant in rows:
+        key = (_ingest_signature(variant.config), variant.embed_model)
+        groups.setdefault(key, []).append(variant)
 
     runs: list[EvalRun] = []
-    for signature, members in groups.items():
-        workspace = workspace_root / f"idx-{signature}"
+    for (signature, embed_model), members in groups.items():
+        embeddings = embeddings_factory(embed_model)
+        # The embedder is part of an index's identity, so it is part of its path. A
+        # reused workspace under a different model would otherwise look populated,
+        # skip ingestion, and have every query refused as a space mismatch -- which
+        # the sweep would faithfully record as a row of zeros.
+        workspace = workspace_root / f"idx-{signature}-{_slug(embeddings.id)}"
         settings = Settings(workspace=workspace)
         engine = Engine(
             settings,
-            members[0][1],
+            members[0].config,
             chat_factory(),
-            embeddings_factory(),
+            embeddings,
             reranker=reranker_factory() if reranker_factory else None,
         )
 
@@ -224,11 +243,11 @@ async def ablate(
         questions = load_golden(golden_path, parsed_corpus, strict=False)
         lost = sum(1 for q in questions for label_span in q.relevant if label_span.span == (-1, -1))
 
-        for label, config in members:
+        for variant in members:
             if on_progress:
-                on_progress(label)
-            engine.config = config
-            run = await evaluate(engine, questions, ks=ks, generate=generate, label=label)
+                on_progress(variant.label)
+            engine.config = variant.config
+            run = await evaluate(engine, questions, ks=ks, generate=generate, label=variant.label)
             run.ingest_ms = ingest_ms
             run.parse_lost = lost
             run.documents = len(raw_corpus)
@@ -238,7 +257,7 @@ async def ablate(
         engine.store.close()
 
     # Restore the caller's ordering; grouping is an implementation detail.
-    order = {label: i for i, (label, _) in enumerate(variants)}
+    order = {variant.label: i for i, variant in enumerate(rows)}
     return sorted(runs, key=lambda r: order[r.label])
 
 

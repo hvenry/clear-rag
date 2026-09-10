@@ -9,6 +9,7 @@ import pytest
 from clearrag.config import PipelineConfig
 from clearrag.eval.golden import GoldenSetError, load_corpus, load_golden, resolve_quote
 from clearrag.eval.runner import ablate, evaluate, markdown_table
+from clearrag.eval.variants import Variant
 from clearrag.providers.fake import FakeChat, FakeEmbeddings
 from tests.conftest import REPO_ROOT
 
@@ -208,6 +209,50 @@ async def test_ablation_reuses_the_index_across_matching_ingest_settings(
 
     # Two distinct chunk configurations, so exactly two indexes -- not three.
     assert len(list(workspace.iterdir())) == 2
+
+
+async def test_ablation_builds_one_index_per_embedding_model(tmp_path, mini_corpus, mini_golden):
+    """A variant naming an embedder gets its own index, and its provenance says which."""
+    config = PipelineConfig(retrieval="dense", chunk_size=128, chunk_overlap=16, k_final=5)
+    workspace = tmp_path / "ws"
+    runs = await ablate(
+        [("dense", config), Variant("dense, alt", config, "alt")],
+        corpus_dir=mini_corpus,
+        golden_path=mini_golden,
+        workspace_root=workspace,
+        chat_factory=FakeChat,
+        embeddings_factory=FakeEmbeddings,
+    )
+
+    assert [r.label for r in runs] == ["dense", "dense, alt"]
+    assert [r.provenance["embed_model"] for r in runs] == ["fake:fake-embed:64", "fake:alt:64"]
+    assert len(list(workspace.iterdir())) == 2, "same chunking, different embedder: two indexes"
+    assert runs[0].config.config_hash == runs[1].config.config_hash, (
+        "the embedder is provenance, not configuration"
+    )
+
+
+async def test_reusing_a_workspace_under_another_embedder_re_embeds(
+    tmp_path, mini_corpus, mini_golden
+):
+    """The embedder is in the index path. Without that, a second sweep with a different
+    model would find a populated store, skip ingestion, have every query refused as a
+    space mismatch, and record a row of zeros."""
+    config = PipelineConfig(retrieval="dense", chunk_size=128, chunk_overlap=16, k_final=5)
+    common = dict(
+        corpus_dir=mini_corpus,
+        golden_path=mini_golden,
+        workspace_root=tmp_path / "ws",
+        chat_factory=FakeChat,
+    )
+    first = await ablate([("dense", config)], embeddings_factory=FakeEmbeddings, **common)
+    second = await ablate(
+        [("dense", config)], embeddings_factory=lambda _: FakeEmbeddings("other"), **common
+    )
+
+    assert first[0].at_k[5].recall > 0
+    assert second[0].at_k[5].recall == first[0].at_k[5].recall
+    assert len(list((tmp_path / "ws").iterdir())) == 2
 
 
 async def test_generation_enables_answer_side_metrics(tmp_path, mini_corpus, mini_golden):

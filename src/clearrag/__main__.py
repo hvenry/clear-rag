@@ -36,6 +36,19 @@ def main() -> int:
     _add_eval_args(ab)
     ab.add_argument("--markdown", type=Path, default=None, help="Write the table to a file.")
     ab.add_argument(
+        "--embedder",
+        action="append",
+        default=None,
+        dest="embedders",
+        metavar="MODEL",
+        help=(
+            "Also measure the retrieval sweep with this embedding model (repeatable): two "
+            "rows per model, dense-only and hybrid + RRF, each on its own index. Without "
+            "it, the bundled candidates (all-minilm, mxbai-embed-large) are measured when "
+            "pulled, and any that are not are named with their pull command."
+        ),
+    )
+    ab.add_argument(
         "--save-results",
         nargs="?",
         const=True,
@@ -195,15 +208,30 @@ def _providers(settings, fake: bool):
     if fake:
         from .providers.fake import FakeChat, FakeEmbeddings
 
-        return (lambda: FakeChat(), lambda: FakeEmbeddings(), lambda: None)
+        return (lambda: FakeChat(), FakeEmbeddings, lambda: None)
 
     from .providers.registry import build_chat, build_embeddings, build_reranker
 
     return (
         lambda: build_chat(settings),
-        lambda: build_embeddings(settings),
+        lambda model=None: build_embeddings(settings, model),
         lambda: build_reranker(settings),
     )
+
+
+def _embedders_to_sweep(settings, args) -> tuple[list[str], list[str]]:
+    """Which extra embedding models the retrieval sweep measures, and which it wanted
+    but cannot: the requested (or bundled) candidates, minus the process default that
+    the base rows already measure, split by whether Ollama has them."""
+    from .eval.variants import EMBEDDERS
+    from .providers.registry import available_embedders, model_base
+
+    requested = args.embedders if args.embedders is not None else list(EMBEDDERS)
+    candidates = [m for m in requested if model_base(m) != model_base(settings.embed_model)]
+    if args.fake:
+        # The fake embedder answers to any name; sweep it only when asked to.
+        return (candidates if args.embedders else [], [])
+    return available_embedders(settings, candidates)
 
 
 def _eval(settings, args) -> int:
@@ -268,7 +296,10 @@ def _ablate(settings, args) -> int:
         if not args.generate:
             print("note: the attribution suite grades answers; add --generate for its columns")
     else:
-        variants = standard_variants()
+        embedders, missing = _embedders_to_sweep(settings, args)
+        variants = standard_variants(embedders=embedders)
+        for name in missing:
+            print(f"note: embedding model {name} not pulled — ollama pull {name}")
 
     print(
         f"Sweeping {len(variants)} configurations ({'fake' if args.fake else 'real'} providers)…\n"
@@ -313,7 +344,7 @@ def _ablate(settings, args) -> int:
             runs,
             suite=args.suite,
             k=args.k,
-            order=[label for label, _ in variants],
+            order=[variant.label for variant in variants],
         )
         save_results(path, merged)
         print(f"Results merged into {path} ({len(merged['rows'])} rows)")

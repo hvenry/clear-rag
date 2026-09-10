@@ -6,11 +6,14 @@ everywhere else, so a typo is a validation error rather than a silently ignored 
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from pydantic import ValidationError
 
-from clearrag.__main__ import parse_overrides
-from clearrag.config import PipelineConfig
+from clearrag.__main__ import _embedders_to_sweep, parse_overrides
+from clearrag.config import PipelineConfig, Settings
+from clearrag.providers import registry
 
 
 def test_overrides_are_validated_and_coerced_by_the_config_model():
@@ -34,3 +37,22 @@ def test_malformed_override_is_rejected_up_front(bad):
 def test_unknown_value_is_a_validation_error_not_a_silent_default():
     with pytest.raises(ValidationError):
         PipelineConfig(**parse_overrides(["query_transform=hyper"]))  # type: ignore[arg-type]
+
+
+# ── `clear-rag ablate --embedder MODEL` ──
+
+
+def test_embedder_sweep_leaves_out_the_process_default(monkeypatch):
+    """The base rows already measure the configured embedder; a row repeating it under
+    its own name would be the same measurement twice."""
+    monkeypatch.setattr(registry, "available_embedders", lambda settings, c: (list(c), []))
+    settings = Settings(embed_provider="ollama", embed_model="nomic-embed-text:latest")
+    args = SimpleNamespace(embedders=["nomic-embed-text", "all-minilm"], fake=False)
+    assert _embedders_to_sweep(settings, args) == (["all-minilm"], [])
+
+
+def test_fake_sweep_measures_embedders_only_when_asked():
+    settings = Settings(embed_provider="ollama", embed_model="nomic-embed-text")
+    assert _embedders_to_sweep(settings, SimpleNamespace(embedders=None, fake=True)) == ([], [])
+    args = SimpleNamespace(embedders=["alt"], fake=True)
+    assert _embedders_to_sweep(settings, args) == (["alt"], [])

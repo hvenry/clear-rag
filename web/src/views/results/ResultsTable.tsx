@@ -1,5 +1,6 @@
 import { diffConfigs } from "../../lib/knobs";
 import {
+  diffModels,
   displayLabel,
   fmt,
   rowKey,
@@ -117,6 +118,7 @@ export function ResultsTable({
           {file.rows.map((r) => {
             const isPinned = baseline !== null && rowKey(baseline) === rowKey(r);
             const changes = baseline && !isPinned ? diffConfigs(baseline.config, r.config) : [];
+            const models = baseline && !isPinned ? diffModels(baseline, r) : [];
             const imported = r.provenance.source === "imported";
             return (
               <tr
@@ -146,7 +148,7 @@ export function ResultsTable({
                       </span>
                     ) : null}
                   </div>
-                  {changes.length > 0 ? (
+                  {changes.length > 0 || models.length > 0 ? (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {changes.map((c) => (
                         <span
@@ -157,9 +159,18 @@ export function ResultsTable({
                           {c.key} {String(c.from)} → {String(c.to)}
                         </span>
                       ))}
+                      {models.map((c) => (
+                        <span
+                          key={`model:${c.key}`}
+                          data-hint={`Measured with a different ${c.key === "embedder" ? "embedding" : "chat"} model than the pinned row: ${c.from} there, ${c.to} here. A model is the identity of an index or an answer, not a knob, so it lives in the row's provenance rather than its configuration.`}
+                          className="hint tabular border border-line px-1 font-mono text-[9px] text-subtle"
+                        >
+                          {c.key} {c.from} → {c.to}
+                        </span>
+                      ))}
                     </div>
                   ) : baseline && !isPinned ? (
-                    <div className="mt-1 font-mono text-[9px] text-subtle">same settings, different model</div>
+                    <div className="mt-1 font-mono text-[9px] text-subtle">no settings differ</div>
                   ) : null}
                 </td>
                 {columns.map((col, i) => (

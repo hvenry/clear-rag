@@ -5,11 +5,12 @@ from clearrag.eval.variants import sec_variants
 
 def test_sec_variants_cover_all_three_dimensions():
     variants, skipped = sec_variants()
-    labels = [label for label, _ in variants]
-    parsers = {cfg.parser for _, cfg in variants}
+    labels = [v.label for v in variants]
+    parsers = {v.config.parser for v in variants}
     assert {"naive", "primitives"} <= parsers
-    assert any(cfg.chunker == "semantic" for _, cfg in variants)
-    assert {cfg.context_mode for _, cfg in variants} >= {"none", "breadcrumb", "llm"}
+    assert any(v.config.chunker == "semantic" for v in variants)
+    assert {v.config.context_mode for v in variants} >= {"none", "breadcrumb", "llm"}
     assert len(labels) == len(set(labels))
+    assert all(v.embed_model is None for v in variants), "the sec sweep varies parsing"
     for name in skipped:
         assert name in ("docling", "marker")

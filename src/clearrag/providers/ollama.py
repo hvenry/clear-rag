@@ -43,6 +43,17 @@ def _prefix_for(model: str, kind: EmbedKind) -> str:
     return _PREFIXES.get(base, _DEFAULT_PREFIX)[kind]
 
 
+def pulled_models(base_url: str, timeout: float = 5.0) -> set[str] | None:
+    """Names Ollama has pulled ("nomic-embed-text:latest"), or None if it cannot be
+    reached. Synchronous on purpose: it is asked once, before a sweep starts."""
+    try:
+        r = httpx.get(f"{base_url.rstrip('/')}/api/tags", timeout=timeout)
+        r.raise_for_status()
+    except httpx.HTTPError:
+        return None
+    return {m["name"] for m in r.json().get("models", [])}
+
+
 class OllamaChat:
     name = "ollama"
 

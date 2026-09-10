@@ -170,6 +170,21 @@ export function rowKey(r: ResultRow): string {
   return r.generated ? `${r.label}|${r.provenance.chat_model ?? ""}` : r.label;
 }
 
+/**
+ * Model differences between two rows: the embedder always, the chat model when either
+ * row generated answers. These live in provenance rather than config — the embedder is
+ * the identity of an index, not a query setting — so `diffConfigs` cannot see them.
+ */
+export function diffModels(a: ResultRow, b: ResultRow): { key: string; from: string; to: string }[] {
+  const out: { key: string; from: string; to: string }[] = [];
+  const pair = (key: string, x: string | null | undefined, y: string | null | undefined) => {
+    if (x && y && modelShort(x) !== modelShort(y)) out.push({ key, from: modelShort(x), to: modelShort(y) });
+  };
+  pair("embedder", a.provenance.embed_model, b.provenance.embed_model);
+  if (a.generated || b.generated) pair("chat", a.provenance.chat_model, b.provenance.chat_model);
+  return out;
+}
+
 /** A one-line description of what measured a suite, from its rows' provenance. */
 export function provenanceSummary(file: ResultsFile): string {
   const measured = file.rows.filter((r) => r.provenance.source === "measured");

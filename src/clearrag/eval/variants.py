@@ -8,14 +8,47 @@ predecessor project implemented up to the current pipeline, so each row answers
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import NamedTuple
+
 from ..config import PipelineConfig
 from ..ingest.parsers import available_backends
 
 BASE = PipelineConfig(k_candidates=50, k_final=10, rewrite_followups=False)
 
 
-def standard_variants() -> list[tuple[str, PipelineConfig]]:
-    return [
+class Variant(NamedTuple):
+    """One row of an ablation table: a label, the configuration it measures, and
+    optionally the embedding model to measure it with.
+
+    The embedder is deliberately not a ``PipelineConfig`` knob. The config describes
+    a query against an index; the embedder *is* the index -- vectors from two models
+    are not comparable, and the store refuses to serve a mismatch. So it rides on the
+    variant, where the sweep builds a separate index for it, and lands in the row's
+    provenance rather than its config hash.
+    """
+
+    label: str
+    config: PipelineConfig
+    embed_model: str | None = None
+    """An embedding model for this row, or None for the process default
+    (``CLEARRAG_EMBED_MODEL``)."""
+
+
+#: Embedding models the standard sweep measures beside the default, when they are
+#: pulled. One smaller and one larger than nomic-embed-text, so the rows ask whether
+#: embedder size is what the numbers are made of: all-minilm is the 384-dimension
+#: MiniLM family the predecessor project embedded with; mxbai-embed-large is 1024.
+EMBEDDERS = ("all-minilm", "mxbai-embed-large")
+
+
+def standard_variants(embedders: Sequence[str] = ()) -> list[Variant]:
+    """The standard sweep, plus two rows per extra embedding model: dense-only, where
+    the embedder is the whole retriever, and hybrid + RRF, which asks whether lexical
+    fusion covers for a weaker one. The reranked rows are not repeated, because on this
+    corpus the cross-encoder re-scores the whole shortlist and the embedder could not
+    show through it."""
+    rows: list[tuple[str, PipelineConfig]] = [
         # Where the predecessor project stood: dense-only, top-k, 50% chunk overlap.
         (
             "dense only, 50% overlap (2024 baseline)",
@@ -86,16 +119,29 @@ def standard_variants() -> list[tuple[str, PipelineConfig]]:
             BASE.model_copy(update={"chunk_size": 1024, "chunk_overlap": 128}),
         ),
     ]
+    variants = [Variant(label, config) for label, config in rows]
+    for model in embedders:
+        variants += [
+            Variant(f"dense only, {model}", BASE.model_copy(update={"retrieval": "dense"}), model),
+            Variant(
+                f"hybrid + RRF, {model}",
+                BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf"}),
+                model,
+            ),
+        ]
+    return variants
 
 
-def attribution_variants() -> list[tuple[str, PipelineConfig]]:
+def attribution_variants() -> list[Variant]:
     """The attribution suite varies chunk size only. The other variable, the chat
     model, is a process setting: run the sweep once per model and the results file
     keeps one row per (chunk size, model), because generated answers depend on the
     model and the row's provenance says which one wrote them."""
     return [
-        ("512-token chunks", BASE),
-        ("192-token chunks", BASE.model_copy(update={"chunk_size": 192, "chunk_overlap": 24})),
+        Variant("512-token chunks", BASE),
+        Variant(
+            "192-token chunks", BASE.model_copy(update={"chunk_size": 192, "chunk_overlap": 24})
+        ),
     ]
 
 
@@ -104,7 +150,7 @@ def attribution_variants() -> list[tuple[str, PipelineConfig]]:
 _SEC_BASE = BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf", "rerank": True})
 
 
-def sec_variants() -> tuple[list[tuple[str, PipelineConfig]], list[str]]:
+def sec_variants() -> tuple[list[Variant], list[str]]:
     """The Phase 4 sweep: parser × chunker × context, one dimension at a time.
 
     Returns ``(variants, skipped_backends)`` — heavyweight parser backends that are
@@ -114,16 +160,16 @@ def sec_variants() -> tuple[list[tuple[str, PipelineConfig]], list[str]]:
     backends = available_backends()
     skipped = [name for name in ("docling", "marker") if not backends.get(name)]
 
-    variants: list[tuple[str, PipelineConfig]] = [
+    rows: list[tuple[str, PipelineConfig]] = [
         # Parser sweep: what does parsing quality alone do to retrieval?
         ("naive parser", _SEC_BASE.model_copy(update={"parser": "naive"})),
         ("primitives parser", _SEC_BASE.model_copy(update={"parser": "primitives"})),
     ]
     for name in ("docling", "marker"):
         if backends.get(name):
-            variants.append((f"{name} parser", _SEC_BASE.model_copy(update={"parser": name})))
+            rows.append((f"{name} parser", _SEC_BASE.model_copy(update={"parser": name})))
 
-    variants += [
+    rows += [
         # Chunker sweep at the primitives parser.
         (
             "primitives + semantic chunking",
@@ -151,4 +197,4 @@ def sec_variants() -> tuple[list[tuple[str, PipelineConfig]], list[str]]:
             ),
         ),
     ]
-    return variants, skipped
+    return [Variant(label, config) for label, config in rows], skipped

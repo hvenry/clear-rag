@@ -27,8 +27,10 @@ _WORD = re.compile(r"[a-z0-9]+")
 class FakeEmbeddings:
     name = "fake"
 
-    def __init__(self, model: str = "fake-embed", dimensions: int = 64) -> None:
-        self.model = model
+    def __init__(self, model: str | None = None, dimensions: int = 64) -> None:
+        # Any name is accepted, so a sweep can name "embedders" and get distinct
+        # indexes and provenance out of one bag-of-words function.
+        self.model = model or "fake-embed"
         self._dims = dimensions
 
     @property

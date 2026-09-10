@@ -7,6 +7,7 @@ import sys
 import threading
 import webbrowser
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -30,11 +31,23 @@ def main() -> int:
 
     ev = sub.add_parser("eval", help="Score the golden set against the current config.")
     _add_eval_args(ev)
-    ev.add_argument("--generate", action="store_true", help="Also generate answers (slow).")
 
     ab = sub.add_parser("ablate", help="Sweep configurations and print an ablation table.")
     _add_eval_args(ab)
     ab.add_argument("--markdown", type=Path, default=None, help="Write the table to a file.")
+    ab.add_argument(
+        "--save-results",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Merge the sweep into the committed results file for the suite "
+            "(evals/results/<suite>.json, or PATH). Rows this sweep produced replace "
+            "their predecessors; rows it did not produce are kept. The README tables and "
+            "the interface render from these files."
+        ),
+    )
 
     pq = sub.add_parser(
         "parse-quality",
@@ -45,6 +58,14 @@ def main() -> int:
     pq.add_argument("--ground-truth", type=Path, default=EVAL_DIR / "sec" / "ground_truth")
     pq.add_argument(
         "--parser", default=None, help="Score only this backend (default: every installed one)."
+    )
+    pq.add_argument(
+        "--save-results",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="PATH",
+        help="Merge the scores into evals/results/parse-quality.json (or PATH).",
     )
 
     args = parser.parse_args()
@@ -135,6 +156,7 @@ def _add_eval_args(parser: argparse.ArgumentParser) -> None:
         ),
     )
     parser.add_argument("--workspace", type=Path, default=None, help="Where to build indexes.")
+    parser.add_argument("--generate", action="store_true", help="Also generate answers (slow).")
     parser.add_argument(
         "--chunk-size", type=int, default=None, help="Override chunk size (tokens)."
     )
@@ -230,17 +252,21 @@ def _ablate(settings, args) -> int:
     import asyncio
     import tempfile
 
+    from .eval.results import TAG_COLUMNS
     from .eval.runner import ablate, markdown_table, write_report
-    from .eval.variants import sec_variants, standard_variants
+    from .eval.variants import attribution_variants, sec_variants, standard_variants
 
     chat_factory, embeddings_factory, reranker_factory = _providers(settings, args.fake)
     workspace = args.workspace or Path(tempfile.mkdtemp(prefix="clearrag-ablate-"))
-    table_tags: tuple[str, ...] = ("lexical", "semantic", "distractor", "paraphrase")
+    table_tags: tuple[str, ...] = TAG_COLUMNS.get(args.suite, ())
     if args.suite == "sec":
         variants, skipped = sec_variants()
-        table_tags = ("table", "structure", "cross-company")
         for name in skipped:
             print(f"note: {name} backend not installed — pip install -e '.[{name}]'")
+    elif args.suite == "attribution":
+        variants = attribution_variants()
+        if not args.generate:
+            print("note: the attribution suite grades answers; add --generate for its columns")
     else:
         variants = standard_variants()
 
@@ -257,6 +283,7 @@ def _ablate(settings, args) -> int:
             chat_factory=chat_factory,
             embeddings_factory=embeddings_factory,
             reranker_factory=reranker_factory,
+            generate=args.generate,
             on_progress=lambda label: print(f"  · {label}"),
         )
     )
@@ -273,6 +300,23 @@ def _ablate(settings, args) -> int:
     if args.json:
         write_report(runs, args.json, k=args.k)
         print(f"Report written to {args.json}")
+    if args.save_results:
+        from .eval.results import load_results, merge_results, results_path, save_results
+
+        path = (
+            Path(args.save_results)
+            if isinstance(args.save_results, str)
+            else results_path(args.suite)
+        )
+        merged = merge_results(
+            load_results(path),
+            runs,
+            suite=args.suite,
+            k=args.k,
+            order=[label for label, _ in variants],
+        )
+        save_results(path, merged)
+        print(f"Results merged into {path} ({len(merged['rows'])} rows)")
     return 0
 
 
@@ -290,6 +334,7 @@ def _parse_quality(args) -> int:
     )
     print(f"{'file':<36} {'backend':<12} {'recovery':>9} {'order':>7}")
     worst = 1.0
+    measured: list[dict] = []
     for pdf in pdfs:
         truth_path = args.ground_truth / f"{pdf.stem}.txt"
         if not truth_path.exists():
@@ -310,6 +355,26 @@ def _parse_quality(args) -> int:
                 f"{pdf.name:<36} {backend:<12} "
                 f"{scores['word_recovery']:>9.3f} {scores['order_similarity']:>7.3f}"
             )
+            measured.append(
+                {
+                    "file": pdf.name,
+                    "backend": backend,
+                    "word_recovery": round(scores["word_recovery"], 4),
+                    "order_similarity": round(scores["order_similarity"], 4),
+                    "provenance": {"measured_at": date.today().isoformat(), "source": "measured"},
+                }
+            )
+    if args.save_results and measured:
+        from .eval.results import load_results, merge_parse_quality, results_path, save_results
+
+        path = (
+            Path(args.save_results)
+            if isinstance(args.save_results, str)
+            else results_path("parse-quality")
+        )
+        merged = merge_parse_quality(load_results(path), measured)
+        save_results(path, merged)
+        print(f"Results merged into {path} ({len(merged['rows'])} rows)")
     return 0 if worst > 0 else 1
 
 

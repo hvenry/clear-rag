@@ -7,6 +7,8 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json* ./
 RUN npm ci || npm install
 COPY web/ ./
+# The bundle imports the committed benchmark results from the repository root.
+COPY evals/results/ /evals/results/
 RUN npm run build
 
 

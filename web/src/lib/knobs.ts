@@ -8,6 +8,8 @@
  * does nothing.
  */
 
+import { m, t } from "./results";
+
 export type KnobType = "segmented" | "number" | "range" | "toggle";
 
 export interface Knob {
@@ -121,7 +123,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         label: "Cross-encoder rerank",
         type: "toggle",
         implemented: true,
-        hint: "A 23 MB cross-encoder (downloaded on first use) reads question and chunk together and re-scores the shortlist — the biggest measured quality jump in the pipeline: recall@1 0.734 → 0.927 on the bundled benchmark, for a few hundred milliseconds per query."
+        hint: `A 23 MB cross-encoder (downloaded on first use) reads question and chunk together and re-scores the shortlist — the biggest measured quality jump in the pipeline: recall@1 ${m("retrieval", "hybrid + RRF", 1, "recall")} → ${m("retrieval", "hybrid + RRF + cross-encoder rerank", 1, "recall")} on the bundled benchmark, for a few hundred milliseconds per query.`
       }
     ]
   },
@@ -152,7 +154,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         type: "segmented",
         implemented: true,
         reindexes: true,
-        hint: "recursive cuts at natural boundaries within a fixed token budget. semantic cuts along parsed structure — whole heading-bounded sections, with embedding-drop splits inside over-long ones — and uses no overlap. Measured honestly: on the SEC benchmark semantic *lost* on financial-table questions (recall 0.545 → 0.273), because packing folds tables into large mixed chunks.",
+        hint: `recursive cuts at natural boundaries within a fixed token budget. semantic cuts along parsed structure — whole heading-bounded sections, with embedding-drop splits inside over-long ones — and uses no overlap. Measured honestly: on the SEC benchmark semantic *lost* on financial-table questions (recall ${t("sec", "primitives parser", 5, "table")} → ${t("sec", "primitives + semantic chunking", 5, "table")}), because packing folds tables into large mixed chunks.`,
         options: [
           { value: "recursive", label: "recursive" },
           { value: "semantic", label: "semantic" }
@@ -218,7 +220,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         label: "Query expansion",
         type: "segmented",
         implemented: true,
-        hint: "multi has the chat model write alternative phrasings of the question, searches every one of them, and fuses each search's rankings across the phrasings before the two searches are fused. Built for questions whose wording diverges from the document's; it costs one LLM call per question. Measured on the bundled benchmark: on hybrid + RRF it lifts paraphrase recall@5 from 0.778 to 1.000 and lowers recall@1 from 0.734 to 0.653 — a recall lever with a precision bill, about 3.7 s a question with a 9B model — and stacked on the reranker it changed nothing here. HyDE (search with a hypothetical answer) is not built yet.",
+        hint: `multi has the chat model write alternative phrasings of the question, searches every one of them, and fuses each search's rankings across the phrasings before the two searches are fused. Built for questions whose wording diverges from the document's; it costs one LLM call per question. Measured on the bundled benchmark: on hybrid + RRF it lifts paraphrase recall@5 from ${t("retrieval", "hybrid + RRF", 5, "paraphrase")} to ${t("retrieval", "hybrid + RRF + multi-query", 5, "paraphrase")} and lowers recall@1 from ${m("retrieval", "hybrid + RRF", 1, "recall")} to ${m("retrieval", "hybrid + RRF + multi-query", 1, "recall")} — a recall lever with a precision bill, about 3.7 s a question with a 9B model — and stacked on the reranker it changed nothing here. HyDE (search with a hypothetical answer) is not built yet.`,
         options: [
           { value: "none", label: "none" },
           { value: "multi", label: "multi" },

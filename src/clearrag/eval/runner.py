@@ -16,6 +16,7 @@ import json
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,11 @@ class EvalRun:
     parse_lost: int = 0
     """Labelled quotes that did not resolve against this run's parsed text — the parse
     lost the answer, and those questions score as misses."""
+    documents: int = 0
+    """How many corpus documents were indexed for this run."""
+    provenance: dict[str, Any] | None = None
+    """What measured this row and when -- see ``provenance_of``. A row without it is
+    not a result, it is an anecdote."""
 
     @property
     def primary(self) -> Aggregate:
@@ -57,12 +63,15 @@ class EvalRun:
             "config_hash": self.config.config_hash,
             "config": self.config.model_dump(),
             "generated": self.generated,
+            "documents": self.documents,
+            "provenance": self.provenance,
             "ingest_ms": round(self.ingest_ms, 1),
             "query_ms": round(self.query_ms, 1),
             "at_k": {str(k): a.to_dict() for k, a in sorted(self.at_k.items())},
             "questions": [
                 {
                     "id": r.id,
+                    "question": r.question,
                     "tags": r.tags,
                     "recall": round(r.recall, 4),
                     "first_relevant_rank": r.first_relevant_rank,
@@ -129,6 +138,18 @@ async def evaluate(
         query_ms=elapsed,
         generated=generate,
     )
+
+
+def provenance_of(engine: Engine, *, measured_at: str | None = None) -> dict[str, Any]:
+    """Which models produced a row. Stored beside the numbers, because a result whose
+    conditions cannot be stated is not comparable to anything."""
+    return {
+        "measured_at": measured_at or date.today().isoformat(),
+        "chat_model": f"{engine.chat.name}:{getattr(engine.chat, 'model', '?')}",
+        "embed_model": engine.embeddings.id,
+        "reranker": engine.reranker.name if engine.reranker is not None else None,
+        "source": "measured",
+    }
 
 
 def _final_ranking(trace: dict[str, Any]) -> list[str]:
@@ -210,6 +231,8 @@ async def ablate(
             run = await evaluate(engine, questions, ks=ks, generate=generate, label=label)
             run.ingest_ms = ingest_ms
             run.parse_lost = lost
+            run.documents = len(raw_corpus)
+            run.provenance = provenance_of(engine)
             runs.append(run)
 
         engine.store.close()

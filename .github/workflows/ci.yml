@@ -19,6 +19,9 @@ jobs:
       - run: mypy src
       # The suite runs on fake providers, so CI needs no models and no GPU.
       - run: pytest -q
+      # The README tables are rendered from evals/results/*.json; a hand edit, or a
+      # number in prose that no results file can vouch for, fails here.
+      - run: python scripts/render_results.py --check
 
   web:
     runs-on: ubuntu-latest

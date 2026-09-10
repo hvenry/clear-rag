@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       port: 5173,
+      // The Results view and the Learn charts import evals/results/*.json from the
+      // repository root, one level above this package; Vite's dev server refuses to
+      // serve files outside its root unless told otherwise. Relative to the root.
+      fs: { allow: [".."] },
       // In development the UI runs on Vite and the API on uvicorn. In production
       // FastAPI serves this bundle itself, so there is no proxy and no second origin.
       proxy: { "/api": { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true } }

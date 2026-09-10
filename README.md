@@ -165,10 +165,13 @@ SQLite and can be replayed offline by the evaluation harness without re-invoking
 
 Measured on a 67-question golden set over a 10-document corpus (`evals/`), using
 `nomic-embed-text` via Ollama, with `qwen3.5:9b` writing the phrasings for the
-multi-query rows. Reproduce with `clear-rag ablate`. Re-measured on 2026-09-08 after nine
-`paraphrase` questions joined the set; every row moved a little, because the new
-questions are the hard ones.
+multi-query rows. Re-measured on 2026-09-08 after nine `paraphrase` questions joined the
+set; every row moved a little, because the new questions are the hard ones. The table is
+rendered from `evals/results/retrieval.json`, which `clear-rag ablate --save-results`
+writes, and the app's **Results** view reads the same file — so the README, the interface
+and the file cannot disagree.
 
+<!-- results:retrieval -->
 | Configuration | recall@1 | recall@5 | MRR | nDCG@5 | lexical | semantic | distractor | paraphrase |
 |---|---|---|---|---|---|---|---|---|
 | dense only, 50% overlap (2024 baseline) | 0.589 | 0.903 | 0.708 | 0.765 | 0.955 | 0.880 | 0.875 | 0.778 |
@@ -179,11 +182,12 @@ questions are the hard ones.
 | hybrid + RRF + multi-query | 0.653 | 0.984 | 0.802 | 0.854 | 0.955 | 1.000 | 1.000 | 1.000 |
 | **hybrid + RRF + cross-encoder rerank** | 0.927 | 1.000 | 0.965 | 0.974 | 1.000 | 1.000 | 1.000 | 1.000 |
 | **hybrid + RRF + rerank + multi-query** | 0.927 | 1.000 | 0.965 | 0.974 | 1.000 | 1.000 | 1.000 | 1.000 |
-| hybrid + RRF, 96-token chunks | 0.702 | 0.887 | 0.790 | 0.855 | 1.000 | 0.960 | 0.875 | 0.444 |
-| hybrid + RRF + multi-query, 96-token chunks | 0.540 | 0.750 | 0.636 | 0.674 | 0.864 | 0.720 | 0.875 | 0.556 |
+| hybrid + RRF, 96-token chunks | 0.702 | 0.887 | 0.789 | 0.855 | 1.000 | 0.960 | 0.875 | 0.444 |
+| hybrid + RRF + multi-query, 96-token chunks | 0.540 | 0.750 | 0.636 | 0.673 | 0.864 | 0.720 | 0.875 | 0.556 |
 | hybrid + RRF, 192-token chunks | 0.750 | 0.919 | 0.826 | 0.908 | 1.000 | 1.000 | 0.875 | 0.556 |
 | hybrid + RRF, 256-token chunks | 0.734 | 0.952 | 0.823 | 0.862 | 1.000 | 1.000 | 0.875 | 0.778 |
 | hybrid + RRF, 1024-token chunks | 0.718 | 0.968 | 0.828 | 0.864 | 1.000 | 1.000 | 1.000 | 0.778 |
+<!-- /results:retrieval -->
 
 `lexical` / `semantic` / `distractor` are recall@5 restricted to question sets tagged
 that way. Distractor questions are ones with a plausible near-miss elsewhere in the
@@ -294,24 +298,28 @@ configuration, so **every failure the suite reports is a generation failure.**
 
 Measured on the bundled suite (12 answerable + 3 unanswerable questions):
 
+<!-- results:attribution -->
 | Model · chunk size | retrieval recall@5 | required mentions | grounding | citation precision |
 |---|---|---|---|---|
-| qwen3.5:9b · 512 | 1.000 | **1.000** | **1.000** | **1.000** |
-| qwen3.5:9b · 192 | 1.000 | **1.000** | **1.000** | 0.917 |
-| llama3.2:3b · 512 | 1.000 | 0.917 | **0.417** | 0.417 |
-| llama3.2:3b · 192 | 1.000 | 0.750 | **0.583** | 0.583 |
+| llama3.2 · 512 | 1.000 | 0.750 | 0.333 | 0.333 |
+| qwen3.5:9b · 512 | 1.000 | 1.000 | 1.000 | 1.000 |
+| llama3.2 · 192 | 1.000 | 0.750 | 0.500 | 0.458 |
+| qwen3.5:9b · 192 | 1.000 | 1.000 | 1.000 | 0.917 |
+<!-- /results:attribution -->
 
 Reading it: retrieval metrics are a flat, useless 1.000 across every row — and grounding
-varies by a factor of 2.4. The 3B model usually *says* the right thing (mentions ≈ 0.9)
-while citing the wrong chunk more than half the time; smaller chunks help it somewhat
-(0.417 → 0.583) but don't fix it. The 9B model is essentially perfect at either chunk
-size. This settles, with numbers, what an earlier debugging session found anecdotally on
-a real résumé: past a modest floor, **attribution quality is a property of the model far
-more than of the chunking** — and it is entirely invisible to recall@k.
+varies by a factor of three. The 3B model *says* the right thing three times in four
+(mentions 0.750) while citing the wrong chunk two times in three; smaller chunks help its
+grounding somewhat (0.333 → 0.500) but don't fix it. The 9B model is essentially perfect
+at either chunk size. Generated answers wobble by a question or two between runs at
+temperature 0.1 — the 3B rows moved when this table was last re-measured — but the
+pattern has not. This settles, with numbers, what an earlier debugging session found
+anecdotally on a real résumé: past a modest floor, **attribution quality is a property of
+the model far more than of the chunking** — and it is entirely invisible to recall@k.
 
 ```bash
-clear-rag eval --suite attribution --generate            # current model
-CLEARRAG_CHAT_MODEL=llama3.2 clear-rag eval --suite attribution --generate --chunk-size 192
+clear-rag ablate --suite attribution --generate --save-results                # current model
+CLEARRAG_CHAT_MODEL=llama3.2 clear-rag ablate --suite attribution --generate --save-results
 ```
 
 ### The regression gate
@@ -334,6 +342,18 @@ records or diagnostics — which the interface renders. `scripts/snapshot_query_
 records every query event stream, on fake providers and the real reranker, with ids and
 timings stripped; a refactor that changes nothing observable reproduces it byte for byte.
 
+### Results are files
+
+Every table in this README is rendered from `evals/results/<suite>.json`, the output of
+`clear-rag ablate --save-results` (and `clear-rag parse-quality --save-results`). A
+results file *merges*: rows a sweep produced replace their predecessors, rows it did not
+produce survive, and every row records the models and date that measured it — a row
+imported from an earlier run says so, and the table footnotes it. The interface imports
+the same files, so the Results view, the Learn page's charts, the Lab's knob hints and
+this README cannot drift apart. CI runs `scripts/render_results.py --check`, which fails
+if a table was edited by hand or if a number in hand-written prose no longer appears in
+any results file — the exact way twelve numbers went stale the day the golden set grew.
+
 ```bash
 clear-rag eval                    # score the golden set with real models
 clear-rag eval --suite sec        # the 10-K corpus: parsing/chunking/context measurable
@@ -341,8 +361,10 @@ clear-rag parse-quality           # differential-test parser backends vs HTML gr
 clear-rag eval --generate         # also generate answers: refusal + required-mention accuracy
 clear-rag ablate                  # sweep configurations, print the table above
 clear-rag ablate --fake           # deterministic, no models needed
+clear-rag ablate --save-results   # merge the sweep into evals/results/<suite>.json
 clear-rag eval --set rerank=true --set query_transform=multi   # override any knob
 python scripts/refresh_baseline.py  # after a deliberate retrieval change
+python scripts/render_results.py    # re-render the README tables from evals/results/
 python scripts/snapshot_query_events.py out.json --compare before.json  # refactor gate
 ```
 
@@ -379,14 +401,19 @@ BM25 is tested against FTS5. A 42-question golden set tags `table`, `structure` 
 `cross-company` questions; `clear-rag ablate --suite sec` sweeps parser × chunker ×
 context with real models.
 
-| Configuration | recall@1 | recall@5 | table | cross-company |
-|---|---|---|---|---|
-| naive parser (pypdf) | 0.564 | 0.872 | 0.636 | 0.889 |
-| primitives parser | 0.462 | 0.846 | 0.545 | 0.778 |
-| docling parser | 0.385 | 0.718 | 0.455 | 0.667 |
-| primitives + semantic chunking | 0.487 | 0.769 | **0.273** | 0.778 |
-| primitives + breadcrumb context | 0.462 | 0.846 | 0.545 | 0.778 |
-| primitives + LLM context | 0.436 | 0.846 | 0.545 | 0.778 |
+<!-- results:sec -->
+| Configuration | recall@1 | recall@5 | MRR | nDCG@5 | table | structure | cross-company |
+|---|---|---|---|---|---|---|---|
+| **naive parser** | 0.538 | 0.872 | 0.678 | 0.764 | 0.636 | 0.875 | 0.889 |
+| primitives parser | 0.436 | 0.846 | 0.596 | 0.686 | 0.545 | 0.875 | 0.778 |
+| primitives + semantic chunking | 0.410 | 0.692 | 0.521 | 0.565 | 0.182 | 0.875 | 0.667 |
+| primitives + breadcrumb context | 0.436 | 0.846 | 0.596 | 0.686 | 0.545 | 0.875 | 0.778 |
+| primitives + LLM context | 0.462 | 0.846 | 0.611 | 0.698 | 0.545 | 0.875 | 0.778 |
+| primitives + semantic + breadcrumb | 0.385 | 0.692 | 0.511 | 0.557 | 0.182 | 0.875 | 0.667 |
+| docling parser † | 0.385 | 0.718 | 0.521 | 0.611 | 0.455 | 0.750 | 0.667 |
+
+† imported from an earlier measurement rather than re-run here: 2026-08-23, docling is not installed in the current environment
+<!-- /results:sec -->
 
 Three findings, none of them the marketing version (full tables and caveats in
 [`evals/sec/README.md`](evals/sec/README.md)):
@@ -394,14 +421,14 @@ Three findings, none of them the marketing version (full tables and caveats in
 1. **Flat extraction wins on born-digital PDFs — and the hand-rolled parser beats the
    ML one.** These Chromium-rendered filings are pypdf's best case, and the ~400-line
    geometric parser (`primitives`) outscores docling's layout models on both parse
-   fidelity (word recovery 0.996 vs 0.989) and retrieval, while docling's aggressive
+   fidelity (word recovery 0.996 vs 0.988) and retrieval, while docling's aggressive
    table reconstruction loses two labelled answers outright. Structure's value flows to
    the stages that consume it (structural chunking, breadcrumbs, the Library's
    structure view), not to raw retrieval on clean renders. The differential test also
    caught two real parser bugs during development — a page-wide phantom grid built
    from 186 table-shading rects, and part-page column bands interleaving side-by-side
    lines — worth 0.78 → 0.99 in reading-order fidelity.
-2. **Semantic chunking regresses financial tables** (table recall 0.545 → 0.273):
+2. **Semantic chunking regresses financial tables** (table recall 0.545 → 0.182):
    heading-bounded packing folds a statement's table into one large mixed chunk that
    ranks worse than the accidental isolation fixed-size cutting provides. The block
    model points at its own fix — atomic table chunks — and the metric to judge it is
@@ -421,7 +448,7 @@ was impractically slow.
 
 ## Interface
 
-Three views. **Chat** streams each retrieval stage as it completes, then the answer.
+Five views. **Chat** streams each retrieval stage as it completes, then the answer.
 **Library** shows how a document was split — chunk boundaries drawn over the source
 text, overlap regions shaded darker, and a *structure* view of the typed blocks the
 parser recovered (headings sized by level, tables boxed), which is what structural
@@ -435,6 +462,13 @@ needing the original files (a parser change is called out as the one exception �
 re-indexing cannot re-parse, so it applies to files uploaded afterwards). Knobs that
 exist in the config but are not implemented yet (HyDE, self-correction)
 appear disabled with a note, so the interface never pretends.
+
+**Results** shows the benchmark itself: every table in this README, read from the same
+committed files, with a row you can pin so the others are read against it — which
+settings differ, and how far each number moved — and a per-question panel that turns
+"recall@1 fell" into the fourteen questions whose first relevant chunk moved down and
+the ten whose chunk moved up. Every table carries the models and the date that measured
+it, and rows imported from an earlier run say so.
 
 A one-click **sample corpus** (the evaluation documents — 10 files, ~60 chunks at small
 chunk sizes) exists because a three-chunk résumé makes every comparison degenerate:

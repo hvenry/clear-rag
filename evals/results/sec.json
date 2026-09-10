@@ -1,0 +1,4598 @@
+{
+ "suite": "sec",
+ "k": 5,
+ "corpus": {
+  "documents": 8,
+  "questions": 42,
+  "answerable": 39
+ },
+ "rows": [
+  {
+   "label": "naive parser",
+   "config_hash": "f649355e436f",
+   "config": {
+    "parser": "naive",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-09-09",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 18646.9,
+   "query_ms": 115745.3,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.5385,
+     "precision": 0.5385,
+     "mrr": 0.5385,
+     "ndcg": 0.5385,
+     "hit_rate": 0.5385,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.5556,
+      "lexical": 0.5714,
+      "semantic": 0.7143,
+      "structure": 0.5,
+      "table": 0.2727
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8205,
+     "precision": 0.2906,
+     "mrr": 0.6667,
+     "ndcg": 0.732,
+     "hit_rate": 0.8205,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 0.9286,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.5455
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8718,
+     "precision": 0.1897,
+     "mrr": 0.6782,
+     "ndcg": 0.764,
+     "hit_rate": 0.8718,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 1.0,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.6364
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.9231,
+     "precision": 0.1026,
+     "mrr": 0.6855,
+     "ndcg": 0.7902,
+     "hit_rate": 0.9231,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 1.0,
+      "semantic": 1.0,
+      "structure": 1.0,
+      "table": 0.7273
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "q_aapl_employees",
+     "question": "How many full-time equivalent employees did Apple have at the end of fiscal 2023?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_employees",
+     "question": "How many people did Microsoft employ, and how were they split between the U.S. and international?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_rd_headcount",
+     "question": "How many Microsoft employees worked in product research and development?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_copilot",
+     "question": "What does Microsoft 365 Copilot combine?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_ipad",
+     "question": "What is iPad and what models make up the iPad line?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_outsourcing_countries",
+     "question": "Where are Apple's manufacturing outsourcing partners primarily located?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_single_source",
+     "question": "What does Apple say about single-source suppliers for its components?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_competition_risk",
+     "question": "What does Microsoft identify as the consequence of intense competition across its markets?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_activision",
+     "question": "For how much did Microsoft agree to acquire Activision Blizzard?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_cloud_abuse",
+     "question": "What kinds of fraudulent activity does Microsoft say occur through its cloud services?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_americas",
+     "question": "Why did Apple's Americas net sales decrease in 2023?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_gross_margin_pct",
+     "question": "What was Apple's total gross margin percentage in 2023, 2022 and 2021?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_greater_china",
+     "question": "What were Apple's Greater China net sales in 2023 and how did they change?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_expense",
+     "question": "What did Apple spend on research and development in 2023, and how much did it grow?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_driver",
+     "question": "What drove the growth in Apple's R&D expense in 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_total_net_sales",
+     "question": "What were Apple's total net sales for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_per_share",
+     "question": "What dividend per share did Apple declare in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_tax_rate",
+     "question": "What was Apple's effective tax rate in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_unrecognized_tax",
+     "question": "What was Apple's total amount of gross unrecognized tax benefits as of September 30, 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_hedge_horizon",
+     "question": "Over what maximum length of time is Apple hedging its term debt foreign currency exposure?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_buyback",
+     "question": "How much common stock did Apple repurchase in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_server_growth",
+     "question": "How much did Microsoft's server products and cloud services revenue grow, and what drove it?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_oem",
+     "question": "What happened to Microsoft's Windows OEM revenue in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_xbox",
+     "question": "How did Xbox content and services revenue change in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_linkedin",
+     "question": "How much did LinkedIn revenue increase in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_useful_lives",
+     "question": "What change did Microsoft make to the estimated useful lives of its server and network equipment, and what was the effect?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_operating_income",
+     "question": "What was Microsoft's operating income for fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Operating income 88,523 83,383 6% Net income 72,361 72,738"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_seasonality",
+     "question": "In which quarters is Microsoft's revenue generally higher?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_total_revenue",
+     "question": "What was Microsoft's total revenue for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Total revenue 211,915 198,270 168,088"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_nuance",
+     "question": "What did Microsoft pay for Nuance Communications and which segment reports it?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_tax_rate_change",
+     "question": "Why did Microsoft's effective tax rate increase in fiscal 2023 compared to fiscal 2022?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: The increase in our effective tax rate for fiscal year 2023 "
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_trade_restrictions",
+     "question": "How can restrictions on international trade affect Apple?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_licensing_competition",
+     "question": "From what platforms does Microsoft face competition for its Windows PC operating system?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_segments_note",
+     "question": "Where is additional information on Microsoft's reportable segments found?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_europe",
+     "question": "What accounted for the decrease in Apple's Europe net sales in 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_products_margin",
+     "question": "Why did Apple's Products gross margin decrease during 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_search_advertising",
+     "question": "How did Microsoft's search and news advertising revenue change excluding traffic acquisition costs?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 5,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_payments",
+     "question": "How much did Apple pay out in dividends and dividend equivalents in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Payments for dividends and dividend equivalents ( 15,025 ) ("
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_pbp_revenue",
+     "question": "What was the Productivity and Business Processes goodwill figure attributed in the segment allocation table?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Productivity and Business Processes $ 27,572 $ 24,558"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_alphabet",
+     "question": "How many employees does Alphabet have?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aws",
+     "question": "What was Amazon Web Services revenue in 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aapl_2010",
+     "question": "What were Apple's net sales in fiscal year 2010?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    }
+   ]
+  },
+  {
+   "label": "primitives parser",
+   "config_hash": "961a9d003194",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-09-09",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 28409.4,
+   "query_ms": 113453.0,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.4359,
+     "precision": 0.4359,
+     "mrr": 0.4359,
+     "ndcg": 0.4359,
+     "hit_rate": 0.4359,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.4444,
+      "lexical": 0.3571,
+      "semantic": 0.7143,
+      "structure": 0.5,
+      "table": 0.1818
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.7179,
+     "precision": 0.2479,
+     "mrr": 0.5641,
+     "ndcg": 0.62,
+     "hit_rate": 0.7179,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 0.7857,
+      "semantic": 0.9286,
+      "structure": 0.75,
+      "table": 0.3636
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8462,
+     "precision": 0.1795,
+     "mrr": 0.5962,
+     "ndcg": 0.6862,
+     "hit_rate": 0.8462,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 1.0,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.5455
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.9231,
+     "precision": 0.1,
+     "mrr": 0.6059,
+     "ndcg": 0.7191,
+     "hit_rate": 0.9231,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 1.0,
+      "semantic": 1.0,
+      "structure": 1.0,
+      "table": 0.7273
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "q_aapl_employees",
+     "question": "How many full-time equivalent employees did Apple have at the end of fiscal 2023?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_employees",
+     "question": "How many people did Microsoft employ, and how were they split between the U.S. and international?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_rd_headcount",
+     "question": "How many Microsoft employees worked in product research and development?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_copilot",
+     "question": "What does Microsoft 365 Copilot combine?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_ipad",
+     "question": "What is iPad and what models make up the iPad line?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_outsourcing_countries",
+     "question": "Where are Apple's manufacturing outsourcing partners primarily located?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_single_source",
+     "question": "What does Apple say about single-source suppliers for its components?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_competition_risk",
+     "question": "What does Microsoft identify as the consequence of intense competition across its markets?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_activision",
+     "question": "For how much did Microsoft agree to acquire Activision Blizzard?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_cloud_abuse",
+     "question": "What kinds of fraudulent activity does Microsoft say occur through its cloud services?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_americas",
+     "question": "Why did Apple's Americas net sales decrease in 2023?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_gross_margin_pct",
+     "question": "What was Apple's total gross margin percentage in 2023, 2022 and 2021?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_greater_china",
+     "question": "What were Apple's Greater China net sales in 2023 and how did they change?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_expense",
+     "question": "What did Apple spend on research and development in 2023, and how much did it grow?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_driver",
+     "question": "What drove the growth in Apple's R&D expense in 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_total_net_sales",
+     "question": "What were Apple's total net sales for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Services 85,200 78,129 68,425 Total net sales 383,285 394,32"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_per_share",
+     "question": "What dividend per share did Apple declare in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_tax_rate",
+     "question": "What was Apple's effective tax rate in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_unrecognized_tax",
+     "question": "What was Apple's total amount of gross unrecognized tax benefits as of September 30, 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_hedge_horizon",
+     "question": "Over what maximum length of time is Apple hedging its term debt foreign currency exposure?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_buyback",
+     "question": "How much common stock did Apple repurchase in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_server_growth",
+     "question": "How much did Microsoft's server products and cloud services revenue grow, and what drove it?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_oem",
+     "question": "What happened to Microsoft's Windows OEM revenue in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_xbox",
+     "question": "How did Xbox content and services revenue change in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_linkedin",
+     "question": "How much did LinkedIn revenue increase in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_useful_lives",
+     "question": "What change did Microsoft make to the estimated useful lives of its server and network equipment, and what was the effect?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_operating_income",
+     "question": "What was Microsoft's operating income for fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Operating income 88,523 83,383 6% Net income 72,361 72,738"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_seasonality",
+     "question": "In which quarters is Microsoft's revenue generally higher?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Our revenue fluctuates quarterly and is generally higher in "
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_total_revenue",
+     "question": "What was Microsoft's total revenue for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Total revenue 211,915 198,270 168,088"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_nuance",
+     "question": "What did Microsoft pay for Nuance Communications and which segment reports it?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_tax_rate_change",
+     "question": "Why did Microsoft's effective tax rate increase in fiscal 2023 compared to fiscal 2022?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_trade_restrictions",
+     "question": "How can restrictions on international trade affect Apple?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_licensing_competition",
+     "question": "From what platforms does Microsoft face competition for its Windows PC operating system?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_segments_note",
+     "question": "Where is additional information on Microsoft's reportable segments found?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_europe",
+     "question": "What accounted for the decrease in Apple's Europe net sales in 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_products_margin",
+     "question": "Why did Apple's Products gross margin decrease during 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_search_advertising",
+     "question": "How did Microsoft's search and news advertising revenue change excluding traffic acquisition costs?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_payments",
+     "question": "How much did Apple pay out in dividends and dividend equivalents in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Payments for dividends and dividend equivalents ( 15,025 ) ("
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_pbp_revenue",
+     "question": "What was the Productivity and Business Processes goodwill figure attributed in the segment allocation table?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Productivity and Business Processes $ 27,572 $ 24,558"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_alphabet",
+     "question": "How many employees does Alphabet have?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aws",
+     "question": "What was Amazon Web Services revenue in 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aapl_2010",
+     "question": "What were Apple's net sales in fiscal year 2010?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    }
+   ]
+  },
+  {
+   "label": "primitives + semantic chunking",
+   "config_hash": "938cbdf99be8",
+   "config": {
+    "parser": "primitives",
+    "chunker": "semantic",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-09-09",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 42576.8,
+   "query_ms": 112211.1,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.4103,
+     "precision": 0.4103,
+     "mrr": 0.4103,
+     "ndcg": 0.4103,
+     "hit_rate": 0.4103,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.4444,
+      "lexical": 0.5,
+      "semantic": 0.6429,
+      "structure": 0.875,
+      "table": 0.0
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.641,
+     "precision": 0.2137,
+     "mrr": 0.5085,
+     "ndcg": 0.5424,
+     "hit_rate": 0.641,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.5556,
+      "lexical": 0.7857,
+      "semantic": 0.8571,
+      "structure": 0.875,
+      "table": 0.1818
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.6923,
+     "precision": 0.1385,
+     "mrr": 0.5214,
+     "ndcg": 0.5645,
+     "hit_rate": 0.6923,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.6667,
+      "lexical": 0.8571,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.1818
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8205,
+     "precision": 0.0821,
+     "mrr": 0.5381,
+     "ndcg": 0.6057,
+     "hit_rate": 0.8205,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 0.8571,
+      "semantic": 1.0,
+      "structure": 0.875,
+      "table": 0.5455
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "q_aapl_employees",
+     "question": "How many full-time equivalent employees did Apple have at the end of fiscal 2023?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_employees",
+     "question": "How many people did Microsoft employ, and how were they split between the U.S. and international?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_rd_headcount",
+     "question": "How many Microsoft employees worked in product research and development?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_copilot",
+     "question": "What does Microsoft 365 Copilot combine?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_ipad",
+     "question": "What is iPad and what models make up the iPad line?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_outsourcing_countries",
+     "question": "Where are Apple's manufacturing outsourcing partners primarily located?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_single_source",
+     "question": "What does Apple say about single-source suppliers for its components?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_competition_risk",
+     "question": "What does Microsoft identify as the consequence of intense competition across its markets?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_activision",
+     "question": "For how much did Microsoft agree to acquire Activision Blizzard?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_cloud_abuse",
+     "question": "What kinds of fraudulent activity does Microsoft say occur through its cloud services?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_americas",
+     "question": "Why did Apple's Americas net sales decrease in 2023?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item7.pdf: Americas net sales decreased 4% or $7.1 billion during 2023 "
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_gross_margin_pct",
+     "question": "What was Apple's total gross margin percentage in 2023, 2022 and 2021?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item7.pdf: Total gross margin percentage 44.1 % 43.3 % 41.8 %"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_greater_china",
+     "question": "What were Apple's Greater China net sales in 2023 and how did they change?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_expense",
+     "question": "What did Apple spend on research and development in 2023, and how much did it grow?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_driver",
+     "question": "What drove the growth in Apple's R&D expense in 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_total_net_sales",
+     "question": "What were Apple's total net sales for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Services 85,200 78,129 68,425 Total net sales 383,285 394,32"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_per_share",
+     "question": "What dividend per share did Apple declare in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Dividends and dividend equivalents declared per share or RSU"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_tax_rate",
+     "question": "What was Apple's effective tax rate in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Effective tax rate 14.7 % 16.2 % 13.3 %"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_unrecognized_tax",
+     "question": "What was Apple's total amount of gross unrecognized tax benefits as of September 30, 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_hedge_horizon",
+     "question": "Over what maximum length of time is Apple hedging its term debt foreign currency exposure?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_buyback",
+     "question": "How much common stock did Apple repurchase in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Common stock repurchased ( 77,046 ) ( 90,186 ) ( 85,502 )"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_server_growth",
+     "question": "How much did Microsoft's server products and cloud services revenue grow, and what drove it?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_oem",
+     "question": "What happened to Microsoft's Windows OEM revenue in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_xbox",
+     "question": "How did Xbox content and services revenue change in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_linkedin",
+     "question": "How much did LinkedIn revenue increase in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: LinkedIn revenue increased 10%."
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_useful_lives",
+     "question": "What change did Microsoft make to the estimated useful lives of its server and network equipment, and what was the effect?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_operating_income",
+     "question": "What was Microsoft's operating income for fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Operating income 88,523 83,383 6% Net income 72,361 72,738"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_seasonality",
+     "question": "In which quarters is Microsoft's revenue generally higher?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_total_revenue",
+     "question": "What was Microsoft's total revenue for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Total revenue 211,915 198,270 168,088"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_nuance",
+     "question": "What did Microsoft pay for Nuance Communications and which segment reports it?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_tax_rate_change",
+     "question": "Why did Microsoft's effective tax rate increase in fiscal 2023 compared to fiscal 2022?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_trade_restrictions",
+     "question": "How can restrictions on international trade affect Apple?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_licensing_competition",
+     "question": "From what platforms does Microsoft face competition for its Windows PC operating system?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_segments_note",
+     "question": "Where is additional information on Microsoft's reportable segments found?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Additional information on our reportable segments is contain"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_europe",
+     "question": "What accounted for the decrease in Apple's Europe net sales in 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_products_margin",
+     "question": "Why did Apple's Products gross margin decrease during 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_search_advertising",
+     "question": "How did Microsoft's search and news advertising revenue change excluding traffic acquisition costs?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_payments",
+     "question": "How much did Apple pay out in dividends and dividend equivalents in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Payments for dividends and dividend equivalents ( 15,025 ) ("
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_pbp_revenue",
+     "question": "What was the Productivity and Business Processes goodwill figure attributed in the segment allocation table?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Productivity and Business Processes $ 27,572 $ 24,558"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_alphabet",
+     "question": "How many employees does Alphabet have?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aws",
+     "question": "What was Amazon Web Services revenue in 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aapl_2010",
+     "question": "What were Apple's net sales in fiscal year 2010?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    }
+   ]
+  },
+  {
+   "label": "primitives + breadcrumb context",
+   "config_hash": "fbdbaedd002f",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "breadcrumb",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-09-09",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 28794.6,
+   "query_ms": 108949.2,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.4359,
+     "precision": 0.4359,
+     "mrr": 0.4359,
+     "ndcg": 0.4359,
+     "hit_rate": 0.4359,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.4444,
+      "lexical": 0.3571,
+      "semantic": 0.7143,
+      "structure": 0.5,
+      "table": 0.1818
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.7179,
+     "precision": 0.2479,
+     "mrr": 0.5641,
+     "ndcg": 0.62,
+     "hit_rate": 0.7179,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 0.7857,
+      "semantic": 0.9286,
+      "structure": 0.75,
+      "table": 0.3636
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8462,
+     "precision": 0.1795,
+     "mrr": 0.5962,
+     "ndcg": 0.6862,
+     "hit_rate": 0.8462,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 1.0,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.5455
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.9231,
+     "precision": 0.1,
+     "mrr": 0.6059,
+     "ndcg": 0.7191,
+     "hit_rate": 0.9231,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 1.0,
+      "semantic": 1.0,
+      "structure": 1.0,
+      "table": 0.7273
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "q_aapl_employees",
+     "question": "How many full-time equivalent employees did Apple have at the end of fiscal 2023?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_employees",
+     "question": "How many people did Microsoft employ, and how were they split between the U.S. and international?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_rd_headcount",
+     "question": "How many Microsoft employees worked in product research and development?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_copilot",
+     "question": "What does Microsoft 365 Copilot combine?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_ipad",
+     "question": "What is iPad and what models make up the iPad line?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_outsourcing_countries",
+     "question": "Where are Apple's manufacturing outsourcing partners primarily located?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_single_source",
+     "question": "What does Apple say about single-source suppliers for its components?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_competition_risk",
+     "question": "What does Microsoft identify as the consequence of intense competition across its markets?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_activision",
+     "question": "For how much did Microsoft agree to acquire Activision Blizzard?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_cloud_abuse",
+     "question": "What kinds of fraudulent activity does Microsoft say occur through its cloud services?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_americas",
+     "question": "Why did Apple's Americas net sales decrease in 2023?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_gross_margin_pct",
+     "question": "What was Apple's total gross margin percentage in 2023, 2022 and 2021?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_greater_china",
+     "question": "What were Apple's Greater China net sales in 2023 and how did they change?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_expense",
+     "question": "What did Apple spend on research and development in 2023, and how much did it grow?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_driver",
+     "question": "What drove the growth in Apple's R&D expense in 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_total_net_sales",
+     "question": "What were Apple's total net sales for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Services 85,200 78,129 68,425 Total net sales 383,285 394,32"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_per_share",
+     "question": "What dividend per share did Apple declare in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_tax_rate",
+     "question": "What was Apple's effective tax rate in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_unrecognized_tax",
+     "question": "What was Apple's total amount of gross unrecognized tax benefits as of September 30, 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_hedge_horizon",
+     "question": "Over what maximum length of time is Apple hedging its term debt foreign currency exposure?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_buyback",
+     "question": "How much common stock did Apple repurchase in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_server_growth",
+     "question": "How much did Microsoft's server products and cloud services revenue grow, and what drove it?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_oem",
+     "question": "What happened to Microsoft's Windows OEM revenue in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_xbox",
+     "question": "How did Xbox content and services revenue change in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_linkedin",
+     "question": "How much did LinkedIn revenue increase in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_useful_lives",
+     "question": "What change did Microsoft make to the estimated useful lives of its server and network equipment, and what was the effect?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_operating_income",
+     "question": "What was Microsoft's operating income for fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Operating income 88,523 83,383 6% Net income 72,361 72,738"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_seasonality",
+     "question": "In which quarters is Microsoft's revenue generally higher?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Our revenue fluctuates quarterly and is generally higher in "
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_total_revenue",
+     "question": "What was Microsoft's total revenue for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Total revenue 211,915 198,270 168,088"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_nuance",
+     "question": "What did Microsoft pay for Nuance Communications and which segment reports it?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_tax_rate_change",
+     "question": "Why did Microsoft's effective tax rate increase in fiscal 2023 compared to fiscal 2022?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_trade_restrictions",
+     "question": "How can restrictions on international trade affect Apple?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_licensing_competition",
+     "question": "From what platforms does Microsoft face competition for its Windows PC operating system?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_segments_note",
+     "question": "Where is additional information on Microsoft's reportable segments found?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_europe",
+     "question": "What accounted for the decrease in Apple's Europe net sales in 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_products_margin",
+     "question": "Why did Apple's Products gross margin decrease during 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_search_advertising",
+     "question": "How did Microsoft's search and news advertising revenue change excluding traffic acquisition costs?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_payments",
+     "question": "How much did Apple pay out in dividends and dividend equivalents in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Payments for dividends and dividend equivalents ( 15,025 ) ("
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_pbp_revenue",
+     "question": "What was the Productivity and Business Processes goodwill figure attributed in the segment allocation table?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Productivity and Business Processes $ 27,572 $ 24,558"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_alphabet",
+     "question": "How many employees does Alphabet have?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aws",
+     "question": "What was Amazon Web Services revenue in 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aapl_2010",
+     "question": "What were Apple's net sales in fiscal year 2010?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    }
+   ]
+  },
+  {
+   "label": "primitives + LLM context",
+   "config_hash": "875a31f34f75",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "llm",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-09-09",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 2389554.8,
+   "query_ms": 335971.8,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.4615,
+     "precision": 0.4615,
+     "mrr": 0.4615,
+     "ndcg": 0.4615,
+     "hit_rate": 0.4615,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.4444,
+      "lexical": 0.4286,
+      "semantic": 0.7143,
+      "structure": 0.5,
+      "table": 0.1818
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.7436,
+     "precision": 0.2564,
+     "mrr": 0.5855,
+     "ndcg": 0.6422,
+     "hit_rate": 0.7436,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 0.7857,
+      "semantic": 0.9286,
+      "structure": 0.75,
+      "table": 0.4545
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8462,
+     "precision": 0.1795,
+     "mrr": 0.6111,
+     "ndcg": 0.6975,
+     "hit_rate": 0.8462,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.7778,
+      "lexical": 1.0,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.5455
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.9231,
+     "precision": 0.1,
+     "mrr": 0.6205,
+     "ndcg": 0.7301,
+     "hit_rate": 0.9231,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 1.0,
+      "semantic": 1.0,
+      "structure": 1.0,
+      "table": 0.7273
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "q_aapl_employees",
+     "question": "How many full-time equivalent employees did Apple have at the end of fiscal 2023?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_employees",
+     "question": "How many people did Microsoft employ, and how were they split between the U.S. and international?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_rd_headcount",
+     "question": "How many Microsoft employees worked in product research and development?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_copilot",
+     "question": "What does Microsoft 365 Copilot combine?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_ipad",
+     "question": "What is iPad and what models make up the iPad line?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_outsourcing_countries",
+     "question": "Where are Apple's manufacturing outsourcing partners primarily located?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_single_source",
+     "question": "What does Apple say about single-source suppliers for its components?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_competition_risk",
+     "question": "What does Microsoft identify as the consequence of intense competition across its markets?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_activision",
+     "question": "For how much did Microsoft agree to acquire Activision Blizzard?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_cloud_abuse",
+     "question": "What kinds of fraudulent activity does Microsoft say occur through its cloud services?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_americas",
+     "question": "Why did Apple's Americas net sales decrease in 2023?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_gross_margin_pct",
+     "question": "What was Apple's total gross margin percentage in 2023, 2022 and 2021?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_greater_china",
+     "question": "What were Apple's Greater China net sales in 2023 and how did they change?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_expense",
+     "question": "What did Apple spend on research and development in 2023, and how much did it grow?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_driver",
+     "question": "What drove the growth in Apple's R&D expense in 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_total_net_sales",
+     "question": "What were Apple's total net sales for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Services 85,200 78,129 68,425 Total net sales 383,285 394,32"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_per_share",
+     "question": "What dividend per share did Apple declare in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_tax_rate",
+     "question": "What was Apple's effective tax rate in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_unrecognized_tax",
+     "question": "What was Apple's total amount of gross unrecognized tax benefits as of September 30, 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_hedge_horizon",
+     "question": "Over what maximum length of time is Apple hedging its term debt foreign currency exposure?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_buyback",
+     "question": "How much common stock did Apple repurchase in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_server_growth",
+     "question": "How much did Microsoft's server products and cloud services revenue grow, and what drove it?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_oem",
+     "question": "What happened to Microsoft's Windows OEM revenue in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_xbox",
+     "question": "How did Xbox content and services revenue change in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_linkedin",
+     "question": "How much did LinkedIn revenue increase in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_useful_lives",
+     "question": "What change did Microsoft make to the estimated useful lives of its server and network equipment, and what was the effect?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_operating_income",
+     "question": "What was Microsoft's operating income for fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Operating income 88,523 83,383 6% Net income 72,361 72,738"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_seasonality",
+     "question": "In which quarters is Microsoft's revenue generally higher?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Our revenue fluctuates quarterly and is generally higher in "
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_total_revenue",
+     "question": "What was Microsoft's total revenue for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Total revenue 211,915 198,270 168,088"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_nuance",
+     "question": "What did Microsoft pay for Nuance Communications and which segment reports it?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_tax_rate_change",
+     "question": "Why did Microsoft's effective tax rate increase in fiscal 2023 compared to fiscal 2022?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_trade_restrictions",
+     "question": "How can restrictions on international trade affect Apple?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_licensing_competition",
+     "question": "From what platforms does Microsoft face competition for its Windows PC operating system?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_segments_note",
+     "question": "Where is additional information on Microsoft's reportable segments found?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_europe",
+     "question": "What accounted for the decrease in Apple's Europe net sales in 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_products_margin",
+     "question": "Why did Apple's Products gross margin decrease during 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_search_advertising",
+     "question": "How did Microsoft's search and news advertising revenue change excluding traffic acquisition costs?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_payments",
+     "question": "How much did Apple pay out in dividends and dividend equivalents in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Payments for dividends and dividend equivalents ( 15,025 ) ("
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_pbp_revenue",
+     "question": "What was the Productivity and Business Processes goodwill figure attributed in the segment allocation table?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Productivity and Business Processes $ 27,572 $ 24,558"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_alphabet",
+     "question": "How many employees does Alphabet have?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aws",
+     "question": "What was Amazon Web Services revenue in 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aapl_2010",
+     "question": "What were Apple's net sales in fiscal year 2010?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    }
+   ]
+  },
+  {
+   "label": "primitives + semantic + breadcrumb",
+   "config_hash": "2572b6cb5279",
+   "config": {
+    "parser": "primitives",
+    "chunker": "semantic",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "breadcrumb",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-09-09",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 42922.1,
+   "query_ms": 106290.9,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.3846,
+     "precision": 0.3846,
+     "mrr": 0.3846,
+     "ndcg": 0.3846,
+     "hit_rate": 0.3846,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.3333,
+      "lexical": 0.5,
+      "semantic": 0.5714,
+      "structure": 0.875,
+      "table": 0.0
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.6667,
+     "precision": 0.2222,
+     "mrr": 0.5043,
+     "ndcg": 0.5458,
+     "hit_rate": 0.6667,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.5556,
+      "lexical": 0.8571,
+      "semantic": 0.8571,
+      "structure": 0.875,
+      "table": 0.1818
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.6923,
+     "precision": 0.1385,
+     "mrr": 0.5107,
+     "ndcg": 0.5568,
+     "hit_rate": 0.6923,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.6667,
+      "lexical": 0.8571,
+      "semantic": 0.9286,
+      "structure": 0.875,
+      "table": 0.1818
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.8205,
+     "precision": 0.0821,
+     "mrr": 0.5268,
+     "ndcg": 0.5973,
+     "hit_rate": 0.8205,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.8889,
+      "lexical": 0.8571,
+      "semantic": 1.0,
+      "structure": 0.875,
+      "table": 0.5455
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "q_aapl_employees",
+     "question": "How many full-time equivalent employees did Apple have at the end of fiscal 2023?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_employees",
+     "question": "How many people did Microsoft employ, and how were they split between the U.S. and international?",
+     "tags": [
+      "lexical",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_rd_headcount",
+     "question": "How many Microsoft employees worked in product research and development?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_copilot",
+     "question": "What does Microsoft 365 Copilot combine?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_ipad",
+     "question": "What is iPad and what models make up the iPad line?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_outsourcing_countries",
+     "question": "Where are Apple's manufacturing outsourcing partners primarily located?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 4,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_single_source",
+     "question": "What does Apple say about single-source suppliers for its components?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_competition_risk",
+     "question": "What does Microsoft identify as the consequence of intense competition across its markets?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_activision",
+     "question": "For how much did Microsoft agree to acquire Activision Blizzard?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_cloud_abuse",
+     "question": "What kinds of fraudulent activity does Microsoft say occur through its cloud services?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_americas",
+     "question": "Why did Apple's Americas net sales decrease in 2023?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item7.pdf: Americas net sales decreased 4% or $7.1 billion during 2023 "
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_gross_margin_pct",
+     "question": "What was Apple's total gross margin percentage in 2023, 2022 and 2021?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item7.pdf: Total gross margin percentage 44.1 % 43.3 % 41.8 %"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_greater_china",
+     "question": "What were Apple's Greater China net sales in 2023 and how did they change?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_expense",
+     "question": "What did Apple spend on research and development in 2023, and how much did it grow?",
+     "tags": [
+      "table"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_rd_driver",
+     "question": "What drove the growth in Apple's R&D expense in 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_total_net_sales",
+     "question": "What were Apple's total net sales for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Services 85,200 78,129 68,425 Total net sales 383,285 394,32"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_per_share",
+     "question": "What dividend per share did Apple declare in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Dividends and dividend equivalents declared per share or RSU"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_tax_rate",
+     "question": "What was Apple's effective tax rate in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Effective tax rate 14.7 % 16.2 % 13.3 %"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_unrecognized_tax",
+     "question": "What was Apple's total amount of gross unrecognized tax benefits as of September 30, 2023?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_hedge_horizon",
+     "question": "Over what maximum length of time is Apple hedging its term debt foreign currency exposure?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_buyback",
+     "question": "How much common stock did Apple repurchase in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Common stock repurchased ( 77,046 ) ( 90,186 ) ( 85,502 )"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_server_growth",
+     "question": "How much did Microsoft's server products and cloud services revenue grow, and what drove it?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_oem",
+     "question": "What happened to Microsoft's Windows OEM revenue in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_xbox",
+     "question": "How did Xbox content and services revenue change in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 3,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_linkedin",
+     "question": "How much did LinkedIn revenue increase in fiscal 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: LinkedIn revenue increased 10%."
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_useful_lives",
+     "question": "What change did Microsoft make to the estimated useful lives of its server and network equipment, and what was the effect?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_operating_income",
+     "question": "What was Microsoft's operating income for fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Operating income 88,523 83,383 6% Net income 72,361 72,738"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_seasonality",
+     "question": "In which quarters is Microsoft's revenue generally higher?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_total_revenue",
+     "question": "What was Microsoft's total revenue for fiscal 2023?",
+     "tags": [
+      "table",
+      "cross-company"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Total revenue 211,915 198,270 168,088"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_nuance",
+     "question": "What did Microsoft pay for Nuance Communications and which segment reports it?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_tax_rate_change",
+     "question": "Why did Microsoft's effective tax rate increase in fiscal 2023 compared to fiscal 2022?",
+     "tags": [
+      "semantic",
+      "structure"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_trade_restrictions",
+     "question": "How can restrictions on international trade affect Apple?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_windows_licensing_competition",
+     "question": "From what platforms does Microsoft face competition for its Windows PC operating system?",
+     "tags": [
+      "semantic",
+      "cross-company"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_segments_note",
+     "question": "Where is additional information on Microsoft's reportable segments found?",
+     "tags": [
+      "lexical",
+      "structure"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item7.pdf: Additional information on our reportable segments is contain"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_europe",
+     "question": "What accounted for the decrease in Apple's Europe net sales in 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_products_margin",
+     "question": "Why did Apple's Products gross margin decrease during 2023?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_search_advertising",
+     "question": "How did Microsoft's search and news advertising revenue change excluding traffic acquisition costs?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_aapl_dividend_payments",
+     "question": "How much did Apple pay out in dividends and dividend equivalents in fiscal 2023?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "aapl-10k-2023-item8.pdf: Payments for dividends and dividend equivalents ( 15,025 ) ("
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_msft_pbp_revenue",
+     "question": "What was the Productivity and Business Processes goodwill figure attributed in the segment allocation table?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [
+      "msft-10k-2023-item8.pdf: Productivity and Business Processes $ 27,572 $ 24,558"
+     ],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_alphabet",
+     "question": "How many employees does Alphabet have?",
+     "tags": [
+      "semantic"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aws",
+     "question": "What was Amazon Web Services revenue in 2023?",
+     "tags": [
+      "lexical"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    },
+    {
+     "id": "q_unans_aapl_2010",
+     "question": "What were Apple's net sales in fiscal year 2010?",
+     "tags": [
+      "table"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": null,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null
+    }
+   ]
+  },
+  {
+   "label": "docling parser",
+   "config_hash": "19116961c552",
+   "config": {
+    "parser": "docling",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": true,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": false,
+   "documents": 8,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "chat_model": "ollama:llama3.2",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   },
+   "ingest_ms": null,
+   "query_ms": null,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.385,
+     "precision": null,
+     "mrr": null,
+     "ndcg": null,
+     "hit_rate": 0.385,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {}
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 42,
+     "n_answerable": 39,
+     "recall": 0.718,
+     "precision": null,
+     "mrr": 0.521,
+     "ndcg": 0.611,
+     "hit_rate": 0.718,
+     "refusal_accuracy": null,
+     "mention_accuracy": null,
+     "false_refusal_rate": null,
+     "confusion_rate": null,
+     "grounding_rate": null,
+     "citation_precision": null,
+     "by_tag": {
+      "cross-company": 0.667,
+      "structure": 0.75,
+      "table": 0.455
+     }
+    }
+   },
+   "questions": []
+  }
+ ]
+}

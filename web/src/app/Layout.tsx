@@ -1,5 +1,6 @@
 import {
   BooksIcon,
+  ChartBarIcon,
   ChatCircleTextIcon,
   FlaskIcon,
   GraduationCapIcon
@@ -37,7 +38,7 @@ export function Layout() {
       <header className="glass-strong sticky top-0 z-20 border-x-0 border-t-0">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
           <nav className="flex items-center gap-1">
-            {(["chat", "library", "lab", "learn"] as const).map((v) => {
+            {(["chat", "library", "lab", "results", "learn"] as const).map((v) => {
               const Icon = NAV_ICON[v];
               return (
                 <NavLink
@@ -116,6 +117,7 @@ const NAV_ICON = {
   chat: ChatCircleTextIcon,
   library: BooksIcon,
   lab: FlaskIcon,
+  results: ChartBarIcon,
   learn: GraduationCapIcon
 } as const;
 

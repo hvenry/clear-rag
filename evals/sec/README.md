@@ -12,34 +12,41 @@ Regenerate with `python scripts/fetch_sec.py`. PDFs in `corpus/` are rendered fr
 ## Parse quality (differential test)
 
 Word recovery and reading-order similarity against the HTML-derived ground truth,
-via `clear-rag parse-quality`. Measured 2026-08-23:
+via `clear-rag parse-quality --save-results`, rendered from
+`evals/results/parse-quality.json`:
 
+<!-- results:parse-quality -->
 | file | backend | word recovery | order similarity |
 |---|---|---|---|
 | aapl-10k-2023-item1.pdf | naive | 1.000 | 1.000 |
 | aapl-10k-2023-item1.pdf | primitives | 1.000 | 1.000 |
-| aapl-10k-2023-item1.pdf | docling | 0.987 | 0.993 |
+| aapl-10k-2023-item1.pdf | docling † | 0.987 | 0.993 |
 | aapl-10k-2023-item1a.pdf | naive | 1.000 | 1.000 |
 | aapl-10k-2023-item1a.pdf | primitives | 1.000 | 1.000 |
-| aapl-10k-2023-item1a.pdf | docling | 0.991 | 0.995 |
+| aapl-10k-2023-item1a.pdf | docling † | 0.991 | 0.995 |
 | aapl-10k-2023-item7.pdf | naive | 1.000 | 0.998 |
 | aapl-10k-2023-item7.pdf | primitives | 1.000 | 1.000 |
-| aapl-10k-2023-item7.pdf | docling | 0.982 | 0.991 |
+| aapl-10k-2023-item7.pdf | docling † | 0.982 | 0.991 |
 | aapl-10k-2023-item8.pdf | naive | 1.000 | 0.999 |
 | aapl-10k-2023-item8.pdf | primitives | 0.999 | 0.999 |
-| aapl-10k-2023-item8.pdf | docling | 0.981 | 0.985 |
+| aapl-10k-2023-item8.pdf | docling † | 0.981 | 0.985 |
 | msft-10k-2023-item1.pdf | naive | 1.000 | 1.000 |
 | msft-10k-2023-item1.pdf | primitives | 0.992 | 0.995 |
-| msft-10k-2023-item1.pdf | docling | 0.993 | 0.996 |
+| msft-10k-2023-item1.pdf | docling † | 0.993 | 0.996 |
 | msft-10k-2023-item1a.pdf | naive | 1.000 | 1.000 |
 | msft-10k-2023-item1a.pdf | primitives | 0.994 | 0.997 |
-| msft-10k-2023-item1a.pdf | docling | 0.997 | 0.998 |
+| msft-10k-2023-item1a.pdf | docling † | 0.997 | 0.998 |
 | msft-10k-2023-item7.pdf | naive | 1.000 | 1.000 |
 | msft-10k-2023-item7.pdf | primitives | 0.991 | 0.991 |
-| msft-10k-2023-item7.pdf | docling | 0.992 | 0.973 |
+| msft-10k-2023-item7.pdf | docling † | 0.992 | 0.973 |
 | msft-10k-2023-item8.pdf | naive | 1.000 | 1.000 |
 | msft-10k-2023-item8.pdf | primitives | 0.989 | 0.988 |
-| msft-10k-2023-item8.pdf | docling | 0.985 | 0.978 |
+| msft-10k-2023-item8.pdf | docling † | 0.985 | 0.978 |
+
+Per-backend means: naive recovery 1.000, order 0.999; primitives recovery 0.996, order 0.996; docling recovery 0.988, order 0.989
+
+† imported from an earlier measurement rather than re-run here.
+<!-- /results:parse-quality -->
 
 An honest caveat: these PDFs are born-digital Chromium renders of linear HTML, which
 is the *best case* for flat extraction — pypdf emits the content stream in reading
@@ -57,19 +64,24 @@ could not see.
 
 ## Retrieval ablation (real models)
 
-`clear-rag ablate --suite sec` with llama3.2 + nomic-embed-text via Ollama and the
-ONNX cross-encoder reranker, measured 2026-08-23. Retrieval-side metrics over the
-42-question golden set (39 answerable):
+`clear-rag ablate --suite sec --save-results` with nomic-embed-text via Ollama and the
+ONNX cross-encoder reranker; the chat model, which only the LLM-context row uses, is
+recorded per row in `evals/results/sec.json`, and this table is rendered from it.
+Retrieval-side metrics over the 42-question golden set (39 answerable):
 
+<!-- results:sec -->
 | Configuration | recall@1 | recall@5 | MRR | nDCG@5 | table | structure | cross-company |
 |---|---|---|---|---|---|---|---|
-| naive parser | 0.564 | 0.872 | 0.697 | 0.779 | 0.636 | 0.875 | 0.889 |
-| primitives parser | 0.462 | 0.846 | 0.609 | 0.696 | 0.545 | 0.875 | 0.778 |
-| docling parser | 0.385 | 0.718 | 0.521 | 0.611 | 0.455 | 0.750 | 0.667 |
-| primitives + semantic chunking | 0.487 | 0.769 | 0.615 | 0.655 | 0.273 | 0.875 | 0.778 |
-| primitives + breadcrumb context | 0.462 | 0.846 | 0.611 | 0.696 | 0.545 | 0.875 | 0.778 |
-| primitives + LLM context | 0.436 | 0.846 | 0.594 | 0.684 | 0.545 | 0.875 | 0.778 |
-| primitives + semantic + breadcrumb | 0.487 | 0.769 | 0.615 | 0.655 | 0.273 | 0.875 | 0.778 |
+| **naive parser** | 0.538 | 0.872 | 0.678 | 0.764 | 0.636 | 0.875 | 0.889 |
+| primitives parser | 0.436 | 0.846 | 0.596 | 0.686 | 0.545 | 0.875 | 0.778 |
+| primitives + semantic chunking | 0.410 | 0.692 | 0.521 | 0.565 | 0.182 | 0.875 | 0.667 |
+| primitives + breadcrumb context | 0.436 | 0.846 | 0.596 | 0.686 | 0.545 | 0.875 | 0.778 |
+| primitives + LLM context | 0.462 | 0.846 | 0.611 | 0.698 | 0.545 | 0.875 | 0.778 |
+| primitives + semantic + breadcrumb | 0.385 | 0.692 | 0.511 | 0.557 | 0.182 | 0.875 | 0.667 |
+| docling parser † | 0.385 | 0.718 | 0.521 | 0.611 | 0.455 | 0.750 | 0.667 |
+
+† imported from an earlier measurement rather than re-run here: 2026-08-23, docling is not installed in the current environment
+<!-- /results:sec -->
 
 > marker is wired as a backend and passes its contract test (via a local
 > `llama-server` for surya's models), but its ablation row was cancelled mid-run —
@@ -96,12 +108,16 @@ ONNX cross-encoder reranker, measured 2026-08-23. Retrieval-side metrics over th
    negative retrieval value over 400 lines of geometry heuristics — the strongest
    argument this table makes for the build-from-primitives decision.
 2. **Semantic chunking is a regression for financial tables** (table recall@5
-   0.545 → 0.273, three lost questions all in Item 8 statements). Heading-bounded
+   0.545 → 0.182, four lost questions, all in Item 8 statements). Heading-bounded
    packing folds a statement's table into one large section chunk whose embedding
    and BM25 profile is diluted by surrounding prose. Fixed-size chunking accidentally
    isolates table rows better. The obvious Phase-4.5 fix — treat table blocks as
    atomic chunks instead of packing them into sections — falls straight out of the
-   block model, and now has a number waiting to judge it.
+   block model, and now has a number waiting to judge it. One more mark against it:
+   this row moved by three questions at recall@5 between the August and September
+   runs, while every fixed-size row stayed within one question of itself. Structural chunking
+   picks breakpoints from embedding drops, so small numerical differences in the
+   embedder move chunk boundaries, and boundaries move scores.
 3. **Contextual retrieval changed nothing measurable here** (± one question). The
    corpus has two companies with strongly distinct vocabulary, so chunks are rarely
    ambiguous enough for a breadcrumb or an LLM blurb to matter; the cross-company

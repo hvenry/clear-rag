@@ -1,0 +1,1311 @@
+{
+ "suite": "attribution",
+ "k": 5,
+ "corpus": {
+  "documents": 1,
+  "questions": 15,
+  "answerable": 12
+ },
+ "rows": [
+  {
+   "label": "512-token chunks",
+   "config_hash": "0e1cb753e727",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": false,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": true,
+   "documents": 1,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "chat_model": "ollama:llama3.2",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 287.5,
+   "query_ms": 15138.6,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.3333,
+     "citation_precision": 0.3333,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.3333,
+     "citation_precision": 0.3333,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.3333,
+     "citation_precision": 0.3333,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.3333,
+     "citation_precision": 0.3333,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "a_club",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What did Priya do at Signal Society?"
+    },
+    {
+     "id": "a_job",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Meridian Analytics?"
+    },
+    {
+     "id": "a_professional",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": false,
+     "confused": false,
+     "grounded": true,
+     "question": "Does Priya have professional work experience?"
+    },
+    {
+     "id": "a_intern",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "Where did Priya work as an intern?"
+    },
+    {
+     "id": "a_cobalt_work",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What did Priya build at Cobalt Systems?"
+    },
+    {
+     "id": "a_job_technique",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": false,
+     "confused": false,
+     "grounded": true,
+     "question": "Which machine learning technique did Priya use for forecasting at Meridian?"
+    },
+    {
+     "id": "a_club_model",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What kind of model did Priya fine-tune in the AI club?"
+    },
+    {
+     "id": "a_projects",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What personal projects has Priya built?"
+    },
+    {
+     "id": "a_verdict",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": false,
+     "confused": false,
+     "grounded": false,
+     "question": "What is the Verdict project?"
+    },
+    {
+     "id": "a_shelfie",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What does Shelfie do?"
+    },
+    {
+     "id": "a_education",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": null,
+     "grounded": true,
+     "question": "Where did Priya study?"
+    },
+    {
+     "id": "a_trading",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What did Priya do in the Ledger Club?"
+    },
+    {
+     "id": "a_unans_gpa",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What was Priya's GPA?"
+    },
+    {
+     "id": "a_unans_salary",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What salary did Priya earn at Meridian?"
+    },
+    {
+     "id": "a_unans_manager",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "Who was Priya's manager at Cobalt Systems?"
+    }
+   ]
+  },
+  {
+   "label": "512-token chunks",
+   "config_hash": "0e1cb753e727",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": false,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": true,
+   "documents": 1,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 778.3,
+   "query_ms": 82847.8,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 1.0,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 1.0,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 1.0,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 1.0,
+     "mrr": 1.0,
+     "ndcg": 1.0,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 1.0,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "a_club",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Signal Society?"
+    },
+    {
+     "id": "a_job",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Meridian Analytics?"
+    },
+    {
+     "id": "a_professional",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Does Priya have professional work experience?"
+    },
+    {
+     "id": "a_intern",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Where did Priya work as an intern?"
+    },
+    {
+     "id": "a_cobalt_work",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya build at Cobalt Systems?"
+    },
+    {
+     "id": "a_job_technique",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Which machine learning technique did Priya use for forecasting at Meridian?"
+    },
+    {
+     "id": "a_club_model",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What kind of model did Priya fine-tune in the AI club?"
+    },
+    {
+     "id": "a_projects",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What personal projects has Priya built?"
+    },
+    {
+     "id": "a_verdict",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What is the Verdict project?"
+    },
+    {
+     "id": "a_shelfie",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What does Shelfie do?"
+    },
+    {
+     "id": "a_education",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": null,
+     "grounded": true,
+     "question": "Where did Priya study?"
+    },
+    {
+     "id": "a_trading",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do in the Ledger Club?"
+    },
+    {
+     "id": "a_unans_gpa",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What was Priya's GPA?"
+    },
+    {
+     "id": "a_unans_salary",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What salary did Priya earn at Meridian?"
+    },
+    {
+     "id": "a_unans_manager",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "Who was Priya's manager at Cobalt Systems?"
+    }
+   ]
+  },
+  {
+   "label": "192-token chunks",
+   "config_hash": "52460bac8091",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 192,
+    "chunk_overlap": 24,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": false,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": true,
+   "documents": 1,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "chat_model": "ollama:llama3.2",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 110.7,
+   "query_ms": 14775.1,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 0.8333,
+     "precision": 0.8333,
+     "mrr": 0.8333,
+     "ndcg": 0.8333,
+     "hit_rate": 0.8333,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.5,
+     "citation_precision": 0.4583,
+     "by_tag": {
+      "attribution": 0.8333
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 0.3611,
+     "mrr": 0.9167,
+     "ndcg": 0.9276,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.5,
+     "citation_precision": 0.4583,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 0.3611,
+     "mrr": 0.9167,
+     "ndcg": 0.9276,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.5,
+     "citation_precision": 0.4583,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 0.3611,
+     "mrr": 0.9167,
+     "ndcg": 0.9276,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 0.75,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 0.5,
+     "citation_precision": 0.4583,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "a_club",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Signal Society?"
+    },
+    {
+     "id": "a_job",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Meridian Analytics?"
+    },
+    {
+     "id": "a_professional",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": false,
+     "confused": false,
+     "grounded": true,
+     "question": "Does Priya have professional work experience?"
+    },
+    {
+     "id": "a_intern",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "Where did Priya work as an intern?"
+    },
+    {
+     "id": "a_cobalt_work",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What did Priya build at Cobalt Systems?"
+    },
+    {
+     "id": "a_job_technique",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Which machine learning technique did Priya use for forecasting at Meridian?"
+    },
+    {
+     "id": "a_club_model",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What kind of model did Priya fine-tune in the AI club?"
+    },
+    {
+     "id": "a_projects",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What personal projects has Priya built?"
+    },
+    {
+     "id": "a_verdict",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": false,
+     "confused": false,
+     "grounded": true,
+     "question": "What is the Verdict project?"
+    },
+    {
+     "id": "a_shelfie",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": false,
+     "question": "What does Shelfie do?"
+    },
+    {
+     "id": "a_education",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": false,
+     "mentioned": false,
+     "confused": null,
+     "grounded": false,
+     "question": "Where did Priya study?"
+    },
+    {
+     "id": "a_trading",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do in the Ledger Club?"
+    },
+    {
+     "id": "a_unans_gpa",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What was Priya's GPA?"
+    },
+    {
+     "id": "a_unans_salary",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What salary did Priya earn at Meridian?"
+    },
+    {
+     "id": "a_unans_manager",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "Who was Priya's manager at Cobalt Systems?"
+    }
+   ]
+  },
+  {
+   "label": "192-token chunks",
+   "config_hash": "52460bac8091",
+   "config": {
+    "parser": "primitives",
+    "chunker": "recursive",
+    "chunk_size": 192,
+    "chunk_overlap": 24,
+    "context_mode": "none",
+    "retrieval": "hybrid",
+    "k_candidates": 50,
+    "fusion": "rrf",
+    "rrf_k": 60,
+    "dense_weight": 0.5,
+    "rerank": false,
+    "k_final": 10,
+    "query_transform": "none",
+    "query_variants": 3,
+    "self_correct": false,
+    "rewrite_followups": false,
+    "max_context_tokens": 4096,
+    "temperature": 0.1
+   },
+   "generated": true,
+   "documents": 1,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "chat_model": "ollama:qwen3.5:9b",
+    "embed_model": "ollama:nomic-embed-text",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L-6-v2 (onnx int8)",
+    "source": "measured"
+   },
+   "ingest_ms": 111.9,
+   "query_ms": 76968.0,
+   "at_k": {
+    "1": {
+     "k": 1,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 0.8333,
+     "precision": 0.8333,
+     "mrr": 0.8333,
+     "ndcg": 0.8333,
+     "hit_rate": 0.8333,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 0.9167,
+     "by_tag": {
+      "attribution": 0.8333
+     }
+    },
+    "3": {
+     "k": 3,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 0.3611,
+     "mrr": 0.9167,
+     "ndcg": 0.9276,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 0.9167,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "5": {
+     "k": 5,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 0.3611,
+     "mrr": 0.9167,
+     "ndcg": 0.9276,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 0.9167,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    },
+    "10": {
+     "k": 10,
+     "n_questions": 15,
+     "n_answerable": 12,
+     "recall": 1.0,
+     "precision": 0.3611,
+     "mrr": 0.9167,
+     "ndcg": 0.9276,
+     "hit_rate": 1.0,
+     "refusal_accuracy": 1.0,
+     "mention_accuracy": 1.0,
+     "false_refusal_rate": 0.0,
+     "confusion_rate": 0.0,
+     "grounding_rate": 1.0,
+     "citation_precision": 0.9167,
+     "by_tag": {
+      "attribution": 1.0
+     }
+    }
+   },
+   "questions": [
+    {
+     "id": "a_club",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Signal Society?"
+    },
+    {
+     "id": "a_job",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do at Meridian Analytics?"
+    },
+    {
+     "id": "a_professional",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Does Priya have professional work experience?"
+    },
+    {
+     "id": "a_intern",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Where did Priya work as an intern?"
+    },
+    {
+     "id": "a_cobalt_work",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya build at Cobalt Systems?"
+    },
+    {
+     "id": "a_job_technique",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "Which machine learning technique did Priya use for forecasting at Meridian?"
+    },
+    {
+     "id": "a_club_model",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What kind of model did Priya fine-tune in the AI club?"
+    },
+    {
+     "id": "a_projects",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What personal projects has Priya built?"
+    },
+    {
+     "id": "a_verdict",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What is the Verdict project?"
+    },
+    {
+     "id": "a_shelfie",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What does Shelfie do?"
+    },
+    {
+     "id": "a_education",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 2,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": null,
+     "grounded": true,
+     "question": "Where did Priya study?"
+    },
+    {
+     "id": "a_trading",
+     "tags": [
+      "attribution"
+     ],
+     "recall": 1.0,
+     "first_relevant_rank": 1,
+     "missed": [],
+     "refused": false,
+     "mentioned": true,
+     "confused": false,
+     "grounded": true,
+     "question": "What did Priya do in the Ledger Club?"
+    },
+    {
+     "id": "a_unans_gpa",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What was Priya's GPA?"
+    },
+    {
+     "id": "a_unans_salary",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "What salary did Priya earn at Meridian?"
+    },
+    {
+     "id": "a_unans_manager",
+     "tags": [
+      "unanswerable"
+     ],
+     "recall": 0.0,
+     "first_relevant_rank": null,
+     "missed": [],
+     "refused": true,
+     "mentioned": null,
+     "confused": null,
+     "grounded": null,
+     "question": "Who was Priya's manager at Cobalt Systems?"
+    }
+   ]
+  }
+ ]
+}

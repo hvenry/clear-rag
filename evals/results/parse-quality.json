@@ -1,0 +1,267 @@
+{
+ "suite": "parse-quality",
+ "rows": [
+  {
+   "file": "aapl-10k-2023-item1.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 0.9996,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item1.pdf",
+   "backend": "primitives",
+   "word_recovery": 1.0,
+   "order_similarity": 1.0,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item1.pdf",
+   "backend": "docling",
+   "word_recovery": 0.987,
+   "order_similarity": 0.993,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item1a.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 1.0,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item1a.pdf",
+   "backend": "primitives",
+   "word_recovery": 1.0,
+   "order_similarity": 1.0,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item1a.pdf",
+   "backend": "docling",
+   "word_recovery": 0.991,
+   "order_similarity": 0.995,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item7.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 0.998,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item7.pdf",
+   "backend": "primitives",
+   "word_recovery": 1.0,
+   "order_similarity": 1.0,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item7.pdf",
+   "backend": "docling",
+   "word_recovery": 0.982,
+   "order_similarity": 0.991,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item8.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 0.9986,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item8.pdf",
+   "backend": "primitives",
+   "word_recovery": 0.9986,
+   "order_similarity": 0.9985,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "aapl-10k-2023-item8.pdf",
+   "backend": "docling",
+   "word_recovery": 0.981,
+   "order_similarity": 0.985,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item1.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 1.0,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item1.pdf",
+   "backend": "primitives",
+   "word_recovery": 0.9921,
+   "order_similarity": 0.9947,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item1.pdf",
+   "backend": "docling",
+   "word_recovery": 0.993,
+   "order_similarity": 0.996,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item1a.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 1.0,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item1a.pdf",
+   "backend": "primitives",
+   "word_recovery": 0.994,
+   "order_similarity": 0.997,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item1a.pdf",
+   "backend": "docling",
+   "word_recovery": 0.997,
+   "order_similarity": 0.998,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item7.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 0.9995,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item7.pdf",
+   "backend": "primitives",
+   "word_recovery": 0.9914,
+   "order_similarity": 0.9914,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item7.pdf",
+   "backend": "docling",
+   "word_recovery": 0.992,
+   "order_similarity": 0.973,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item8.pdf",
+   "backend": "naive",
+   "word_recovery": 1.0,
+   "order_similarity": 0.9995,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item8.pdf",
+   "backend": "primitives",
+   "word_recovery": 0.9894,
+   "order_similarity": 0.9875,
+   "provenance": {
+    "measured_at": "2026-09-08",
+    "source": "measured"
+   }
+  },
+  {
+   "file": "msft-10k-2023-item8.pdf",
+   "backend": "docling",
+   "word_recovery": 0.985,
+   "order_similarity": 0.978,
+   "provenance": {
+    "measured_at": "2026-08-23",
+    "source": "imported",
+    "note": "docling is not installed in the current environment"
+   }
+  }
+ ],
+ "means": {
+  "naive": {
+   "word_recovery": 1.0,
+   "order_similarity": 0.9994000000000001
+  },
+  "primitives": {
+   "word_recovery": 0.9956875,
+   "order_similarity": 0.9961375
+  },
+  "docling": {
+   "word_recovery": 0.9884999999999999,
+   "order_similarity": 0.988625
+  }
+ }
+}

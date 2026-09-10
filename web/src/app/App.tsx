@@ -5,6 +5,7 @@ import { ChatView } from "../views/chat/ChatView";
 import { LabView } from "../views/lab/LabView";
 import { LearnView } from "../views/learn/LearnView";
 import { LibraryView } from "../views/library/LibraryView";
+import { ResultsView } from "../views/results/ResultsView";
 import { Layout } from "./Layout";
 import { NotFound } from "./NotFound";
 
@@ -17,6 +18,7 @@ import { NotFound } from "./NotFound";
  *   /library/:docId      one document's chunks (citation spans arrive in
  *                        location.state — an ephemeral highlight is not an address)
  *   /lab                 side-by-side experiment runs
+ *   /results/:suite      the committed benchmark tables, explorable
  *   /learn/:topicId      one concept page
  *
  * What deliberately does NOT live in the URL: the chat session. It belongs to the
@@ -33,6 +35,8 @@ export default function App() {
         <Route path="/library/map" element={<LibraryView />} />
         <Route path="/library/:docId" element={<LibraryView />} />
         <Route path="/lab" element={<LabView />} />
+        <Route path="/results" element={<ResultsView />} />
+        <Route path="/results/:suite" element={<ResultsView />} />
         <Route path="/learn" element={<Navigate to={`/learn/${ALL_TOPICS[0].id}`} replace />} />
         <Route path="/learn/:topicId" element={<LearnView />} />
         <Route path="*" element={<NotFound />} />

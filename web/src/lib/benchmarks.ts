@@ -1,16 +1,17 @@
 /**
- * The measurements the Learn pages quote, as chartable data.
+ * The measurements the Learn pages chart.
  *
- * Every number here also appears in a topic's prose and comes from the bundled
- * benchmarks (`clear-rag ablate`, `clear-rag eval --suite attribution`) — this
- * module only restates them so each page can show the comparison as bars instead
- * of asking the reader to hold four decimals in their head. If a measurement is
- * re-run, update the prose in topics.ts and the row here together.
+ * Every value here is read from the committed results files through `results.ts`
+ * — nothing is typed by hand, so a re-run of `clear-rag ablate --save-results` that
+ * changes a number changes these bars with it. The prose in `topics.ts` still quotes
+ * numbers; CI checks those against the same files.
  *
  * Colours reuse the identities the interface already teaches: keyword aqua,
- * vector blue, fused rankings as ink, reranking violet — never a new hue for a
- * concept that already has one.
+ * vector blue, fused rankings as ink, reranking violet, expansion in the transform
+ * stage's hue — never a new hue for a concept that already has one.
  */
+
+import { metric, modelShort, PARSE_QUALITY, RESULTS, tagRecall } from "./results";
 
 const KEYWORD = "var(--color-keyword)";
 const VECTOR = "var(--color-vector)";
@@ -18,6 +19,31 @@ const INK = "rgb(var(--foreground) / 0.8)";
 const RERANK = "var(--color-cat-7)";
 // Query expansion happens in the transform stage, so it borrows that stage's hue.
 const EXPAND = "var(--color-cat-5)";
+const CRITICAL = "var(--color-critical)";
+
+/** A missing row draws as an empty bar rather than a made-up number. */
+const v = (value: number | null | undefined) => value ?? 0;
+const r1 = (label: string) => v(metric("retrieval", label, 1, "recall"));
+const r5 = (label: string) => v(metric("retrieval", label, 5, "recall"));
+const mrr = (label: string) => v(metric("retrieval", label, 5, "mrr"));
+const para = (label: string) => v(tagRecall("retrieval", label, 5, "paraphrase"));
+const sec5 = (label: string) => v(metric("sec", label, 5, "recall"));
+const secTable = (label: string) => v(tagRecall("sec", label, 5, "table"));
+const pqOrder = (backend: string) => v(PARSE_QUALITY.means[backend]?.order_similarity);
+
+/** An attribution row by the model's short name and chunk size. */
+function attribution(
+  modelPrefix: string,
+  chunkSize: number,
+  name: "mention_accuracy" | "grounding_rate"
+) {
+  const row = RESULTS.attribution.rows.find(
+    (r) =>
+      modelShort(r.provenance.chat_model).startsWith(modelPrefix) &&
+      r.config.chunk_size === chunkSize
+  );
+  return v(row?.at_k[String(RESULTS.attribution.k)]?.[name]);
+}
 
 export interface BenchmarkRow {
   label: string;
@@ -42,8 +68,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "On a corpus full of identifiers like `hb bootstrap` and `422`, exact-term matching beats semantic matching on its own.",
       domain: 1,
       rows: [
-        { label: "Keyword (BM25)", value: 0.766, color: KEYWORD },
-        { label: "Vector", value: 0.573, color: VECTOR }
+        { label: "Keyword (BM25)", value: r1("keyword only (BM25)"), color: KEYWORD },
+        { label: "Vector", value: r1("dense only"), color: VECTOR }
       ]
     }
   ],
@@ -53,8 +79,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Vector search loses to keyword search on this identifier-heavy corpus — and wins on paraphrased questions, which is why the pipeline runs both.",
       domain: 1,
       rows: [
-        { label: "Vector", value: 0.573, color: VECTOR },
-        { label: "Keyword (BM25)", value: 0.766, color: KEYWORD }
+        { label: "Vector", value: r1("dense only"), color: VECTOR },
+        { label: "Keyword (BM25)", value: r1("keyword only (BM25)"), color: KEYWORD }
       ]
     }
   ],
@@ -64,9 +90,9 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Every distractor question either method alone got wrong is resolved by fusing their rankings.",
       domain: 1,
       rows: [
-        { label: "Vector alone", value: 0.871, color: VECTOR },
-        { label: "Keyword alone", value: 0.903, color: KEYWORD },
-        { label: "Hybrid (RRF)", value: 0.968, color: INK }
+        { label: "Vector alone", value: r5("dense only"), color: VECTOR },
+        { label: "Keyword alone", value: r5("keyword only (BM25)"), color: KEYWORD },
+        { label: "Hybrid (RRF)", value: r5("hybrid + RRF"), color: INK }
       ]
     }
   ],
@@ -76,8 +102,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Fusion already put the right chunk somewhere in the top five; the reranker puts it first.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 0.734, color: INK },
-        { label: "+ Rerank", value: 0.927, color: RERANK }
+        { label: "Fused ranking", value: r1("hybrid + RRF"), color: INK },
+        { label: "+ Rerank", value: r1("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     },
     {
@@ -85,8 +111,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "The largest measured effect of any single technique in this pipeline.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 0.841, color: INK },
-        { label: "+ Rerank", value: 0.965, color: RERANK }
+        { label: "Fused ranking", value: mrr("hybrid + RRF"), color: INK },
+        { label: "+ Rerank", value: mrr("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     }
   ],
@@ -96,9 +122,9 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Nine questions worded to share almost no vocabulary with their answers. Expansion recovers both that fusion missed outright — and so does the reranker, without it.",
       domain: 1,
       rows: [
-        { label: "Hybrid (RRF)", value: 0.778, color: INK },
-        { label: "+ Multi-query", value: 1.0, color: EXPAND },
-        { label: "+ Rerank, no expansion", value: 1.0, color: RERANK }
+        { label: "Hybrid (RRF)", value: para("hybrid + RRF"), color: INK },
+        { label: "+ Multi-query", value: para("hybrid + RRF + multi-query"), color: EXPAND },
+        { label: "+ Rerank, no expansion", value: para("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     },
     {
@@ -106,9 +132,9 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Extra phrasings pull in near-misses that rank fusion promotes over the exact hit; the reranker pays no such price.",
       domain: 1,
       rows: [
-        { label: "Hybrid (RRF)", value: 0.734, color: INK },
-        { label: "+ Multi-query", value: 0.653, color: EXPAND },
-        { label: "+ Rerank, no expansion", value: 0.927, color: RERANK }
+        { label: "Hybrid (RRF)", value: r1("hybrid + RRF"), color: INK },
+        { label: "+ Multi-query", value: r1("hybrid + RRF + multi-query"), color: EXPAND },
+        { label: "+ Rerank, no expansion", value: r1("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     }
   ],
@@ -118,17 +144,17 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "The interesting movement happens at the top of the ranking.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 0.734, color: INK },
-        { label: "+ Rerank", value: 0.927, color: RERANK }
+        { label: "Fused ranking", value: r1("hybrid + RRF"), color: INK },
+        { label: "+ Rerank", value: r1("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     },
     {
-      title: "recall@5 — saturated, so it stops discriminating",
-      note: "Every configuration hits 1.000 at k=5 on this corpus. A column that cannot distinguish its rows looks like evidence and isn't.",
+      title: "recall@5 — nearly saturated, so it stops discriminating",
+      note: "Every hybrid configuration sits at or near 1.000 at k=5 on this corpus. A column that cannot distinguish its rows looks like evidence and isn't.",
       domain: 1,
       rows: [
-        { label: "Fused ranking", value: 1.0, color: INK },
-        { label: "+ Rerank", value: 1.0, color: RERANK }
+        { label: "Fused ranking", value: r5("hybrid + RRF"), color: INK },
+        { label: "+ Rerank", value: r5("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     }
   ],
@@ -138,10 +164,10 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "The 3B model mentions the right content while citing the wrong support — invisible to recall@k, decisive in practice. The 9B model scores 100/100.",
       domain: 1,
       rows: [
-        { label: "3B · mentions", value: 0.92, color: INK },
-        { label: "3B · grounded", value: 0.42, color: "var(--color-critical)" },
-        { label: "9B · mentions", value: 1.0, color: INK },
-        { label: "9B · grounded", value: 1.0, color: INK }
+        { label: "3B · mentions", value: attribution("llama3.2", 512, "mention_accuracy"), color: INK },
+        { label: "3B · grounded", value: attribution("llama3.2", 512, "grounding_rate"), color: CRITICAL },
+        { label: "9B · mentions", value: attribution("qwen3.5", 512, "mention_accuracy"), color: INK },
+        { label: "9B · grounded", value: attribution("qwen3.5", 512, "grounding_rate"), color: INK }
       ]
     }
   ],
@@ -151,12 +177,12 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Born-digital single-column renders are flat extraction's best case, and docling's ML table reconstruction loses labels outright. Structure earns its keep downstream, not here.",
       domain: 1,
       rows: [
-        { label: "Naive (pypdf)", value: 0.872, color: INK },
-        { label: "Primitives", value: 0.846, color: INK },
+        { label: "Naive (pypdf)", value: sec5("naive parser"), color: INK },
+        { label: "Primitives", value: sec5("primitives parser"), color: INK },
         {
           label: "docling",
-          value: 0.718,
-          color: "var(--color-critical)",
+          value: sec5("docling parser"),
+          color: CRITICAL,
           hint: "2 labelled quotes lost to its parse; most misses are financial-table questions."
         }
       ]
@@ -166,9 +192,9 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "The differential parse test. Fixing the two bugs it caught took the primitives parser from 0.78 to 0.99 on the worst files.",
       domain: 1,
       rows: [
-        { label: "Naive (pypdf)", value: 1.0, color: INK },
-        { label: "Primitives", value: 0.996, color: INK },
-        { label: "docling", value: 0.989, color: INK }
+        { label: "Naive (pypdf)", value: pqOrder("naive"), color: INK },
+        { label: "Primitives", value: pqOrder("primitives"), color: INK },
+        { label: "docling", value: pqOrder("docling"), color: INK }
       ]
     }
   ],
@@ -178,8 +204,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Heading-bounded packing folds financial tables into large mixed chunks that rank worse. A negative result the knob shipped with, pointing at its own fix: atomic table chunks.",
       domain: 1,
       rows: [
-        { label: "Fixed-size (512)", value: 0.545, color: INK },
-        { label: "Structural", value: 0.273, color: "var(--color-critical)" }
+        { label: "Fixed-size (512)", value: secTable("primitives parser"), color: INK },
+        { label: "Structural", value: secTable("primitives + semantic chunking"), color: CRITICAL }
       ]
     }
   ],
@@ -189,9 +215,9 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "Three identical bars, honestly drawn: two companies with distinct vocabulary give context nothing to disambiguate. The technique's motivating case is many near-identical documents.",
       domain: 1,
       rows: [
-        { label: "No context", value: 0.846, color: INK },
-        { label: "Breadcrumb", value: 0.846, color: INK },
-        { label: "LLM-written", value: 0.846, color: INK }
+        { label: "No context", value: sec5("primitives parser"), color: INK },
+        { label: "Breadcrumb", value: sec5("primitives + breadcrumb context"), color: INK },
+        { label: "LLM-written", value: sec5("primitives + LLM context"), color: INK }
       ]
     }
   ],
@@ -201,10 +227,10 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       note: "One knob at a time: each bar differs from its neighbour by a single setting, so the gaps are each technique's measured worth.",
       domain: 1,
       rows: [
-        { label: "Vector only", value: 0.573, color: VECTOR },
-        { label: "Keyword only", value: 0.766, color: KEYWORD },
-        { label: "Hybrid (RRF)", value: 0.734, color: INK },
-        { label: "Hybrid + rerank", value: 0.927, color: RERANK }
+        { label: "Vector only", value: r1("dense only"), color: VECTOR },
+        { label: "Keyword only", value: r1("keyword only (BM25)"), color: KEYWORD },
+        { label: "Hybrid (RRF)", value: r1("hybrid + RRF"), color: INK },
+        { label: "Hybrid + rerank", value: r1("hybrid + RRF + cross-encoder rerank"), color: RERANK }
       ]
     }
   ]

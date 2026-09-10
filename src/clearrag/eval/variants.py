@@ -88,6 +88,17 @@ def standard_variants() -> list[tuple[str, PipelineConfig]]:
     ]
 
 
+def attribution_variants() -> list[tuple[str, PipelineConfig]]:
+    """The attribution suite varies chunk size only. The other variable, the chat
+    model, is a process setting: run the sweep once per model and the results file
+    keeps one row per (chunk size, model), because generated answers depend on the
+    model and the row's provenance says which one wrote them."""
+    return [
+        ("512-token chunks", BASE),
+        ("192-token chunks", BASE.model_copy(update={"chunk_size": 192, "chunk_overlap": 24})),
+    ]
+
+
 #: The strongest retrieval configuration the standard sweep found; the sec sweep holds
 #: it fixed and varies the Phase 4 knobs one at a time.
 _SEC_BASE = BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf", "rerank": True})

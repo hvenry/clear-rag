@@ -1,6 +1,6 @@
 /**
  * The Lab's control metadata: every pipeline knob, what it does in plain language,
- * and — critically — whether it is actually implemented.
+ * and, critically, whether it is actually implemented.
  *
  * The config model advertises two settings whose machinery does not exist yet (HyDE
  * and self-correction). The Lab shows them disabled with an honest note rather than
@@ -51,7 +51,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         label: "Mode",
         type: "segmented",
         implemented: true,
-        hint: "Which searches run. Hybrid runs both and merges them — turn one off and re-ask the same question to see what each contributes alone.",
+        hint: "Which searches run. Hybrid runs both and merges them. Turn one off and re-ask the same question to see what each contributes alone.",
         options: [
           { value: "hybrid", label: "hybrid" },
           { value: "dense", label: "vector" },
@@ -67,7 +67,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         max: 500,
         step: 1,
         implemented: true,
-        hint: "How many chunks each search returns before merging. More candidates give fusion more to work with at almost no cost — this is not the number the model sees."
+        hint: "How many chunks each search returns before merging. More candidates give fusion more to work with at almost no cost. This is not the number the model sees."
       },
       {
         key: "fusion",
@@ -115,7 +115,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         max: 50,
         step: 1,
         implemented: true,
-        hint: "How many top chunks are packed into the prompt. More context can help — or bury the answer in noise a small model cannot attribute correctly."
+        hint: "How many top chunks are packed into the prompt. More context can help, or it can bury the answer in noise a small model cannot attribute correctly."
       },
       {
         key: "rerank",
@@ -123,7 +123,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         label: "Cross-encoder rerank",
         type: "toggle",
         implemented: true,
-        hint: `A 23 MB cross-encoder (downloaded on first use) reads question and chunk together and re-scores the shortlist — the biggest measured quality jump in the pipeline: recall@1 ${m("retrieval", "hybrid + RRF", 1, "recall")} → ${m("retrieval", "hybrid + RRF + cross-encoder rerank", 1, "recall")} on the bundled benchmark, for a few hundred milliseconds per query.`
+        hint: `A 23 MB cross-encoder (downloaded on first use) reads question and chunk together and re-scores the shortlist. It is the biggest measured quality jump in the pipeline: recall@1 ${m("retrieval", "hybrid + RRF", 1, "recall")} → ${m("retrieval", "hybrid + RRF + cross-encoder rerank", 1, "recall")} on the bundled benchmark, for a few hundred milliseconds per query.`
       }
     ]
   },
@@ -139,7 +139,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         type: "segmented",
         implemented: true,
         reindexes: true,
-        hint: "Which backend turns PDF geometry into text and structure. naive is flat pypdf extraction; primitives is the hand-rolled layout parser (columns, headings, tables); docling and marker are optional ML extras — if one isn't installed, ingestion falls back to naive and the trace says so. Re-indexing cannot re-parse: a parser change applies to files uploaded after it.",
+        hint: "Which backend turns PDF geometry into text and structure. naive is flat pypdf extraction; primitives is the hand-rolled layout parser (columns, headings, tables); docling and marker are optional ML extras. If one isn't installed, ingestion falls back to naive and the trace says so. Re-indexing cannot re-parse: a parser change applies to files uploaded after it.",
         options: [
           { value: "naive", label: "naive" },
           { value: "primitives", label: "primitives" },
@@ -154,7 +154,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         type: "segmented",
         implemented: true,
         reindexes: true,
-        hint: `recursive cuts at natural boundaries within a fixed token budget. semantic cuts along parsed structure — whole heading-bounded sections, with embedding-drop splits inside over-long ones — and uses no overlap. Measured honestly: on the SEC benchmark semantic *lost* on financial-table questions (recall ${t("sec", "primitives parser", 5, "table")} → ${t("sec", "primitives + semantic chunking", 5, "table")}), because packing folds tables into large mixed chunks.`,
+        hint: `recursive cuts at natural boundaries within a fixed token budget. semantic cuts along parsed structure (whole heading-bounded sections, with embedding-drop splits inside over-long ones) and uses no overlap. Measured honestly: on the SEC benchmark semantic *lost* on financial-table questions (recall ${t("sec", "primitives parser", 5, "table")} → ${t("sec", "primitives + semantic chunking", 5, "table")}), because packing folds tables into large mixed chunks.`,
         options: [
           { value: "recursive", label: "recursive" },
           { value: "semantic", label: "semantic" }
@@ -170,7 +170,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         step: 64,
         implemented: true,
         reindexes: true,
-        hint: "The unit of retrieval. Large chunks carry more context but blur together unrelated sections — a one-page resume at 512 tokens becomes three chunks that each mix several jobs. Small chunks are precise but can orphan their context."
+        hint: "The unit of retrieval. Large chunks carry more context but blur together unrelated sections: a one-page resume at 512 tokens becomes three chunks that each mix several jobs. Small chunks are precise but can orphan their context."
       },
       {
         key: "chunk_overlap",
@@ -183,7 +183,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         implemented: true,
         reindexes: true,
         visibleWhen: (d) => d.chunker !== "semantic",
-        hint: "Text duplicated between neighbouring chunks so an answer sitting on a boundary is still retrievable. Insurance, not free: 50% overlap doubles the index. Around 10–15% is typical. (Semantic chunking uses none — its cuts land at topic boundaries, which is what overlap insures against.)"
+        hint: "Text duplicated between neighbouring chunks so an answer sitting on a boundary is still retrievable. Insurance, not free: 50% overlap doubles the index. Around 10–15% is typical. (Semantic chunking uses none, since its cuts land at topic boundaries, which is what overlap insures against.)"
       },
       {
         key: "context_mode",
@@ -192,7 +192,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         type: "segmented",
         implemented: true,
         reindexes: true,
-        hint: "Prepend situating context to each chunk before it is embedded and keyword-indexed — the stored text, spans and citations are untouched. breadcrumb derives it from parse structure for free; llm has a model write it (Anthropic's technique), one generation per chunk at index time, cached by content. Measured on the SEC benchmark: no retrieval difference between any mode — the corpus's documents were never ambiguous enough to need it.",
+        hint: "Prepend situating context to each chunk before it is embedded and keyword-indexed. The stored text, spans and citations are untouched. breadcrumb derives it from parse structure for free; llm has a model write it (Anthropic's technique), one generation per chunk at index time, cached by content. Measured on the SEC benchmark: no retrieval difference between any mode, because the corpus's documents were never ambiguous enough to need it.",
         options: [
           { value: "none", label: "none" },
           { value: "breadcrumb", label: "breadcrumb" },
@@ -220,7 +220,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         label: "Query expansion",
         type: "segmented",
         implemented: true,
-        hint: `multi has the chat model write alternative phrasings of the question, searches every one of them, and fuses each search's rankings across the phrasings before the two searches are fused. Built for questions whose wording diverges from the document's; it costs one LLM call per question. Measured on the bundled benchmark: on hybrid + RRF it lifts paraphrase recall@5 from ${t("retrieval", "hybrid + RRF", 5, "paraphrase")} to ${t("retrieval", "hybrid + RRF + multi-query", 5, "paraphrase")} and lowers recall@1 from ${m("retrieval", "hybrid + RRF", 1, "recall")} to ${m("retrieval", "hybrid + RRF + multi-query", 1, "recall")} — a recall lever with a precision bill, about 3.7 s a question with a 9B model — and stacked on the reranker it changed nothing here. HyDE (search with a hypothetical answer) is not built yet.`,
+        hint: `multi has the chat model write alternative phrasings of the question, searches every one of them, and fuses each search's rankings across the phrasings before the two searches are fused. Built for questions whose wording diverges from the document's; it costs one LLM call per question. Measured on the bundled benchmark: on hybrid + RRF it lifts paraphrase recall@5 from ${t("retrieval", "hybrid + RRF", 5, "paraphrase")} to ${t("retrieval", "hybrid + RRF + multi-query", 5, "paraphrase")} and lowers recall@1 from ${m("retrieval", "hybrid + RRF", 1, "recall")} to ${m("retrieval", "hybrid + RRF + multi-query", 1, "recall")}. That is a recall lever with a precision bill, about 3.7 s a question with a 9B model. Stacked on the reranker it changed nothing here. HyDE (search with a hypothetical answer) is not built yet.`,
         options: [
           { value: "none", label: "none" },
           { value: "multi", label: "multi" },
@@ -272,7 +272,7 @@ export const KNOB_GROUPS: KnobGroup[] = [
         max: 2,
         step: 0.1,
         implemented: true,
-        hint: "Sampling randomness. Grounded answering wants it low — creativity in a RAG answer is another word for drifting from the sources."
+        hint: "Sampling randomness. Grounded answering wants it low. Creativity in a RAG answer is another word for drifting from the sources."
       }
     ]
   }

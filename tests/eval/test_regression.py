@@ -86,7 +86,7 @@ def test_no_retrieval_regression(baseline, actual, k: str, metric: str):
 
 
 def test_scores_are_deterministic(actual):
-    """Same corpus, same config, same code — the harness must not be flaky."""
+    """Same corpus, same config, same code; the harness must not be flaky."""
     import asyncio
 
     config = PipelineConfig(k_candidates=50, k_final=10, rewrite_followups=False)

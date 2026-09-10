@@ -35,7 +35,7 @@ import { UploadButton } from "./UploadButton";
  *
  * Navigation is the URL: `/library` is the list, `/library/:docId` a document,
  * `/library/map` the embedding map. A citation click lands here carrying its
- * highlight span in location.state — the span is ephemeral reading position, not
+ * highlight span in location.state, because the span is ephemeral reading position, not
  * part of the document's address.
  */
 export function LibraryView() {
@@ -61,7 +61,7 @@ export function LibraryView() {
   const highlightSpan = (location.state as { span?: [number, number] } | null)?.span ?? null;
 
   useEffect(() => {
-    // A URL naming a document that no longer exists falls back to the list —
+    // A URL naming a document that no longer exists falls back to the list;
     // never auto-select a replacement.
     if (active && !isLoading && !documents.some((d) => d.id === active)) {
       navigate("/library", { replace: true });
@@ -81,7 +81,7 @@ export function LibraryView() {
   if (!isLoading && documents.length === 0 && pendingFiles.length === 0) {
     return (
       <div className="mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-6">
-        <EmptyState lead="Nothing indexed yet. Add a PDF, DOCX, Markdown, CSV or text file and it will appear here, split into the chunks retrieval actually searches over — or start from a bundled sample set.">
+        <EmptyState lead="Nothing indexed yet. Add a PDF, DOCX, Markdown, CSV or text file and it will appear here, split into the chunks retrieval actually searches over, or start from a bundled sample set.">
           <UploadButton onUpload={upload} />
           <SampleSets
             showClear={false}
@@ -100,12 +100,12 @@ export function LibraryView() {
 
   return (
     <div className="flex h-full min-h-0">
-      {/* Collapsed: a slim strip holding the expand control — desktop only; on a
+      {/* Collapsed: a slim strip holding the expand control, desktop only; on a
           phone the list is a full page and collapsing it would strand the user. */}
       {railCollapsed ? (
         <aside className="hidden shrink-0 flex-col items-center gap-3 border-r border-line px-1.5 pt-2 lg:flex">
           <IconButton label="Expand library" onClick={() => setRailCollapsed(false)}>
-            <SidebarSimpleIcon size={13} />
+            <SidebarSimpleIcon size={16} />
           </IconButton>
           <span
             className="menu-label"
@@ -126,15 +126,15 @@ export function LibraryView() {
         ].join(" ")}
       >
         <div className="hidden shrink-0 items-center justify-between gap-2 border-b border-line px-3 py-2 lg:flex">
-          <span className="font-display text-[10px] tracking-[0.18em] text-subtle uppercase">
+          <span className="font-display text-meta tracking-[0.18em] text-subtle uppercase">
             Library
           </span>
           <IconButton label="Collapse library" onClick={() => setRailCollapsed(true)}>
-            <SidebarSimpleIcon size={12} />
+            <SidebarSimpleIcon size={14} />
           </IconButton>
         </div>
         {/* Stacked rows instead of one crowded line: the mode switch gets the full
-            rail width, and upload gets its own row — nothing wraps. */}
+            rail width, and upload gets its own row, so nothing wraps. */}
         <div className="shrink-0 space-y-2 px-3 pt-3 pb-2">
           <Segmented
             variant="display"
@@ -166,7 +166,7 @@ export function LibraryView() {
                     onClick={() => navigate(`/library/${doc.id}`)}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
-                    <TypeIcon size={16} className="shrink-0 text-subtle" aria-hidden />
+                    <TypeIcon size={18} className="shrink-0 text-subtle" aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <span
@@ -174,9 +174,9 @@ export function LibraryView() {
                           style={{ background: catColor(slots.get(doc.id) ?? -1) }}
                           aria-hidden
                         />
-                        <span className="truncate text-[12px]">{doc.filename}</span>
+                        <span className="truncate text-body">{doc.filename}</span>
                       </span>
-                      <span className="tabular block font-mono text-[10px] text-subtle">
+                      <span className="tabular block font-mono text-meta text-subtle">
                         {doc.n_chunks} chunks · {doc.chars.toLocaleString()} chars
                       </span>
                     </span>
@@ -190,7 +190,7 @@ export function LibraryView() {
                     aria-label={`Delete ${doc.filename}`}
                     className="hint hint-right hint-end shrink-0 border border-line p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:border-critical/70 hover:text-critical focus-visible:opacity-100"
                   >
-                    <TrashIcon size={12} />
+                    <TrashIcon size={14} />
                   </button>
                 </div>
               </li>
@@ -222,7 +222,7 @@ export function LibraryView() {
           />
         ) : (
           <div className="mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-6">
-            <EmptyState lead="Select a document to inspect its chunks — boundaries, structure and overlap are drawn over the source text." />
+            <EmptyState lead="Select a document to inspect its chunks: boundaries, structure and overlap are drawn over the source text." />
           </div>
         )}
       </div>
@@ -232,7 +232,7 @@ export function LibraryView() {
 
 /**
  * A document that is about to exist: one file of an in-flight sample import.
- * Same row anatomy as a real document, dimmed, with its own status line — the
+ * Same row anatomy as a real document, dimmed, with its own status line; the
  * active file gets a loader and a ticking per-file timer.
  */
 function PendingRow({ file, startedAt }: { file: ImportFileState; startedAt: number }) {
@@ -242,10 +242,10 @@ function PendingRow({ file, startedAt }: { file: ImportFileState; startedAt: num
   return (
     <li className="border-l-2 border-l-transparent px-3 py-2 opacity-60">
       <span className="flex items-center gap-2">
-        <TypeIcon size={16} className="shrink-0 text-subtle" aria-hidden />
+        <TypeIcon size={18} className="shrink-0 text-subtle" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[12px]">{file.filename}</span>
-          <span className="tabular mt-0.5 block font-mono text-[10px] text-subtle">
+          <span className="block truncate text-body">{file.filename}</span>
+          <span className="tabular mt-0.5 block font-mono text-meta text-subtle">
             {indexing ? (
               <span className="flex items-center gap-2">
                 <Loader />

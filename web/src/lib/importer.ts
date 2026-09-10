@@ -4,7 +4,7 @@
  * An import outlives any one component: it usually starts from the library's empty
  * state, and the moment the first file is indexed that view unmounts in favour of the
  * document list. State owned by the unmounting component loses the progress bar while
- * the stream keeps running — so the run lives here, and any view subscribes.
+ * the stream keeps running, so the run lives here, and any view subscribes.
  */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -22,11 +22,11 @@ export interface ImportRun {
   setId: string;
   files: ImportFileState[];
   startedAt: number;
-  /** When the current file began embedding — the per-file timer's origin. */
+  /** When the current file began embedding: the per-file timer's origin. */
   fileStartedAt: number;
   finishedAt: number | null;
   summary: string | null;
-  /** A non-fatal degradation (e.g. parser fallback) — shown alongside the summary. */
+  /** A non-fatal degradation (e.g. parser fallback), shown alongside the summary. */
   warning: string | null;
 }
 
@@ -136,7 +136,7 @@ export async function startImport(setId: string, onCorpusChange: () => void): Pr
     const aborted = error instanceof DOMException && error.name === "AbortError";
     patch((previous) => ({
       ...previous,
-      summary: aborted ? "Stopped — remaining files were not indexed." : String(error)
+      summary: aborted ? "Stopped. Remaining files were not indexed." : String(error)
     }));
   } finally {
     controller = null;
@@ -147,7 +147,7 @@ export async function startImport(setId: string, onCorpusChange: () => void): Pr
   }
 }
 
-/** Seconds since `from`, ticking once a second — frozen once `until` is set. */
+/** Seconds since `from`, ticking once a second, frozen once `until` is set. */
 export function useElapsedSeconds(from: number, until: number | null): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

@@ -14,7 +14,7 @@ import { IconButton } from "../../components/IconButton";
  * better than any score table.
  *
  * Colour policy: each document takes a categorical slot, in filename order, so the
- * clusters read at a glance — but identity never rides on hue alone. The legend
+ * clusters read at a glance, but identity never rides on hue alone. The legend
  * carries the labels, hovering a document isolates its chunks, and the tooltip
  * names every point (a scatter can only guarantee CVD-safe pairs for three hues,
  * so the interaction is the mechanism and the colour is the reinforcement).
@@ -89,7 +89,7 @@ export function EmbeddingMap({
     return [...byDoc.entries()].sort((a, b) => a[1].filename.localeCompare(b[1].filename));
   }, [data]);
 
-  /** Colour follows the document, in filename order — stable across renders. */
+  /** Colour follows the document, in filename order, stable across renders. */
   const slots = useMemo(() => assignSlots(docs.map(([id]) => id)), [docs]);
   const docColor = (docId: string) => catColor(slots.get(docId) ?? -1);
 
@@ -113,7 +113,7 @@ export function EmbeddingMap({
   if (error) {
     return (
       <div className="p-6">
-        <p className="text-[12px] text-muted">{error}</p>
+        <p className="text-body text-muted">{error}</p>
       </div>
     );
   }
@@ -130,16 +130,16 @@ export function EmbeddingMap({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-2.5">
-        <p className="text-[11px] leading-relaxed text-subtle">
+        <p className="text-ui leading-relaxed text-subtle">
           Every chunk, projected from embedding space onto its two most informative
-          directions (PCA — this picture preserves {Math.round((v1 + v2) * 100)}% of the
+          directions (PCA; this picture preserves {Math.round((v1 + v2) * 100)}% of the
           corpus variance). Nearby dots mean similar text. Ask a question to drop it into
-          the plane and ring its five nearest neighbours — the chunks vector search would
+          the plane and ring its five nearest neighbours, the chunks vector search would
           return.
         </p>
         {onClose ? (
           <IconButton label="Close map" onClick={onClose} className="shrink-0 lg:hidden">
-            <XIcon size={12} />
+            <XIcon size={14} />
           </IconButton>
         ) : null}
       </div>
@@ -153,14 +153,14 @@ export function EmbeddingMap({
               if (e.key === "Enter") void load(query);
             }}
             placeholder="Drop a question into the space…"
-            className="h-[34px] flex-1 border border-line bg-transparent px-3 text-[12px] outline-none transition-colors focus:border-foreground/45"
+            className="h-[34px] flex-1 border border-line bg-transparent px-3 text-body outline-none transition-colors focus:border-foreground/45"
           />
           <button
             onClick={() => void load(query)}
             disabled={busy}
-            className="flex h-[34px] items-center gap-1.5 border border-line px-3 font-display text-[10px] tracking-[0.16em] uppercase transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background disabled:opacity-40"
+            className="flex h-[34px] items-center gap-1.5 border border-line px-3 font-display text-meta tracking-[0.16em] uppercase transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background disabled:opacity-40"
           >
-            <CrosshairIcon size={12} />
+            <CrosshairIcon size={14} />
             {busy ? "…" : "Locate"}
           </button>
         </div>
@@ -212,7 +212,7 @@ export function EmbeddingMap({
               x={SIZE / 2}
               y={SIZE - 8}
               textAnchor="middle"
-              className="fill-current font-mono text-[9px] opacity-35"
+              className="fill-current font-mono text-label opacity-35"
             >
               PC1 · {Math.round(v1 * 100)}% of variance
             </text>
@@ -221,7 +221,7 @@ export function EmbeddingMap({
               y={SIZE / 2}
               textAnchor="middle"
               transform={`rotate(-90 10 ${SIZE / 2})`}
-              className="fill-current font-mono text-[9px] opacity-35"
+              className="fill-current font-mono text-label opacity-35"
             >
               PC2 · {Math.round(v2 * 100)}% of variance
             </text>
@@ -313,14 +313,14 @@ export function EmbeddingMap({
                 top: cursor.y + 14
               }}
             >
-              <div className="flex items-center gap-1.5 text-[11px]">
+              <div className="flex items-center gap-1.5 text-ui">
                 <span
                   className="h-2 w-2 shrink-0"
                   style={{ background: docColor(hoveredPoint.doc_id) }}
                 />
                 <span className="truncate">{hoveredPoint.filename}</span>
               </div>
-              <div className="tabular mt-0.5 font-mono text-[9px] text-subtle">
+              <div className="tabular mt-0.5 font-mono text-label text-subtle">
                 {/* Ordinals are 0-based internally; displayed chunk numbers are 1-based. */}
                 chunk {hoveredPoint.ordinal + 1}
                 {neighbourRank.has(hoveredPoint.chunk_id)
@@ -334,7 +334,7 @@ export function EmbeddingMap({
 
         <aside className="max-h-56 w-full shrink-0 overflow-y-auto border-t border-line lg:max-h-none lg:w-60 lg:border-t-0 lg:border-l">
           <div className="flex items-center gap-1.5 px-3 pt-3 pb-1.5 menu-label">
-            <FilesIcon size={11} />
+            <FilesIcon size={14} />
             Documents
           </div>
           <ul className="pb-2">
@@ -354,8 +354,8 @@ export function EmbeddingMap({
                     style={{ background: docColor(docId) }}
                     aria-hidden
                   />
-                  <span className="min-w-0 flex-1 truncate text-[11px]">{meta.filename}</span>
-                  <span className="tabular shrink-0 font-mono text-[9px] text-subtle">
+                  <span className="min-w-0 flex-1 truncate text-ui">{meta.filename}</span>
+                  <span className="tabular shrink-0 font-mono text-label text-subtle">
                     {meta.count}
                   </span>
                 </button>
@@ -366,7 +366,7 @@ export function EmbeddingMap({
           {data.query ? (
             <div className="border-t border-line px-3 py-2.5">
               <div className="flex items-center gap-1.5 pb-1.5 menu-label">
-                <CrosshairIcon size={11} />
+                <CrosshairIcon size={14} />
                 Nearest to your question
               </div>
               <ol className="space-y-1">
@@ -381,7 +381,7 @@ export function EmbeddingMap({
                         onClick={() => onOpenDoc(point.doc_id)}
                         className="flex w-full items-center gap-2 text-left transition-colors hover:bg-foreground/4"
                       >
-                        <span className="tabular w-4 shrink-0 font-mono text-[9px] text-subtle">
+                        <span className="tabular w-4 shrink-0 font-mono text-label text-subtle">
                           #{i + 1}
                         </span>
                         <span
@@ -389,10 +389,10 @@ export function EmbeddingMap({
                           style={{ background: docColor(point.doc_id) }}
                           aria-hidden
                         />
-                        <span className="min-w-0 flex-1 truncate text-[10px]">
+                        <span className="min-w-0 flex-1 truncate text-meta">
                           {point.filename}
                         </span>
-                        <span className="tabular shrink-0 font-mono text-[9px] text-subtle">
+                        <span className="tabular shrink-0 font-mono text-label text-subtle">
                           c{point.ordinal + 1}
                         </span>
                       </button>
@@ -400,7 +400,7 @@ export function EmbeddingMap({
                   );
                 })}
               </ol>
-              <div className="mt-2 flex items-center gap-1.5 border-t border-line pt-2 text-[10px] text-subtle">
+              <div className="mt-2 flex items-center gap-1.5 border-t border-line pt-2 text-meta text-subtle">
                 <span
                   className="inline-block h-2 w-2 rotate-45"
                   style={{ background: "var(--color-vector)" }}

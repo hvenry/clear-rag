@@ -28,7 +28,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
  * Parse an SSE body into events as they arrive.
  *
  * Hand-rolled rather than `EventSource`, because the browser's built-in only issues
- * GET requests — chat needs a body, and the sample import is a POST.
+ * GET requests, but chat needs a body, and the sample import is a POST.
  */
 async function* sseEvents<T>(response: Response): AsyncGenerator<T> {
   const reader = response.body!.getReader();

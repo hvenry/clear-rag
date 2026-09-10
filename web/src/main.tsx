@@ -9,7 +9,7 @@ import "./global.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // The backend is local; failures mean it's down, not flaky — retrying just
+      // The backend is local; failures mean it's down, not flaky, so retrying just
       // delays the health banner that explains what's wrong.
       retry: false,
       refetchOnWindowFocus: false

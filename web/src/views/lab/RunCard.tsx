@@ -1,4 +1,5 @@
 import { useExplainStage, useOpenCitation } from "../../app/navigation";
+import { Chip } from "../../components/Chip";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { AnswerText } from "../../components/retrieval/Citations";
 import { SourceLegend } from "../../components/retrieval/Legend";
@@ -34,27 +35,29 @@ export function RunCard({
   return (
     <article
       className={[
-        "reveal relative w-full shrink-0 border bg-background lg:w-[42rem]",
+        // Side by side (lg) a card is capped at the row's height and scrolls inside;
+        // stacked, it takes its natural height and the page scrolls.
+        "reveal relative flex w-full shrink-0 flex-col border bg-background lg:max-h-full lg:w-[42rem]",
         isLatest ? "panel-ticks border-foreground/30" : "border-line"
       ].join(" ")}
     >
-      <header className="border-b border-line px-4 py-2.5">
+      <header className="shrink-0 border-b border-line px-4 py-2.5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="min-w-0 truncate font-display text-[13px] tracking-wide">
+          <h3 className="min-w-0 truncate font-display text-body tracking-wide">
             {turn.question}
           </h3>
           <span className="flex shrink-0 items-baseline gap-2">
             {turn.trace ? (
               <span
                 data-hint="Wall-clock time for the whole pipeline, from receiving the question to the last token of the answer."
-                className="hint hint-end tabular font-mono text-[9px]"
+                className="hint hint-end tabular font-mono text-label"
               >
                 {formatMs(turn.trace.total_ms)}
               </span>
             ) : null}
             <span
               data-hint="Identifies the exact pipeline settings this run used. Two runs with the same hash used identical settings."
-              className="hint hint-end tabular font-mono text-[9px] text-subtle"
+              className="hint hint-end tabular font-mono text-label text-subtle"
             >
               {run.hash}
             </span>
@@ -63,21 +66,21 @@ export function RunCard({
         {run.changed.length > 0 ? (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {run.changed.map((change) => (
-              <span
+              <Chip
                 key={change.key}
-                data-hint="What changed relative to the previous run — the variable this comparison isolates."
-                className="hint tabular border border-foreground/30 px-1.5 py-0.5 font-mono text-[9px]"
+                tone="ink"
+                hint="What changed relative to the previous run: the variable this comparison isolates."
               >
                 {change.key}: {String(change.from)} → {String(change.to)}
-              </span>
+              </Chip>
             ))}
           </div>
         ) : (
-          <p className="mt-1 font-mono text-[9px] text-subtle">baseline</p>
+          <p className="mt-1 font-mono text-label text-subtle">baseline</p>
         )}
       </header>
 
-      <div className="space-y-3 px-4 py-3">
+      <div className="scroll-chain min-h-0 flex-1 space-y-3 px-4 py-3 lg:overflow-y-auto">
         <StageStrip stages={turn.stages} streaming={turn.streaming} onExplain={explainStage} />
 
         {turn.error ? (
@@ -87,7 +90,7 @@ export function RunCard({
         {turn.stages.some((s) => s.candidates_out) ? (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="font-display text-[9px] tracking-[0.16em] text-subtle uppercase">
+              <span className="menu-label">
                 Retrieval
               </span>
               <SourceLegend />

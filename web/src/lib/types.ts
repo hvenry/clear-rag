@@ -14,7 +14,7 @@ export interface StageRecord {
   duration_ms: number;
   config: Record<string, unknown>;
   diagnostics: Record<string, unknown>;
-  /** Non-null only on retrieval stages — the signal that a stage joins the rank flow. */
+  /** Non-null only on retrieval stages: the signal that a stage joins the rank flow. */
   candidates_in: Candidate[] | null;
   candidates_out: Candidate[] | null;
   error: string | null;
@@ -43,7 +43,7 @@ export interface Trace {
   total_ms: number;
 }
 
-/** One row of /api/traces — enough per-stage detail to chart, without payloads. */
+/** One row of /api/traces: enough per-stage detail to chart, without payloads. */
 export interface TraceSummary {
   id: string;
   query: string;
@@ -158,7 +158,7 @@ export interface Health {
 
 export interface ConfigResponse {
   config: Record<string, unknown>;
-  /** The pipeline's out-of-the-box values — what "reset defaults" restores. */
+  /** The pipeline's out-of-the-box values, what "reset defaults" restores. */
   defaults: Record<string, unknown>;
   config_hash: string;
   providers: {
@@ -181,7 +181,7 @@ export interface SessionMessage {
   content: string;
   trace_id: string | null;
   created_at: number;
-  /** Full trace for assistant messages — restores stages and citations on reload. */
+  /** Full trace for assistant messages; restores stages and citations on reload. */
   trace: Trace | null;
 }
 

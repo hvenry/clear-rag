@@ -1,7 +1,7 @@
 """marker backend: datalab's ML-based PDF converter as an optional extra.
 
 Licence note, documented deliberately: marker is GPL-3.0 and its surya model weights
-carry a commercial-use restriction above a revenue threshold — fine for this research
+carry a commercial-use restriction above a revenue threshold, fine for this research
 project, but the asterisk belongs next to the import. Strongest on prose-heavy
 documents (articles, books, papers); the ablation table is where that claim gets
 tested against docling and the primitives parser. Imports stay inside the function so

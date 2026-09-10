@@ -7,8 +7,8 @@ exact region of the original file instead of naming a chunk number.
 Phase 4 adds two things. PDF parsing is a pluggable *backend* (naive pypdf extraction,
 the hand-rolled primitives parser, or docling/marker as optional extras), because
 parsing quality is a measured variable in the ablation table, not an implementation
-detail. And every format now yields ``Block`` structure — headings, paragraphs, tables
-with spans into the canonical text — which structural chunking and breadcrumb contexts
+detail. And every format now yields ``Block`` structure (headings, paragraphs, tables
+with spans into the canonical text), which structural chunking and breadcrumb contexts
 consume downstream.
 """
 
@@ -158,7 +158,7 @@ def _parse_docx(data: bytes) -> tuple[str, list[Block], dict]:
         else:
             items.append((stripped, "paragraph", 0))
 
-    # Tables are flattened to pipe-delimited rows — one block per table so downstream
+    # Tables are flattened to pipe-delimited rows, one block per table so downstream
     # stages know a table is a table even without cell geometry.
     for table in document.tables:
         rows = [" | ".join(cell.text.strip() for cell in row.cells) for row in table.rows]

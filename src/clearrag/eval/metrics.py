@@ -55,12 +55,12 @@ class QuestionResult:
     ndcg: float = 0.0
     first_relevant_rank: int | None = None
     retrieved: list[str] = field(default_factory=list)
-    #: Labelled spans no retrieved chunk covered — the actionable part of a bad score.
+    #: Labelled spans no retrieved chunk covered, the actionable part of a bad score.
     missed: list[str] = field(default_factory=list)
     answer: str | None = None
     mentioned: bool | None = None
     confused: bool | None = None
-    """A must_not_mention string appeared — content bled in from the wrong section."""
+    """A must_not_mention string appeared: content bled in from the wrong section."""
     grounded: bool | None = None
     """At least one citation's chunk covers a labelled answer span."""
     citation_precision: float | None = None

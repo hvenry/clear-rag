@@ -38,7 +38,7 @@ async def rerank_stage(
         rec.error = "Reranking is enabled in config but no reranker is installed."
         rec.diagnostics = {
             "skipped": True,
-            "remedy": "Not yet implemented — fusion order was used unchanged.",
+            "remedy": "Not yet implemented; fusion order was used unchanged.",
         }
         return shortlist, rec
 

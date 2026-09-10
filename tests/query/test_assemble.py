@@ -10,7 +10,7 @@ def _chunk(id_: str, text: str, start: int) -> Chunk:
 
 def test_prompt_labels_passages_by_marker_only():
     """Chunk ids are internal. A small model shown "(c_…)" in its context will
-    parrot it into answers — the regression this test pins."""
+    parrot it into answers, the regression this test pins."""
     chunks = {
         "c_aaa111": _chunk("c_aaa111", "The effective tax rate was 19%.", 0),
         "c_bbb222": _chunk("c_bbb222", "Revenue grew twelve percent.", 100),

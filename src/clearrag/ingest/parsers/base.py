@@ -1,7 +1,7 @@
 """Shared types for PDF parser backends.
 
-Every backend — naive text extraction, the hand-rolled primitives parser, docling,
-marker — returns the same shape, which is what makes the parser an ablatable knob:
+Every backend (naive text extraction, the hand-rolled primitives parser, docling,
+marker) returns the same shape, which is what makes the parser an ablatable knob:
 the rest of the pipeline cannot tell backends apart, so swapping one is a config
 change with a measurable effect rather than a rewrite.
 """

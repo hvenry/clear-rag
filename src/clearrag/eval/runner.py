@@ -48,7 +48,7 @@ class EvalRun:
     query_ms: float = 0.0
     generated: bool = False
     parse_lost: int = 0
-    """Labelled quotes that did not resolve against this run's parsed text — the parse
+    """Labelled quotes that did not resolve against this run's parsed text: the parse
     lost the answer, and those questions score as misses."""
     documents: int = 0
     """How many corpus documents were indexed for this run."""
@@ -233,7 +233,7 @@ async def ablate(
         ingest_ms = (time.perf_counter() - ingest_started) * 1000
 
         # Golden quotes resolve against *parsed* text, which depends on this group's
-        # parser backend — so loading happens here, per group, leniently: a quote the
+        # parser backend, so loading happens here, per group, leniently: a quote the
         # parse lost scores as a miss for exactly this group's runs.
         parsed_corpus = {
             row["filename"]: doc.text
@@ -318,7 +318,7 @@ def markdown_table(
 
 
 def fmt(value: float | None) -> str:
-    return "—" if value is None else f"{value:.3f}"
+    return "n/a" if value is None else f"{value:.3f}"
 
 
 def write_report(runs: Sequence[EvalRun], path: Path, *, k: int = 5) -> None:

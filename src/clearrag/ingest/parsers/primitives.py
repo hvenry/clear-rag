@@ -1,6 +1,6 @@
 """The hand-rolled PDF layout parser.
 
-A PDF contains no paragraphs, headings, columns or tables — only positioned glyphs and
+A PDF contains no paragraphs, headings, columns or tables, only positioned glyphs and
 drawn lines. Everything this module emits is *inferred* from that geometry, which is
 exactly why it exists: the hardest stage of RAG should be visible and measured, not a
 black box. pdfplumber is used strictly as the primitive extractor (words with positions,
@@ -9,7 +9,7 @@ line/rect geometry); every layout decision above that is made here, in plain sig
 Scope, deliberately bounded (see the Phase 4 spec): text-based PDFs, multi-column
 reading order, heading inference, header/footer stripping, cross-page paragraph merge,
 and simple tables (ruled, or consistently aligned, with spanning headers). No OCR, no
-nested tables — those are the documented trigger for the docling/marker backends.
+nested tables; those are the documented trigger for the docling/marker backends.
 """
 
 from __future__ import annotations
@@ -143,7 +143,7 @@ def _paragraphs(lines: list[list[_Word]]) -> list[list[list[_Word]]]:
     """Group consecutive lines into paragraphs.
 
     Two signals break a group: a vertical gap larger than a line, and a wholesale
-    font-size shift — a heading sits close above its body text, so style change is
+    font-size shift, because a heading sits close above its body text, so style change is
     the only separator a tight layout leaves.
     """
     if not lines:
@@ -155,8 +155,8 @@ def _paragraphs(lines: list[list[_Word]]) -> list[list[list[_Word]]]:
         size_shift = abs(
             (_median([w.size for w in line]) or 0) - (_median([w.size for w in prev]) or 0)
         )
-        # A negative gap means the next line sits back *up* the page — a column jump
-        # introduced by band reordering — which is always a paragraph boundary.
+        # A negative gap means the next line sits back *up* the page (a column jump
+        # introduced by band reordering), which is always a paragraph boundary.
         if gap > PARAGRAPH_GAP * height or gap < -LINE_TOLERANCE or size_shift > 1.0:
             groups.append([line])
         else:
@@ -230,7 +230,7 @@ def _strip_furniture(
     """Drop repeated headers/footers and page numbers from the margins.
 
     A line is furniture when its text recurs at a similar position in the top or
-    bottom band of most pages — or is a bare number in those bands, which catches
+    bottom band of most pages, or is a bare number in those bands, which catches
     page numbers that differ on every page.
     """
     if len(pages_words) < 2:
@@ -314,7 +314,7 @@ def _ruled_tables(
 ) -> tuple[list[_Proto], list[_Word]]:
     """Extract grid tables; return table protos plus the words left in normal flow.
 
-    Edges are grouped into vertically connected *regions* first — a page carrying two
+    Edges are grouped into vertically connected *regions* first, because a page carrying two
     shaded tables with prose between them has two separate grids, and treating every
     edge on the page as one grid consumes the prose into phantom cells (a failure the
     differential test caught on a real MD&A page with 186 shading rects).
@@ -397,7 +397,7 @@ def _slot_tables(flow: list[_Proto], tables: list[_Proto]) -> list[_Proto]:
 #
 # No ink to read back here: the only evidence of a table is that word left-edges
 # repeat at the same x positions across consecutive lines. Financial statements are
-# the archetype — right-aligned numbers under year columns, label column on the left,
+# the archetype: right-aligned numbers under year columns, label column on the left,
 # hierarchy carried entirely by indentation.
 
 _STOP_TOLERANCE = 3.0
@@ -432,7 +432,7 @@ def _aligned_table(para_lines: list[list[_Word]], page_number: int) -> _Proto | 
     # Scope guard: this detector targets financial-statement-style tables, whose data
     # columns are numbers. Without it, two columns of prose whose words happen to
     # align read as a table. Numeric-majority in the stop-aligned cells is the
-    # discriminator — a documented limitation for borderless all-text tables.
+    # discriminator, a documented limitation for borderless all-text tables.
     aligned_words = [
         w for line in base_lines for w in line if any(abs(w.x0 - s) <= _STOP_MATCH for s in stops)
     ]
@@ -442,7 +442,7 @@ def _aligned_table(para_lines: list[list[_Word]], page_number: int) -> _Proto | 
 
     # Coverage guard: in a real table, most interior words sit on the stops. In
     # justified prose, wrapped lines share only coincidental positions (plus year
-    # tokens for the numeric vote) — sparse alignment is the tell. "Interior" uses
+    # tokens for the numeric vote), so sparse alignment is the tell. "Interior" uses
     # the leading-cell boundary the renderer uses, so indented labels do not vote.
     interior_words = [w for line in base_lines for w in line if w.x0 > stops[0] - _STOP_MATCH]
     if interior_words and len(aligned_words) / len(interior_words) < 0.55:
@@ -481,7 +481,7 @@ def _aligned_table(para_lines: list[list[_Word]], page_number: int) -> _Proto | 
 # Column layouts are detected per vertical *band*, not per page: a page whose middle
 # section is two-column while its header and footer paragraphs run full width never
 # shows a page-wide empty gutter, and treating the page as one column interleaves the
-# side-by-side lines — the exact failure the differential test caught on real MD&A
+# side-by-side lines, the exact failure the differential test caught on real MD&A
 # sections. A band is a run of consecutive lines that all leave the same gutter free.
 
 _GUTTER_ZONE = 6.0

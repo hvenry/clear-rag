@@ -1,10 +1,8 @@
 import {
   CaretDownIcon,
-  ChartBarIcon,
   ClockCountdownIcon,
   GaugeIcon,
   ListMagnifyingGlassIcon,
-  QuotesIcon,
   TimerIcon
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -19,8 +17,8 @@ import { ChartLegend, ColumnChart, SegmentBar, StatTile, type Column } from "../
  *
  * Collapsed it is one quiet summary line above the conversation; expanded it
  * sections into stat tiles, a stacked latency-by-stage chart, a TTFT chart, and
- * the query log. Data comes from /api/traces — the same traces the store already
- * persists — so history survives reloads and covers Lab runs too.
+ * the query log. Data comes from /api/traces (the same traces the store already
+ * persists), so history survives reloads and covers Lab runs too.
  */
 export function TelemetryPanel({
   refreshKey,
@@ -102,32 +100,31 @@ export function TelemetryPanel({
         className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground/4 sm:px-5"
       >
         <span className="flex min-w-0 items-center gap-2">
-          <ChartBarIcon size={13} weight="bold" className="shrink-0 text-subtle" />
-          <span className="font-display text-[10px] tracking-[0.16em] uppercase">
+          <span className="font-display text-meta tracking-[0.16em] uppercase">
             Telemetry
           </span>
-          <span className="tabular hidden truncate font-mono text-[10px] text-subtle sm:inline">
+          <span className="tabular hidden truncate font-mono text-meta text-subtle sm:inline">
             {stats.count} queries · p50 {formatMs(stats.p50)} · p95 {formatMs(stats.p95)}
             {stats.ttftP50 != null ? ` · ttft ${formatMs(stats.ttftP50)}` : ""}
           </span>
         </span>
         <CaretDownIcon
-          size={12}
+          size={14}
           className={`shrink-0 text-subtle transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
       {open ? (
         <div className="reveal space-y-4 border-t border-line px-3 pt-3 pb-4 sm:px-5">
-          <p className="text-[11px] leading-relaxed text-subtle">
-            Latency and throughput for every query this index has answered — including
+          <p className="text-ui leading-relaxed text-subtle">
+            Latency and throughput for every query this index has answered, including
             Lab runs. Traces persist in the store, so this history survives reloads.
           </p>
 
           {/* ── Stat tiles ── */}
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             <StatTile
-              icon={<ListMagnifyingGlassIcon size={12} />}
+              icon={<ListMagnifyingGlassIcon size={14} />}
               label="Queries traced"
               value={String(stats.count)}
               sub="newest 30 shown"
@@ -135,7 +132,7 @@ export function TelemetryPanel({
               hint="How many answered queries the trace store currently holds, capped at the newest 30 for this readout."
             />
             <StatTile
-              icon={<TimerIcon size={12} />}
+              icon={<TimerIcon size={14} />}
               label="Total latency"
               value={formatMs(stats.p50)}
               sub={`p95 ${formatMs(stats.p95)}`}
@@ -143,20 +140,20 @@ export function TelemetryPanel({
               hint="Median wall-clock time from question to last token. The spark is per query, oldest left."
             />
             <StatTile
-              icon={<ClockCountdownIcon size={12} />}
+              icon={<ClockCountdownIcon size={14} />}
               label="First token"
               value={stats.ttftP50 != null ? formatMs(stats.ttftP50) : "—"}
               sub="median TTFT"
               spark={stats.ttfts}
               sparkColor="var(--color-cat-1)"
-              hint="Median time to first token — the model reading the packed context before it writes anything. Shrinks with fewer or smaller chunks, not with a faster model."
+              hint="Median time to first token: the model reading the packed context before it writes anything. Shrinks with fewer or smaller chunks, not with a faster model."
             />
             <StatTile
-              icon={<GaugeIcon size={12} />}
+              icon={<GaugeIcon size={14} />}
               label="Decode rate"
               value={stats.rate != null ? `${stats.rate.toFixed(1)}` : "—"}
               sub="tokens / second"
-              hint="How fast the model writes once it starts — a property of the model against memory bandwidth, unaffected by retrieval settings."
+              hint="How fast the model writes once it starts: a property of the model against memory bandwidth, unaffected by retrieval settings."
             />
           </div>
 
@@ -164,8 +161,7 @@ export function TelemetryPanel({
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="border border-line px-3 py-2.5">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 font-display text-[9px] tracking-[0.16em] text-subtle uppercase">
-                  <ChartBarIcon size={11} />
+                <span className="menu-label">
                   Latency by stage, per query
                 </span>
                 <ChartLegend
@@ -178,8 +174,7 @@ export function TelemetryPanel({
               <ColumnChart columns={latencyColumns} format={formatMs} />
             </div>
             <div className="border border-line px-3 py-2.5">
-              <div className="mb-2 flex items-center gap-1.5 font-display text-[9px] tracking-[0.16em] text-subtle uppercase">
-                <ClockCountdownIcon size={11} />
+              <div className="mb-2 menu-label">
                 Time to first token
               </div>
               <ColumnChart
@@ -192,14 +187,13 @@ export function TelemetryPanel({
 
           {/* ── Query log ── */}
           <div className="border border-line">
-            <div className="flex items-center gap-1.5 border-b border-line px-3 py-2 font-display text-[9px] tracking-[0.16em] text-subtle uppercase">
-              <QuotesIcon size={11} />
+            <div className="border-b border-line px-3 py-2 menu-label">
               Query log
             </div>
             <div className="max-h-64 overflow-x-auto overflow-y-auto">
               <table className="w-full min-w-[38rem] border-collapse text-left">
                 <thead className="sticky top-0 z-10 bg-background">
-                  <tr className="border-b border-line font-display text-[9px] tracking-[0.14em] text-subtle uppercase">
+                  <tr className="border-b border-line menu-label">
                     <th className="px-3 py-1.5 font-medium">Question</th>
                     <th className="py-1.5 pr-3 font-medium">Stages</th>
                     <th className="py-1.5 pr-3 text-right font-medium">Total</th>
@@ -212,7 +206,7 @@ export function TelemetryPanel({
                 <tbody>
                   {traces?.map((t) => (
                     <tr key={t.id} className="border-b border-line/60 hover:bg-foreground/4">
-                      <td className="max-w-[16rem] truncate px-3 py-1.5 text-[11px] text-muted">
+                      <td className="max-w-[16rem] truncate px-3 py-1.5 text-ui text-muted">
                         {t.query}
                       </td>
                       <td className="w-36 py-1.5 pr-3">
@@ -228,19 +222,19 @@ export function TelemetryPanel({
                           }))}
                         />
                       </td>
-                      <td className="tabular py-1.5 pr-3 text-right font-mono text-[10px]">
+                      <td className="tabular py-1.5 pr-3 text-right font-mono text-ui">
                         {formatMs(t.total_ms)}
                       </td>
-                      <td className="tabular py-1.5 pr-3 text-right font-mono text-[10px] text-subtle">
+                      <td className="tabular py-1.5 pr-3 text-right font-mono text-ui text-subtle">
                         {t.ttft_ms != null ? formatMs(t.ttft_ms) : "—"}
                       </td>
-                      <td className="tabular py-1.5 pr-3 text-right font-mono text-[10px] text-subtle">
+                      <td className="tabular py-1.5 pr-3 text-right font-mono text-ui text-subtle">
                         {t.tokens_per_second != null ? t.tokens_per_second.toFixed(1) : "—"}
                       </td>
-                      <td className="tabular py-1.5 pr-3 text-right font-mono text-[10px] text-subtle">
+                      <td className="tabular py-1.5 pr-3 text-right font-mono text-ui text-subtle">
                         {t.n_citations}
                       </td>
-                      <td className="tabular py-1.5 pr-3 text-right font-mono text-[9px] text-subtle">
+                      <td className="tabular py-1.5 pr-3 text-right font-mono text-label text-subtle">
                         {t.config_hash}
                       </td>
                     </tr>

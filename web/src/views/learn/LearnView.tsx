@@ -1,4 +1,3 @@
-import { ChartBarIcon, EyeIcon, FunctionIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -11,7 +10,7 @@ import { ALL_TOPICS, TOPIC_GROUPS, type Topic } from "../../lib/topics";
  * The Learn section: one page per concept the app exhibits, written against this
  * project's real measurements. The hover hints answer "what is this number"; these
  * pages answer "why does this stage exist at all". Each topic is an address
- * (`/learn/:topicId`), so a concept page can be linked from anywhere — including
+ * (`/learn/:topicId`), so a concept page can be linked from anywhere, including
  * outside the app.
  */
 export function LearnView() {
@@ -37,7 +36,7 @@ export function LearnView() {
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
       <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2 lg:hidden">
-        <span className="min-w-0 truncate font-display text-[12px] tracking-wide">
+        <span className="min-w-0 truncate font-display text-body tracking-wide">
           {topic.title}
         </span>
         <PanelTrigger label="Topics" onOpen={() => setTocOpen(true)} />
@@ -46,7 +45,7 @@ export function LearnView() {
       <SidePanel title="Topics" open={tocOpen} onClose={() => setTocOpen(false)}>
         {TOPIC_GROUPS.map((group) => (
           <section key={group.title} className="pt-4">
-            <h2 className="px-4 pb-1.5 font-display text-[10px] tracking-[0.18em] text-subtle uppercase">
+            <h2 className="px-4 pb-1.5 font-display text-meta tracking-[0.18em] text-subtle uppercase">
               {group.title}
             </h2>
             <ul>
@@ -61,7 +60,7 @@ export function LearnView() {
                         : "border-l-transparent hover:bg-foreground/4"
                     ].join(" ")}
                   >
-                    <div className="text-[12px]">{t.title}</div>
+                    <div className="text-body">{t.title}</div>
                   </button>
                 </li>
               ))}
@@ -69,7 +68,7 @@ export function LearnView() {
           </section>
         ))}
         <div className="rule-dashed mx-4 my-4" />
-        <p className="px-4 pb-5 text-[10px] leading-relaxed text-subtle">
+        <p className="px-4 pb-5 text-meta leading-relaxed text-subtle">
           Every number quoted on these pages is a real measurement from the bundled
           benchmarks, reproducible with <Code text="clear-rag ablate" /> and{" "}
           <Code text="clear-rag eval" />.
@@ -91,12 +90,12 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
   return (
     <article className="reveal mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="font-display text-[22px] tracking-wide">{topic.title}</h1>
-      <p className="mt-1 text-[13px] text-subtle">{topic.summary}</p>
+      <p className="mt-1 text-body text-subtle">{topic.summary}</p>
       <div className="rule-dashed my-5" />
 
       <div className="space-y-4">
         {topic.body.map((paragraph, i) => (
-          <p key={i} className="text-[13.5px] leading-[1.8] text-muted">
+          <p key={i} className="text-body leading-[1.8] text-muted">
             <Rich text={paragraph} />
           </p>
         ))}
@@ -104,14 +103,11 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
 
       {topic.formula ? (
         <figure className="panel-ticks relative mt-6 border border-line px-4 py-3">
-          <div className="mb-1.5 flex items-center gap-1.5 menu-label">
-            <FunctionIcon size={11} />
-            Formula
-          </div>
-          <code className="block font-mono text-[12px] leading-relaxed break-words">
+          <div className="mb-1.5 menu-label">Formula</div>
+          <code className="block font-mono text-body leading-relaxed break-words">
             {topic.formula.text}
           </code>
-          <figcaption className="mt-2 text-[11px] leading-relaxed text-subtle">
+          <figcaption className="mt-2 text-ui leading-relaxed text-subtle">
             {topic.formula.caption}
           </figcaption>
         </figure>
@@ -119,10 +115,7 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
 
       {(TOPIC_CHARTS[topic.id] ?? []).map((chart) => (
         <figure key={chart.title} className="mt-6 border border-line px-4 py-3">
-          <div className="flex items-center gap-1.5 menu-label">
-            <ChartBarIcon size={11} />
-            {chart.title}
-          </div>
+          <div className="menu-label">{chart.title}</div>
           <div className="mt-2.5">
             {chart.rows.map((row) => (
               <MeterRow
@@ -136,8 +129,8 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
               />
             ))}
           </div>
-          <figcaption className="mt-2 text-[11px] leading-relaxed text-subtle">
-            <Rich text={chart.note} /> Real measurements from the bundled benchmarks —
+          <figcaption className="mt-2 text-ui leading-relaxed text-subtle">
+            <Rich text={chart.note} /> Real measurements from the bundled benchmarks,
             reproducible with <Code text="clear-rag ablate" />.
           </figcaption>
         </figure>
@@ -145,11 +138,8 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
 
       {topic.seeIt ? (
         <aside className="mt-6 border-l-2 border-foreground/40 pl-3">
-          <div className="flex items-center gap-1.5 menu-label">
-            <EyeIcon size={11} />
-            See it live
-          </div>
-          <p className="mt-1 text-[12px] leading-relaxed text-muted">
+          <div className="menu-label">See it live</div>
+          <p className="mt-1 text-body leading-relaxed text-muted">
             <Rich text={topic.seeIt} />
           </p>
         </aside>
@@ -159,7 +149,7 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
         {previous ? (
           <button
             onClick={() => onSelect(previous.id)}
-            className="text-left font-mono text-[11px] text-subtle transition-colors hover:text-foreground"
+            className="text-left font-mono text-ui text-subtle transition-colors hover:text-foreground"
           >
             ← {previous.title}
           </button>
@@ -169,7 +159,7 @@ function TopicPage({ topic, onSelect }: { topic: Topic; onSelect: (id: string) =
         {next ? (
           <button
             onClick={() => onSelect(next.id)}
-            className="text-right font-mono text-[11px] text-subtle transition-colors hover:text-foreground"
+            className="text-right font-mono text-ui text-subtle transition-colors hover:text-foreground"
           >
             {next.title} →
           </button>

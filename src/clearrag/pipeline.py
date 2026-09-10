@@ -114,7 +114,7 @@ class Engine:
         )
 
     async def _contextualize(self, document, chunks: list) -> list:
-        """Apply the configured context mode. Touches only ``Chunk.context`` — the
+        """Apply the configured context mode. Touches only ``Chunk.context``; the
         stored text, spans and citations never change."""
         if self.config.context_mode == "breadcrumb":
             return apply_breadcrumbs(document, chunks)
@@ -210,7 +210,7 @@ class Engine:
         }
 
     def _index_meta(self) -> dict[str, Any]:
-        """What this document's chunks and vectors were built with — stamped at ingest
+        """What this document's chunks and vectors were built with, stamped at ingest
         and re-stamped on re-index, so the inspector can say which settings a document
         actually carries rather than which the config currently shows."""
         return {
@@ -314,7 +314,7 @@ class Engine:
         }
         if stale_parses:
             result["note"] = (
-                f"{stale_parses} PDF(s) keep text from a different parser backend — "
+                f"{stale_parses} PDF(s) keep text from a different parser backend, and "
                 "re-indexing cannot re-parse. Re-upload the files to apply the new parser."
             )
         yield result

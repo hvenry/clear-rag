@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { Th } from "../Table";
 import {
   SOURCE_CLASS,
   SOURCE_HINT,
@@ -15,7 +16,7 @@ import type { Candidate, ContextChunk, StageRecord } from "../../lib/types";
  *
  * This is the primary inspector view rather than the bump chart, because a chart only
  * communicates when there is movement to see. On a small corpus every retriever returns
- * every chunk and the lines run flat — a table still says exactly what happened, and it
+ * every chunk and the lines run flat, but a table still says exactly what happened, and it
  * stays readable at fifty candidates where a chart becomes spaghetti.
  */
 
@@ -51,7 +52,7 @@ export function RetrievalTable({
 
   // Per-column score ranges, so each cell can draw its score as a bar on the
   // column's own scale (BM25 sums, cosines and cross-encoder logits are not
-  // comparable to each other — only within a column).
+  // comparable to each other, only within a column).
   const scales = useMemo(
     () => ({
       keyword: scaleOf(rows.map((r) => r.keyword)),
@@ -67,7 +68,7 @@ export function RetrievalTable({
   return (
     // Capped everywhere so a long candidate list scrolls inside its own panel
     // (the header is sticky) instead of stretching the conversation.
-    <div className="max-h-64 overflow-x-auto overflow-y-auto lg:max-h-80">
+    <div className="scroll-chain max-h-64 overflow-x-auto overflow-y-auto lg:max-h-80">
       <table className="w-full min-w-[42rem] border-collapse text-left">
         <thead className="sticky top-0 z-10 bg-background">
           <tr className="border-b border-line">
@@ -106,15 +107,15 @@ export function RetrievalTable({
                 ].join(" ")}
               >
                 <td className="max-w-[18rem] py-1.5 pr-3">
-                  <div className="truncate text-[11px] text-muted">
+                  <div className="truncate text-ui text-muted">
                     {row.preview ?? <span className="text-subtle">not in final context</span>}
                   </div>
-                  <div className="tabular flex items-center gap-1.5 font-mono text-[9px] text-subtle">
+                  <div className="tabular flex items-center gap-1.5 font-mono text-label text-subtle">
                     <span>{row.locator ?? row.chunkId}</span>
                     {row.overlapChars > 0 ? (
                       <span
-                        data-hint={`This chunk opens with ${row.overlapChars} characters that also belong to the previous chunk — the overlap window, which exists so an answer sitting on a boundary is still retrievable. The preview above skips past it to show what is actually distinctive to this chunk.`}
-                        className="hint hint-right border border-line px-1 text-[8px] text-slow"
+                        data-hint={`This chunk opens with ${row.overlapChars} characters that also belong to the previous chunk: the overlap window, which exists so an answer sitting on a boundary is still retrievable. The preview above skips past it to show what is actually distinctive to this chunk.`}
+                        className="hint hint-right border border-line px-1 text-label text-slow"
                       >
                         overlap {row.overlapChars}c
                       </span>
@@ -129,10 +130,10 @@ export function RetrievalTable({
                       data-hint={SOURCE_HINT[source]}
                     >
                       <Dot source={source} />
-                      <span className="text-[10px] whitespace-nowrap">{SOURCE_LABEL[source]}</span>
+                      <span className="text-meta whitespace-nowrap">{SOURCE_LABEL[source]}</span>
                     </span>
                   ) : (
-                    <span className="text-[10px] text-subtle">—</span>
+                    <span className="text-meta text-subtle">—</span>
                   )}
                 </td>
 
@@ -145,13 +146,13 @@ export function RetrievalTable({
 
                 <td className="py-1.5">
                   {row.marker !== null ? (
-                    <span className="inline-flex h-[17px] min-w-[17px] items-center justify-center border border-line px-1 font-mono text-[10px]">
+                    <span className="inline-flex h-[17px] min-w-[17px] items-center justify-center border border-line px-1 font-mono text-meta">
                       {row.marker}
                     </span>
                   ) : (
                     <span
-                      className="hint hint-right hint-end text-[10px] text-subtle"
-                      data-hint="Retrieved, but dropped before the prompt — either the token budget ran out or a higher-ranked chunk already covered the same text."
+                      className="hint hint-right hint-end text-meta text-subtle"
+                      data-hint="Retrieved, but dropped before the prompt: either the token budget ran out or a higher-ranked chunk already covered the same text."
                     >
                       dropped
                     </span>
@@ -163,32 +164,6 @@ export function RetrievalTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-function Th({
-  children,
-  hint,
-  align = "left",
-  hintEnd = false
-}: {
-  children: React.ReactNode;
-  hint: string;
-  align?: "left" | "right";
-  /** Anchor the hint to the header's right edge so it opens leftward — for
-   *  columns near the table's right side, where a left-anchored hint would be
-   *  clipped by the scroll container. */
-  hintEnd?: boolean;
-}) {
-  return (
-    <th
-      data-hint={hint}
-      className={`hint ${align === "right" || hintEnd ? "hint-end" : ""} pb-2 font-display text-[9px] font-medium tracking-[0.16em] text-subtle uppercase ${
-        align === "right" ? "pr-3 text-right" : "pr-3 text-left"
-      }`}
-    >
-      {children}
-    </th>
   );
 }
 
@@ -216,7 +191,7 @@ function RankCell({
     return (
       <td className="py-1.5 pr-3 text-right">
         <span
-          className="hint hint-right hint-end text-[10px] text-subtle"
+          className="hint hint-right hint-end text-meta text-subtle"
           data-hint="This search did not return this chunk at all."
         >
           —
@@ -231,17 +206,17 @@ function RankCell({
 
   return (
     <td className="tabular py-1.5 pr-3 text-right font-mono">
-      <span className="text-[11px]">#{candidate.rank}</span>
+      <span className="text-ui">#{candidate.rank}</span>
       {move !== 0 ? (
         <span
-          className={`ml-1 text-[9px] ${move > 0 ? "text-vector" : "text-slow"}`}
+          className={`ml-1 text-label ${move > 0 ? "text-vector" : "text-slow"}`}
           title={move > 0 ? `moved up ${move}` : `moved down ${-move}`}
         >
           {move > 0 ? `↑${move}` : `↓${-move}`}
         </span>
       ) : null}
-      <div className="text-[9px] text-subtle">{candidate.score.toFixed(3)}</div>
-      {/* The score, as length — on this column's own scale, since raw scores
+      <div className="text-label text-subtle">{candidate.score.toFixed(3)}</div>
+      {/* The score, as length, on this column's own scale, since raw scores
           from different stages are not comparable to each other. */}
       <div className="mt-0.5 ml-auto h-[3px] w-12 bg-foreground/8">
         <div
@@ -283,7 +258,7 @@ function buildRows(stages: StageRecord[], context: ContextChunk[]): Row[] {
    *
    * Overlap means a chunk routinely *begins* inside its predecessor, so the naive
    * "first 90 characters" preview shows text the reader already attributed to the
-   * previous chunk — which reads as the table pointing at the wrong section.
+   * previous chunk, which reads as the table pointing at the wrong section.
    */
   const overlapAtStart = (chunk: ContextChunk): number => {
     let deepest = 0;
@@ -296,7 +271,7 @@ function buildRows(stages: StageRecord[], context: ContextChunk[]): Row[] {
     return deepest;
   };
 
-  // Ordering follows the last stage that produced a ranking — the order that actually
+  // Ordering follows the last stage that produced a ranking: the order that actually
   // decided what the model saw.
   const ordering = at("rerank") ?? at("fuse") ?? at("dense") ?? at("bm25") ?? [];
 
@@ -324,7 +299,7 @@ function buildRows(stages: StageRecord[], context: ContextChunk[]): Row[] {
       preview,
       locator: inContext
         // Ordinals are stored 0-based; people count chunks from 1, and the
-        // Library says "N chunks" — so every displayed chunk number is 1-based.
+        // Library says "N chunks", so every displayed chunk number is 1-based.
         ? `chunk ${inContext.ordinal + 1} · chars ${inContext.span[0]}–${inContext.span[1]}`
         : null,
       overlapChars

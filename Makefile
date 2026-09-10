@@ -1,6 +1,6 @@
 .PHONY: help install dev build test lint fix check serve docker clean reset
 
-# Three ways to run the app — pick by what you are doing:
+# Three ways to run the app. Pick by what you are doing:
 #   make dev     developing: backend auto-reload + Vite HMR, open http://localhost:5173
 #   make serve   using it:   one server, the built UI, open http://localhost:8010
 #   make docker  appliance:  the production image (code changes need `--build`)
@@ -9,8 +9,8 @@
 
 help:
 	@echo "Run modes:"
-	@echo "  dev        develop — backend reload + frontend HMR in one command (:5173)"
-	@echo "  serve      use — single server with the built UI (:8010)"
+	@echo "  dev        develop: backend reload + frontend HMR in one command (:5173)"
+	@echo "  serve      use: single server with the built UI (:8010)"
 	@echo "  docker     production image via compose (data persists in a volume)"
 	@echo "Everything else:"
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -vE '^(dev|serve|docker):' | awk 'BEGIN {FS=":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -49,7 +49,7 @@ check:  ## Verify providers and index are reachable
 serve:  ## Run the app: one server, built UI (run `make build` after frontend changes)
 	.venv/bin/clear-rag serve
 
-dev:  ## Develop: backend (reload) + frontend (HMR) together — open http://localhost:5173
+dev:  ## Develop: backend (reload) + frontend (HMR) together, then open http://localhost:5173
 	@bash scripts/dev.sh
 
 docker:  ## Build and run via Docker

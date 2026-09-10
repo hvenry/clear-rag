@@ -4,9 +4,9 @@ The same pattern that keeps BM25 honest (differential testing against SQLite FTS
 applied to parsing: score a backend's output against ground truth derived from the
 document's HTML source. Two numbers, because parsers fail two different ways:
 
-- **word_recovery** — did the words survive at all? A dropped table cell or a page the
+- **word_recovery**: did the words survive at all? A dropped table cell or a page the
   extractor skipped shows up here. Order-insensitive multiset overlap.
-- **order_similarity** — did they come out in reading order? Interleaved columns score
+- **order_similarity**: did they come out in reading order? Interleaved columns score
   perfect recovery and poor ordering, which is exactly the failure worth naming.
 """
 
@@ -36,7 +36,7 @@ def parse_quality(parsed: str, truth: str) -> dict:
 
     overlap = sum((Counter(truth_words) & Counter(parsed_words)).values())
     # autojunk skips "popular" elements on long sequences, which silently corrupts the
-    # ratio on real documents — disable it.
+    # ratio on real documents, so disable it.
     matcher = SequenceMatcher(None, truth_words, parsed_words, autojunk=False)
     return {
         "word_recovery": round(overlap / len(truth_words), 4),

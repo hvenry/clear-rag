@@ -2,7 +2,7 @@
 
 Backends are looked up by name and probed for availability by import, so an optional
 heavyweight backend (docling, marker) that is not installed fails with an install
-remedy instead of an ImportError — and never fails at import time of this package.
+remedy instead of an ImportError, and never fails at import time of this package.
 """
 
 from __future__ import annotations

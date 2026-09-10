@@ -1,7 +1,7 @@
 import { SOURCE_HINT, SOURCE_LABEL } from "../../lib/stages";
 
 /**
- * Identity is never carried by colour alone — every swatch ships its label.
+ * Identity is never carried by colour alone: every swatch ships its label.
  *
  * That is also what discharges the two outstanding warnings from the palette
  * validation (dark red/aqua CVD separation, light aqua contrast): both are legal
@@ -14,7 +14,7 @@ export function SourceLegend() {
         <span
           key={source}
           data-hint={SOURCE_HINT[source]}
-          className="hint flex items-center gap-1.5 text-[10px] text-subtle"
+          className="hint flex items-center gap-1.5 text-meta text-subtle"
         >
           {source === "both" ? (
             <span className="inline-flex gap-px">

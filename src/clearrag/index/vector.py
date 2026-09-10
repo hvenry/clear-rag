@@ -68,7 +68,7 @@ class VectorIndex:
     def search(
         self, query_vector: np.ndarray, k: int = 50, allowed: set[str] | None = None
     ) -> list[Candidate]:
-        """Top-k by cosine. ``allowed`` restricts results to those chunk ids — applied
+        """Top-k by cosine. ``allowed`` restricts results to those chunk ids, applied
         before top-k selection, so a scoped search still returns k real candidates
         from its scope instead of a starved remainder."""
         if len(self._ids) == 0:

@@ -70,9 +70,9 @@ export function SessionRail({
         <div className="px-3 pt-3 pb-2">
           <button
             onClick={() => setDialog({ mode: "create" })}
-            className="flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1.5 font-display text-[10px] tracking-[0.14em] uppercase transition-colors hover:border-foreground/50"
+            className="flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1.5 font-display text-meta tracking-[0.14em] uppercase transition-colors hover:border-foreground/50"
           >
-            <PlusIcon size={12} />
+            <PlusIcon size={14} />
             New chat
           </button>
         </div>
@@ -95,8 +95,8 @@ export function SessionRail({
                   }}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <span className="block truncate text-[12px]">{session.title}</span>
-                  <span className="tabular block font-mono text-[10px] text-subtle">
+                  <span className="block truncate text-body">{session.title}</span>
+                  <span className="tabular block font-mono text-meta text-subtle">
                     {scopeLabel(session)}
                   </span>
                 </button>
@@ -105,14 +105,14 @@ export function SessionRail({
                   aria-label={`Settings for ${session.title}`}
                   className="shrink-0 border border-line p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:border-foreground/50 focus-visible:opacity-100"
                 >
-                  <GearSixIcon size={12} />
+                  <GearSixIcon size={14} />
                 </button>
                 <button
                   onClick={() => void removeSession(session.id)}
                   aria-label={`Delete ${session.title}`}
                   className="shrink-0 border border-line p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:border-critical/70 hover:text-critical focus-visible:opacity-100"
                 >
-                  <TrashIcon size={12} />
+                  <TrashIcon size={14} />
                 </button>
               </div>
             </li>
@@ -183,7 +183,7 @@ function SessionDialog({
   const [saving, setSaving] = useState(false);
 
   // A document indexed while this dialog is open (its upload button, or a file
-  // dropped on the window) was uploaded to be talked to — check it automatically.
+  // dropped on the window) was uploaded to be talked to, so check it automatically.
   const seenDocs = useRef(new Set(documents.map((d) => d.id)));
   useEffect(() => {
     const fresh = documents.filter((d) => !seenDocs.current.has(d.id));
@@ -222,43 +222,43 @@ function SessionDialog({
         className="w-full max-w-md border border-line bg-background shadow-[0_8px_28px_rgb(0_0_0/0.4)]"
       >
         <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
-          <span className="font-display text-[10px] tracking-[0.18em] text-subtle uppercase">
+          <span className="font-display text-meta tracking-[0.18em] text-subtle uppercase">
             {mode === "create" ? "New chat" : "Chat settings"}
           </span>
           <IconButton label="Close" onClick={onClose}>
-            <XIcon size={12} />
+            <XIcon size={14} />
           </IconButton>
         </div>
 
         <div className="space-y-3 px-4 py-3">
           <div>
-            <label className="mb-1 block text-[11px] text-muted">Name</label>
+            <label className="mb-1 block text-ui text-muted">Name</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Named after your first question if left blank"
-              className="w-full border border-line bg-transparent px-2 py-1.5 font-mono text-[11px] outline-none transition-colors focus:border-foreground/45"
+              className="w-full border border-line bg-transparent px-2 py-1.5 font-mono text-ui outline-none transition-colors focus:border-foreground/45"
             />
           </div>
 
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
-              <label className="text-[11px] text-muted">Documents this chat searches</label>
+              <label className="text-ui text-muted">Documents this chat searches</label>
               {documents.length > 0 ? (
                 <button
                   onClick={() =>
                     setSelected(allSelected ? new Set() : new Set(documents.map((d) => d.id)))
                   }
-                  className="font-mono text-[10px] text-subtle transition-colors hover:text-foreground"
+                  className="font-mono text-meta text-subtle transition-colors hover:text-foreground"
                 >
                   {allSelected ? "none" : "all"}
                 </button>
               ) : null}
             </div>
             {documents.length === 0 ? (
-              <p className="text-[11px] leading-relaxed text-subtle">
-                Nothing is indexed yet — this chat will search every document you add.
+              <p className="text-ui leading-relaxed text-subtle">
+                Nothing is indexed yet, so this chat will search every document you add.
               </p>
             ) : (
               <ul className="max-h-60 overflow-y-auto border border-line">
@@ -271,14 +271,14 @@ function SessionDialog({
                         className="flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-foreground/4"
                       >
                         {checked ? (
-                          <CheckSquareIcon size={14} className="shrink-0" />
+                          <CheckSquareIcon size={16} className="shrink-0" />
                         ) : (
-                          <SquareIcon size={14} className="shrink-0 text-subtle" />
+                          <SquareIcon size={16} className="shrink-0 text-subtle" />
                         )}
-                        <span className="min-w-0 flex-1 truncate text-[12px]">
+                        <span className="min-w-0 flex-1 truncate text-body">
                           {doc.filename}
                         </span>
-                        <span className="tabular shrink-0 font-mono text-[10px] text-subtle">
+                        <span className="tabular shrink-0 font-mono text-meta text-subtle">
                           {doc.n_chunks} chunks
                         </span>
                       </button>
@@ -288,12 +288,12 @@ function SessionDialog({
               </ul>
             )}
             {nothingSelected ? (
-              <p className="mt-1 font-mono text-[10px] text-critical">
+              <p className="mt-1 font-mono text-meta text-critical">
                 Select at least one document.
               </p>
             ) : allSelected ? (
-              <p className="mt-1 font-mono text-[10px] text-subtle">
-                All documents — including ones added later.
+              <p className="mt-1 font-mono text-meta text-subtle">
+                All documents, including ones added later.
               </p>
             ) : null}
             <div className="mt-2">
@@ -305,14 +305,14 @@ function SessionDialog({
         <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-2.5">
           <button
             onClick={onClose}
-            className="border border-line px-2.5 py-1 font-mono text-[10px] transition-colors hover:border-foreground/50"
+            className="border border-line px-2.5 py-1 font-mono text-meta transition-colors hover:border-foreground/50"
           >
             cancel
           </button>
           <button
             onClick={() => void submit()}
             disabled={saving || nothingSelected}
-            className="border border-foreground/60 bg-foreground px-2.5 py-1 font-mono text-[10px] text-background transition-colors hover:bg-foreground/85 disabled:opacity-40"
+            className="border border-foreground/60 bg-foreground px-2.5 py-1 font-mono text-meta text-background transition-colors hover:bg-foreground/85 disabled:opacity-40"
           >
             {saving ? "saving…" : mode === "create" ? "create" : "save"}
           </button>

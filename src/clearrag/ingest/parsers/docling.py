@@ -1,7 +1,7 @@
 """docling backend: IBM's ML-based layout parser as an optional extra.
 
 MIT-licensed, fully local. Its layout and TableFormer models make it the reference
-point for table-heavy documents — exactly what the primitives parser's ablation rows
+point for table-heavy documents, exactly what the primitives parser's ablation rows
 are measured against. Imports stay inside the function so this module can always be
 imported; the registry gates availability.
 """

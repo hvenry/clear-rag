@@ -3,14 +3,14 @@ import { Link } from "react-router-dom";
 /**
  * An address that names nothing. Shown instead of silently redirecting, because a
  * mistyped or stale link that quietly lands on Chat looks like the app lost your
- * place — saying "this path doesn't exist" is the honest version.
+ * place. Saying "this path doesn't exist" is the honest version.
  */
 export function NotFound() {
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h2 className="font-display text-[15px] tracking-[0.14em] uppercase">Nothing here</h2>
+      <h2 className="font-display text-lead tracking-[0.14em] uppercase">Nothing here</h2>
       <div className="rule-dashed my-4" />
-      <p className="text-[13px] leading-relaxed text-muted">
+      <p className="text-body leading-relaxed text-muted">
         This address doesn't match any view. The app lives at{" "}
         <Link to="/chat" className="underline decoration-line underline-offset-2 hover:decoration-foreground">
           /chat

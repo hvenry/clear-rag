@@ -20,11 +20,11 @@ import { useClearDocuments, useInvalidateCorpus, useSampleSets } from "../../lib
 /**
  * The bundled demo corpora, with import/remove per set and a clear-index control.
  *
- * The import itself runs in the module-level importer store — this component only
+ * The import itself runs in the module-level importer store; this component only
  * starts, stops and renders it, so the progress readout survives the view swapping
  * from the empty state to the document list mid-import.
  */
-/** Collapse survives view changes but not a reload — a preference, not an address. */
+/** Collapse survives view changes but not a reload: a preference, not an address. */
 let lastCollapsed = false;
 
 export function SampleSets({
@@ -86,7 +86,7 @@ export function SampleSets({
     <div className={className}>
       {collapsible ? (
         // Same anatomy as the chat's telemetry panel: the whole header is the
-        // toggle, with one caret that rotates. Pointing up while collapsed —
+        // toggle, with one caret that rotates. Pointing up while collapsed, because
         // this panel expands upward from the rail's bottom edge.
         <button
           onClick={toggle}
@@ -97,7 +97,7 @@ export function SampleSets({
         >
           <span className="menu-label">Sample data</span>
           <CaretDownIcon
-            size={12}
+            size={14}
             className={`shrink-0 text-subtle transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
           />
         </button>
@@ -118,8 +118,8 @@ export function SampleSets({
             <li key={set.id} className="group">
               <div className="flex items-center gap-2 py-0.5">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12px]">{set.label}</span>
-                  <span className="tabular block font-mono text-[10px] text-subtle">
+                  <span className="block truncate text-body">{set.label}</span>
+                  <span className="tabular block font-mono text-meta text-subtle">
                     {set.indexed_count}/{set.file_count} indexed
                   </span>
                 </span>
@@ -130,7 +130,7 @@ export function SampleSets({
                     aria-label={`Stop importing ${set.label}`}
                     className="hint hint-right hint-end shrink-0 border border-line p-1 transition-colors hover:border-critical/70 hover:text-critical"
                   >
-                    <StopIcon size={12} />
+                    <StopIcon size={14} />
                   </button>
                 ) : (
                   <>
@@ -142,7 +142,7 @@ export function SampleSets({
                         aria-label={`Import ${set.label}`}
                         className="hint hint-right hint-end shrink-0 border border-line p-1 transition-colors hover:border-foreground/50 disabled:opacity-40"
                       >
-                        <DownloadSimpleIcon size={12} />
+                        <DownloadSimpleIcon size={14} />
                       </button>
                     ) : null}
                     {set.indexed_count > 0 ? (
@@ -153,7 +153,7 @@ export function SampleSets({
                         aria-label={`Remove ${set.label}`}
                         className="hint hint-right hint-end shrink-0 border border-line p-1 transition-colors hover:border-critical/70 hover:text-critical disabled:opacity-40"
                       >
-                        <TrashIcon size={12} />
+                        <TrashIcon size={14} />
                       </button>
                     ) : null}
                   </>
@@ -169,7 +169,7 @@ export function SampleSets({
                       }}
                     />
                   </div>
-                  <p className="tabular mt-1 flex justify-between gap-2 font-mono text-[10px] text-subtle">
+                  <p className="tabular mt-1 flex justify-between gap-2 font-mono text-meta text-subtle">
                     <span className="truncate">
                       {settled}/{thisRun.files.length || "…"}
                       {activeFile ? ` · ${activeFile.filename}` : ""}
@@ -179,12 +179,12 @@ export function SampleSets({
                 </div>
               ) : null}
               {thisRun && !importing && thisRun.summary ? (
-                <p className="pb-1 font-mono text-[10px] text-subtle">
+                <p className="pb-1 font-mono text-meta text-subtle">
                   {thisRun.summary} ({formatElapsed(elapsed)})
                 </p>
               ) : null}
               {thisRun?.warning ? (
-                <p className="pb-1 font-mono text-[10px] text-slow">{thisRun.warning}</p>
+                <p className="pb-1 font-mono text-meta text-slow">{thisRun.warning}</p>
               ) : null}
             </li>
           );
@@ -196,13 +196,13 @@ export function SampleSets({
           <div className="mt-2 flex items-center gap-2">
             <button
               onClick={() => void clearIndex()}
-              className="border border-critical/70 px-2 py-1 font-mono text-[10px] text-critical transition-colors hover:bg-critical/10"
+              className="border border-critical/70 px-2 py-1 font-mono text-meta text-critical transition-colors hover:bg-critical/10"
             >
               Remove everything
             </button>
             <button
               onClick={() => setConfirmClear(false)}
-              className="border border-line px-2 py-1 font-mono text-[10px] transition-colors hover:border-foreground/50"
+              className="border border-line px-2 py-1 font-mono text-meta transition-colors hover:border-foreground/50"
             >
               Keep
             </button>
@@ -211,15 +211,15 @@ export function SampleSets({
           <button
             onClick={() => setConfirmClear(true)}
             disabled={importing || clearDocuments.isPending}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1 font-mono text-[10px] text-subtle transition-colors hover:border-critical/70 hover:text-critical disabled:opacity-40"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1 font-mono text-meta text-subtle transition-colors hover:border-critical/70 hover:text-critical disabled:opacity-40"
           >
-            <BroomIcon size={12} />
+            <BroomIcon size={14} />
             Clear index
           </button>
         )
       ) : null}
 
-          {notice ? <p className="mt-2 font-mono text-[10px] text-subtle">{notice}</p> : null}
+          {notice ? <p className="mt-2 font-mono text-meta text-subtle">{notice}</p> : null}
         </>
       )}
     </div>

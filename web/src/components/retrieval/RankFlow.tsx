@@ -9,7 +9,7 @@ import type { Candidate, StageRecord } from "../../lib/types";
  * This component knows nothing about BM25, vectors, fusion or reranking. It reads
  * `candidates_out` from any stage that has one and draws the movement between adjacent
  * stages. That is the payoff of making `Candidate` the universal currency of the
- * retrieval half — a retrieval technique added later appears here for free.
+ * retrieval half: a retrieval technique added later appears here for free.
  *
  * Hand-rolled SVG rather than a charting library: a bump chart is about eighty lines of
  * geometry, and owning it keeps the hairline-and-monochrome treatment exact.
@@ -129,7 +129,7 @@ export function RankFlow({ stages, onSelect, selected }: RankFlowProps) {
               x={PAD.left - 10}
               y={y(rank) + 3}
               textAnchor="end"
-              className="fill-current font-mono text-[9px] opacity-35"
+              className="fill-current font-mono text-label opacity-35"
             >
               {rank}
             </text>
@@ -152,7 +152,7 @@ export function RankFlow({ stages, onSelect, selected }: RankFlowProps) {
               x={x(i)}
               y={height - PAD.bottom + 20}
               textAnchor="middle"
-              className="fill-current font-display text-[10px] tracking-[0.12em] uppercase opacity-70"
+              className="fill-current font-display text-meta tracking-[0.12em] uppercase opacity-70"
             >
               {SHORT[col.name] ?? col.name}
             </text>
@@ -160,7 +160,7 @@ export function RankFlow({ stages, onSelect, selected }: RankFlowProps) {
               x={x(i)}
               y={PAD.top - 16}
               textAnchor="middle"
-              className="fill-current font-mono text-[9px] opacity-40"
+              className="fill-current font-mono text-label opacity-40"
             >
               {col.duration_ms.toFixed(1)}ms
             </text>

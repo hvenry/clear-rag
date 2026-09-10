@@ -1,8 +1,8 @@
 """Synthetic PDF builders for parser tests.
 
 Every fixture draws text at explicit coordinates with reportlab, so each geometric
-property the primitives parser infers — column gutters, heading sizes, table alignment,
-repeated footers — was planted deliberately and the assertions test inference, not luck.
+property the primitives parser infers (column gutters, heading sizes, table alignment,
+repeated footers) was planted deliberately and the assertions test inference, not luck.
 """
 
 from __future__ import annotations

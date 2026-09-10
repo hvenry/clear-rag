@@ -51,7 +51,7 @@ class PipelineConfig(BaseModel):
         description="Contextual retrieval: what to prepend to each chunk at index time. "
         "'breadcrumb' is a deterministic heading path derived from parse structure; 'llm' is "
         "an Anthropic-style situating sentence generated per chunk (cached by content hash). "
-        "Stored chunk text, spans and citations are never touched — only the indexed text.",
+        "Stored chunk text, spans and citations are never touched, only the indexed text.",
     )
 
     # ── Retrieval ──

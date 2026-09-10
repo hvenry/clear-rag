@@ -5,13 +5,14 @@ import type { RuntimeStatus } from "../lib/types";
 import { api } from "../lib/api";
 import { KeyValueRow } from "../components/KeyValueRow";
 import { AnchoredPopover, useHoverMenu } from "../components/Popover";
+import { headerControl } from "./headerControl";
 import { useConfig } from "../lib/queries";
 
 /**
  * What the inference runtime is doing right now: which models are resident, how much of
  * each is in VRAM, and what context size they were loaded at.
  *
- * The colour policy applies unchanged — a healthy runtime is uncoloured. The one number
+ * The colour policy applies unchanged: a healthy runtime is uncoloured. The one number
  * that earns colour is the GPU share, because a model split between VRAM and system RAM
  * still answers correctly, just an order of magnitude slower, and nothing else in the
  * interface would ever say so.
@@ -47,7 +48,7 @@ export function RuntimePanel() {
   const spilled = !status.fully_on_gpu;
 
   // The configured chat model, when it is not among the resident ones. The panel
-  // shows runtime reality, not configuration — but reality should say when the
+  // shows runtime reality, not configuration. But reality should say when the
   // model you just selected has not been loaded yet.
   const configuredChat = config?.providers.chat.model ?? null;
   const chatNotLoaded =
@@ -60,19 +61,10 @@ export function RuntimePanel() {
         ref={triggerRef}
         onClick={menu.toggle}
         {...menu.hover}
-        className={[
-          "flex cursor-default items-center gap-2 border px-2 py-1 font-mono text-[10px] transition-colors",
-          menu.open ? "border-foreground/50" : "border-line hover:border-foreground/40",
-          // Amber stays amber — the spill colour is data, not chrome. Only the
-          // neutral state brightens on hover, matching the model chip beside it.
-          spilled
-            ? "text-slow"
-            : menu.open
-              ? "text-foreground"
-              : "text-subtle hover:text-foreground"
-        ].join(" ")}
+        // Amber stays amber: the spill colour is data, not chrome.
+        className={`${headerControl(menu.open)} ${spilled ? "text-slow hover:text-slow" : ""}`}
       >
-        <GraphicsCardIcon size={12} className="shrink-0" />
+        <GraphicsCardIcon size={14} className="shrink-0" />
         <span className="tabular">{formatBytes(status.vram_bytes)}</span>
         <span>{spilled ? "partly CPU" : "100% GPU"}</span>
       </button>
@@ -91,16 +83,16 @@ export function RuntimePanel() {
             {status.models.map((model) => (
               <div key={model.name} className="mb-3 last:mb-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate font-mono text-[11px]">{model.name}</span>
+                  <span className="truncate font-mono text-ui">{model.name}</span>
                   <span
-                    className={`tabular font-mono text-[10px] ${
+                    className={`tabular font-mono text-meta ${
                       model.on_gpu_pct >= 100 ? "text-subtle" : "text-slow"
                     }`}
                   >
                     {model.on_gpu_pct >= 100 ? "100% GPU" : `${model.on_gpu_pct}% GPU`}
                   </span>
                 </div>
-                {/* GPU share as length, amber only when spilled — colour marks
+                {/* GPU share as length, amber only when spilled. Colour marks
                     the exception, and the % label always rides beside it. */}
                 <div className="mt-1 h-[4px] w-full bg-foreground/8">
                   <div
@@ -129,7 +121,7 @@ export function RuntimePanel() {
               </div>
             ))}
             {spilled ? (
-              <p className="mt-2 border-l-2 border-slow/60 pl-2 text-[10px] leading-relaxed text-muted">
+              <p className="mt-2 border-l-2 border-slow/60 pl-2 text-meta leading-relaxed text-muted">
                 Part of a resident model is running on the CPU. Ollama splits a model
                 that does not fit in VRAM rather than refusing it, and generation slows
                 by roughly an order of magnitude. Use a smaller model or a smaller
@@ -137,14 +129,14 @@ export function RuntimePanel() {
               </p>
             ) : null}
             {chatNotLoaded ? (
-              <p className="mt-2 border-l-2 border-line pl-2 text-[10px] leading-relaxed text-muted">
+              <p className="mt-2 border-l-2 border-line pl-2 text-meta leading-relaxed text-muted">
                 The configured chat model{" "}
                 <span className="font-mono text-foreground">{configuredChat}</span> is not
-                loaded yet — Ollama loads it on your first question, which costs a cold
+                loaded yet. Ollama loads it on your first question, which costs a cold
                 start. Models shown above stay resident until their timers expire.
               </p>
             ) : null}
-            <p className="mt-2 border-t border-line pt-2 text-[10px] leading-relaxed text-muted">
+            <p className="mt-2 border-t border-line pt-2 text-meta leading-relaxed text-muted">
               Context is the window the model was <em>loaded</em> with. A query asking for a
               different one forces a reload, which costs the same as a cold start.
             </p>

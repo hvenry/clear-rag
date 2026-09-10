@@ -1,4 +1,4 @@
-/** One label · value line in a popover card or readout — mono, small, baseline-aligned. */
+/** One label · value line in a popover card or readout: mono, small, baseline-aligned. */
 export function KeyValueRow({
   label,
   value,
@@ -10,8 +10,8 @@ export function KeyValueRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="font-mono text-[10px] text-subtle">{label}</dt>
-      <dd className={`tabular truncate font-mono text-[10px] ${valueClassName}`}>{value}</dd>
+      <dt className="font-mono text-meta text-subtle">{label}</dt>
+      <dd className={`tabular truncate font-mono text-ui ${valueClassName}`}>{value}</dd>
     </div>
   );
 }

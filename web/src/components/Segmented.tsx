@@ -4,13 +4,13 @@ import { useRef } from "react";
 import { HintCard, useHoverMenu } from "./Popover";
 
 /**
- * The segmented control — one bordered strip of mutually exclusive options.
+ * The segmented control: one bordered strip of mutually exclusive options.
  *
  * This pattern appeared three times (Lab knobs, the Library's mode switch, the
  * chunk inspector's view switch) with drifting styles. One component, two variants:
  * `mono` for dense settings rows, `display` for view-level switches.
  *
- * Option hints render two ways: the default CSS tooltip, or — with `hintFlyout` —
+ * Option hints render two ways: the default CSS tooltip, or, with `hintFlyout`,
  * a portalled hover card that no scroll or overflow container can clip: "right"
  * flies it out beside a side rail, "below" drops it under a menu bar, matching
  * the header nav's dropdowns.
@@ -20,7 +20,7 @@ export interface SegmentedOption<T extends string> {
   label: string;
   icon?: Icon;
   hint?: string;
-  /** Shown but not selectable — a value the config allows but nothing implements yet. */
+  /** Shown but not selectable: a value the config allows but nothing implements yet. */
   disabled?: boolean;
 }
 
@@ -76,15 +76,15 @@ function OptionButton<T extends string>({
   hintFlyout?: "right" | "below";
   onSelect: () => void;
 }) {
-  const menu = useHoverMenu(150, 250);
+  const menu = useHoverMenu(150);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const flyout = hintFlyout !== undefined && option.hint !== undefined;
   const OptionIcon = option.icon;
 
   const face =
     variant === "display"
-      ? "gap-1.5 px-2 py-1.5 font-display text-[10px] tracking-[0.14em] uppercase"
-      : "gap-1.5 px-2.5 py-1 font-mono text-[10px]";
+      ? "gap-1.5 px-2 py-1.5 font-display text-meta tracking-[0.14em] uppercase"
+      : "gap-1.5 px-2.5 py-1 font-mono text-meta";
 
   return (
     <>
@@ -101,14 +101,14 @@ function OptionButton<T extends string>({
           face,
           active
             ? "z-10 border-foreground/60 bg-foreground text-background"
-            : "border-line text-subtle hover:border-foreground/40 hover:text-foreground",
+            : "border-line text-subtle hover:border-foreground/50 hover:text-foreground",
           option.disabled ? "opacity-45" : "",
           "disabled:pointer-events-none"
         ]
           .filter(Boolean)
           .join(" ")}
       >
-        {OptionIcon ? <OptionIcon size={variant === "display" ? 12 : 11} /> : null}
+        {OptionIcon ? <OptionIcon size={14} /> : null}
         {option.label}
       </button>
 

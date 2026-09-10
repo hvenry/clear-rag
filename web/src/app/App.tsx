@@ -10,13 +10,13 @@ import { Layout } from "./Layout";
 import { NotFound } from "./NotFound";
 
 /**
- * Route map. Navigation is URL state — every view, document and topic is a
+ * Route map. Navigation is URL state: every view, document and topic is a
  * deep-linkable address, and the back button means what it says:
  *
  *   /chat                the conversation
  *   /library             document list · /library/map the embedding map
  *   /library/:docId      one document's chunks (citation spans arrive in
- *                        location.state — an ephemeral highlight is not an address)
+ *                        location.state, since an ephemeral highlight is not an address)
  *   /lab                 side-by-side experiment runs
  *   /results/:suite      the committed benchmark tables, explorable
  *   /learn/:topicId      one concept page

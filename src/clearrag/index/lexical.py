@@ -80,7 +80,7 @@ class LexicalIndex:
         Only chunks that appear in some query term's postings list are scored, which is
         the entire point of an inverted index: the corpus size stops mattering and only
         the number of matching documents does. ``allowed`` restricts scoring to those
-        chunk ids — applied while accumulating, so top-k is drawn from the scope.
+        chunk ids, applied while accumulating, so top-k is drawn from the scope.
         """
         if self.n_docs == 0:
             return []

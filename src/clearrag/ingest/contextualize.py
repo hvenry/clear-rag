@@ -2,15 +2,15 @@
 
 The problem being solved: a chunk that says "the Company's revenue grew 12%" is
 unambiguous inside its document and meaningless in an index holding three companies'
-filings. Prepending situating context to the *indexed* text (never the stored text —
+filings. Prepending situating context to the *indexed* text (never the stored text;
 spans, citations and highlighting are untouched) disambiguates it for both the
 embedder and BM25.
 
 Two modes, and the difference is the ablation's headline question:
 
-- **breadcrumb** — deterministic, free: the document label plus the heading path above
+- **breadcrumb**: deterministic, free: the document label plus the heading path above
   the chunk, straight from parse structure. Reproducible in CI with fake providers.
-- **llm** — the Anthropic technique: a model writes one or two situating sentences per
+- **llm**: the Anthropic technique: a model writes one or two situating sentences per
   chunk. Costs one generation per chunk at index time, cached by content hash so
   re-indexing an unchanged document is free. Does it beat the free breadcrumb? That is
   what the table is for.
@@ -96,7 +96,7 @@ async def apply_llm_context(
     """LLM-written context per chunk, cached in the store by content.
 
     A provider failure on one chunk degrades that chunk to a breadcrumb rather than
-    failing the whole ingestion — index-time context is an enhancement, not a
+    failing the whole ingestion, because index-time context is an enhancement, not a
     correctness requirement.
     """
     out: list[Chunk] = []

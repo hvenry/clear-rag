@@ -1,6 +1,6 @@
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { IconButton } from "../components/IconButton";
+import { headerControl } from "./headerControl";
 
 type Theme = "dark" | "light";
 
@@ -23,17 +23,18 @@ export function ThemeToggle() {
     }
   }, [theme]);
 
-  // The icon shows what you would switch TO — sun in the dark, moon in the light —
+  // The icon shows what you would switch TO (sun in the dark, moon in the light),
   // matching how every OS quick-settings tile reads.
   const next: Theme = theme === "dark" ? "light" : "dark";
   const NextIcon = next === "light" ? SunIcon : MoonIcon;
 
   return (
-    <IconButton
-      label={`Switch to ${next} theme`}
+    <button
+      aria-label={`Switch to ${next} theme`}
       onClick={() => setTheme(next)}
+      className={`${headerControl()} cursor-pointer`}
     >
-      <NextIcon size={13} />
-    </IconButton>
+      <NextIcon size={16} />
+    </button>
   );
 }

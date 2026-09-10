@@ -290,7 +290,7 @@ def _ablate(settings, args) -> int:
     if args.suite == "sec":
         variants, skipped = sec_variants()
         for name in skipped:
-            print(f"note: {name} backend not installed — pip install -e '.[{name}]'")
+            print(f"note: {name} backend not installed; pip install -e '.[{name}]'")
     elif args.suite == "attribution":
         variants = attribution_variants()
         if not args.generate:
@@ -299,7 +299,7 @@ def _ablate(settings, args) -> int:
         embedders, missing = _embedders_to_sweep(settings, args)
         variants = standard_variants(embedders=embedders)
         for name in missing:
-            print(f"note: embedding model {name} not pulled — ollama pull {name}")
+            print(f"note: embedding model {name} not pulled; ollama pull {name}")
 
     print(
         f"Sweeping {len(variants)} configurations ({'fake' if args.fake else 'real'} providers)…\n"

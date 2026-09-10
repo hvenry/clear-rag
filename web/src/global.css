@@ -12,8 +12,12 @@
    Monochrome carries the interface; colour carries only data, and only where
    it means something. Two jobs, and nothing else gets a hue:
 
-     1. Retriever identity (categorical) — which search found a chunk.
-     2. Latency (exception marking) — a stage slow enough to be worth noticing.
+     1. Retriever identity (categorical): which search found a chunk.
+     2. Latency (exception marking): a stage slow enough to be worth noticing.
+     3. Direction of a measured delta: a metric that rose or fell against a
+        pinned baseline. Green up, red down; the sign is always printed too.
+     4. The pinned baseline itself: the one row every other row is read
+        against, and, in orange, the settings on other rows that differ from it.
 
    Fast stages are deliberately uncoloured. Colour marks the exception, not the
    normal case, which keeps the interface calm and makes a slow stage jump out.
@@ -26,9 +30,9 @@
      light #2a78d6 #1baf7a #c98500 #d03b3b  --pairs all -> PASS
 
    Two warnings are outstanding and are mitigated by construction:
-     · dark red<->aqua CVD dE 7.2 (in the 6-8 band) — legal only with secondary
+     · dark red<->aqua CVD dE 7.2 (in the 6-8 band): legal only with secondary
        encoding, so every coloured mark ships a visible text label beside it.
-     · light aqua contrast 2.82 (just under 3:1) — same mitigation; the label
+     · light aqua contrast 2.82 (just under 3:1): same mitigation; the label
        carries the meaning and the colour only reinforces it.
 
    Never encode anything in colour alone.
@@ -58,8 +62,16 @@
   --viz-slow: 201 133 0; /* #c98500 amber */
   --viz-critical: 208 59 59; /* #d03b3b red   */
 
+  /* ── Data colour: delta direction ── */
+  --viz-gain: 0 131 0; /* #008300 green, mode-invariant, passes on both */
+  --viz-loss: 208 59 59; /* #d03b3b red */
+
+  /* ── Data colour: the pinned baseline, and what differs from it ── */
+  --viz-pin: 57 135 229; /* #3987e5 blue, the validated slot-1 hue */
+  --viz-diff: 217 89 38; /* #d95926 orange, the validated slot-2 hue */
+
   /* ── Data colour: categorical identity (documents, telemetry series) ──
-     Eight fixed slots, assigned in order and never cycled — an entity past
+     Eight fixed slots, assigned in order and never cycled; an entity past
      slot 8 folds to neutral ink instead of inventing a hue. Validated with the
      data-viz validator against this app's pure-black surface:
        adjacent pairs  → PASS (worst CVD ΔE 8.4, normal-vision 19.3)
@@ -95,10 +107,12 @@
   --viz-keyword: 27 175 122; /* #1baf7a */
   --viz-both: 9 9 11;
 
-  --viz-slow: 201 133 0; /* #c98500 — mode-invariant, passes on both */
+  --viz-slow: 201 133 0; /* #c98500, mode-invariant, passes on both */
   --viz-critical: 208 59 59; /* #d03b3b */
+  --viz-pin: 42 120 214; /* #2a78d6 */
+  --viz-diff: 235 104 52; /* #eb6834 */
 
-  /* Same eight hues re-stepped for white — not an automatic flip. Validated on
+  /* Same eight hues re-stepped for white, not an automatic flip. Validated on
      pure #fff: adjacent pairs PASS (worst CVD ΔE 9.1, normal-vision 19.6);
      slots 3/4/5 sit under 3:1 contrast, which is legal here because every
      coloured mark in this app ships a visible text label beside it. */
@@ -123,6 +137,10 @@
   --color-keyword: rgb(var(--viz-keyword));
   --color-slow: rgb(var(--viz-slow));
   --color-critical: rgb(var(--viz-critical));
+  --color-gain: rgb(var(--viz-gain));
+  --color-loss: rgb(var(--viz-loss));
+  --color-pin: rgb(var(--viz-pin));
+  --color-diff: rgb(var(--viz-diff));
 
   --color-cat-1: rgb(var(--viz-cat-1));
   --color-cat-2: rgb(var(--viz-cat-2));
@@ -133,6 +151,22 @@
   --color-cat-7: rgb(var(--viz-cat-7));
   --color-cat-8: rgb(var(--viz-cat-8));
 
+  /* ── Type scale ──
+     Five named steps, and nothing below 11px. Every size in the app is one of
+     these, so legibility is tuned here, once, instead of per element. */
+  --text-label: 11px; /* display labels, table headers, chips */
+  --text-label--line-height: 1.4;
+  --text-meta: 12px; /* metadata, mono readouts */
+  --text-meta--line-height: 1.5;
+  --text-ui: 13px; /* controls, table cells, list items */
+  --text-ui--line-height: 1.5;
+  --text-body: 14px; /* descriptive prose */
+  --text-body--line-height: 1.6;
+  --text-lead: 15.5px; /* leads and small titles */
+  --text-lead--line-height: 1.5;
+  --text-stat: 15px; /* a number meant to be read at a glance */
+  --text-stat--line-height: 1.3;
+
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Oswald", Impact, Haettenschweiler, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -140,8 +174,12 @@
 
 /* ═══ Base ═══ */
 
-* {
-  border-color: rgb(var(--line) / var(--line-alpha));
+/* Inside the base layer on purpose: an unlayered `*` rule outranks every Tailwind
+   utility, which silently killed border-colour utilities such as focus:border-*. */
+@layer base {
+  * {
+    border-color: rgb(var(--line) / var(--line-alpha));
+  }
 }
 
 html,
@@ -170,11 +208,27 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Scroll regions keep their momentum to themselves — reaching the end of a table
-   must not start scrolling the page behind it. */
-[class*="overflow-y-auto"],
-[class*="overflow-x-auto"] {
-  overscroll-behavior: contain;
+/* Scroll regions keep their momentum to themselves: reaching the end of a list
+   must not start scrolling the page behind it. Contained per axis: a table that
+   only scrolls sideways must still let a vertical wheel reach the page. */
+[class*="overflow-y-auto"]:not(.scroll-chain) {
+  overscroll-behavior-y: contain;
+}
+
+/* Every vertical scroll region reserves its scrollbar's width up front, so content
+   growing past the fold (a pinned row revealing its questions, an answer streaming
+   in) never shifts the whole page sideways when the bar appears. */
+[class*="overflow-y-auto"] {
+  scrollbar-gutter: stable;
+}
+[class*="overflow-x-auto"]:not(.scroll-chain) {
+  overscroll-behavior-x: contain;
+}
+
+/* A capped table inside a scrolling page is the exception: reaching its end should
+   hand the wheel to the page, or the reader is stuck at the panel's bottom edge. */
+.scroll-chain {
+  overscroll-behavior: auto;
 }
 
 /* A container with overflow-y: auto silently computes overflow-x to auto as well, so
@@ -185,7 +239,7 @@ body {
   overflow-x: hidden;
 }
 
-/* "manipulation" keeps panning and pinch gestures but removes double-tap-to-zoom —
+/* "manipulation" keeps panning and pinch gestures but removes double-tap-to-zoom,
    which is what made tapping the chat log or the menu bar lurch the viewport. */
 @media (pointer: coarse) {
   * {
@@ -194,7 +248,7 @@ body {
 }
 
 /* iOS zooms the page when a focused input's font is under 16px. On touch devices,
-   inputs get 16px regardless of their utility class — losing the zoom jump is worth
+   inputs get 16px regardless of their utility class, because losing the zoom jump is worth
    more than the type-scale purity. */
 @media (pointer: coarse) {
   input,
@@ -215,20 +269,16 @@ label:has(> input[type="file"]) {
   cursor: pointer;
 }
 
-span.hint,
-p.hint,
-th.hint,
-h3.hint,
-label.hint {
-  cursor: help;
-}
 
 ::selection {
   background: rgb(var(--foreground));
   color: rgb(var(--background));
 }
 
-:focus-visible {
+/* The keyboard focus ring. It is an unlayered rule, so a utility class cannot
+   override it; elements that show focus their own way (the ask box brightens
+   its border) opt out with .no-ring. */
+:focus-visible:not(.no-ring) {
   outline: 1px solid rgb(var(--foreground));
   outline-offset: 2px;
 }
@@ -272,7 +322,7 @@ label.hint {
    a popover, and at 0.72 alpha on a pure-black surface even a 7% bleed of large
    bright text stays readable. The near-opaque fill guarantees unreadability on
    its own; the blur frosts the sliver that remains where backdrop-filter renders.
-   (Header dropdowns must also be portalled out of the header — a nested
+   (Header dropdowns must also be portalled out of the header, because a nested
    backdrop-filter cannot sample page content outside a filtered ancestor.) */
 @utility glass-popover {
   background: rgb(var(--background) / 0.97);
@@ -316,7 +366,8 @@ label.hint {
   opacity: 0.55;
 }
 
-.rule-dashed {
+/* Utilities rather than plain classes, so responsive variants (lg:rule-dashed-v) work. */
+@utility rule-dashed {
   height: 1px;
   background-image: repeating-linear-gradient(
     90deg,
@@ -325,12 +376,46 @@ label.hint {
   );
 }
 
+/* The same rule stood on end, for separating things laid out side by side. */
+@utility rule-dashed-v {
+  width: 1px;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgb(var(--foreground) / 0.35) 0 8px,
+    transparent 8px 14px
+  );
+}
+
 /* ═══ Tooltips ═══ */
 /* CSS-only, so a hint costs no state and no library. Anchored below by default;
-   .hint-right flips it beside the trigger for elements near the bottom edge. */
+   .hint-right flips it beside the trigger for elements near the bottom edge.
+
+   Every hover surface in the app (these hints, the hint cards, the header
+   menus) opens instantly and sits the same --hint-gap from its trigger, and the
+   trigger itself answers the hover: ink colour and a dotted underline, instead
+   of a question-mark cursor. */
+
+:root {
+  --hint-gap: 6px;
+}
 
 .hint {
   position: relative;
+  transition: color 0.12s ease;
+}
+
+@media (hover: hover) {
+  /* The underline uses the element's own colour, never a fixed ink: a selected
+     chip is ink-on-paper inverted, and a fixed colour would erase its label. */
+  .hint:hover {
+    text-decoration: underline dotted;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+    text-underline-offset: 3px;
+  }
+  /* Block triggers (stat tiles, cards) answer with their border, not an underline. */
+  .hint-block:hover {
+    text-decoration: none;
+  }
 }
 
 /* Hidden hints are display:none, not opacity:0. An invisible box still occupies
@@ -342,17 +427,17 @@ label.hint {
 .hint::after {
   content: attr(data-hint);
   position: absolute;
-  top: calc(100% + 7px);
+  top: calc(100% + var(--hint-gap));
   left: 0;
   z-index: 60;
   width: max-content;
-  max-width: 19rem;
-  padding: 0.5rem 0.625rem;
+  max-width: 22rem;
+  padding: 0.625rem 0.75rem;
   white-space: normal;
   text-align: left;
   font-family: var(--font-sans);
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: var(--text-ui);
+  line-height: 1.55;
   /* Hints inherit from their trigger; a hint on an uppercase tracked-out table
      header must still read as a sentence. */
   text-transform: none;
@@ -380,12 +465,11 @@ label.hint {
 /* Touch has no hover: a tapped element keeps :hover until the next tap, leaving
    tooltips stuck over the content. Hover-triggered hints exist only where hover is
    a real capability; focus-visible keeps them for keyboard users everywhere.
-   The 0.4s delay makes hints appear on intent, not on transit; `both` keeps the
-   tooltip invisible while the delay runs. Hiding is instant. */
+   Hints open at once: the trigger's own hover state is the intent signal. */
 @media (hover: hover) {
   .hint:hover::after {
     display: block;
-    animation: hint-fade 0.14s ease 0.4s both;
+    animation: hint-fade 0.12s ease both;
   }
 }
 .hint:focus-visible::after {
@@ -395,7 +479,7 @@ label.hint {
 
 .hint-right::after {
   top: 50%;
-  left: calc(100% + 9px);
+  left: calc(100% + var(--hint-gap));
   transform: translateY(-50%);
 }
 
@@ -475,8 +559,8 @@ label.hint {
    A token, not a component: the markup varies (h2/h3/span/div), the look must not. */
 @utility menu-label {
   font-family: var(--font-display);
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-label);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--subtle));
 }

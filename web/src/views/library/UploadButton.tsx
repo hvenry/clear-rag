@@ -18,11 +18,11 @@ export function UploadButton({
     <label
       className={[
         "inline-flex cursor-pointer items-center justify-center gap-1.5 border border-line font-display tracking-[0.14em] uppercase transition-colors hover:border-foreground/50",
-        compact ? "w-full px-2 py-1.5 text-[10px]" : "px-3 py-1.5 text-[11px]",
+        compact ? "w-full px-2 py-1.5 text-meta" : "px-3 py-1.5 text-ui",
         busy ? "pointer-events-none opacity-40" : ""
       ].join(" ")}
     >
-      <PlusIcon size={12} />
+      <PlusIcon size={14} />
       {busy ? "Indexing…" : "Add documents"}
       <input
         type="file"

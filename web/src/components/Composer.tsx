@@ -1,10 +1,10 @@
-import { PaperPlaneRightIcon } from "@phosphor-icons/react";
+import { ArrowUpIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 /**
  * The ask box: auto-growing textarea plus submit, Enter to send. Chat and the Lab
  * each had a hand-rolled copy of this; the differences that matter (leading
- * controls, button label, disabled logic) are props, everything else is shared.
+ * controls, accessible label, disabled logic) are props, everything else is shared.
  */
 export function Composer({
   value,
@@ -28,17 +28,21 @@ export function Composer({
   notice?: string | null;
 }) {
   return (
-    <div className="glass-strong border-x-0 border-b-0">
+    <div className="glass-strong border-0">
       <div className="mx-auto w-full max-w-4xl px-3 py-3 sm:px-5 sm:py-4">
-        {notice ? <p className="mb-2 font-mono text-[10px] text-subtle">{notice}</p> : null}
+        {notice ? <p className="mb-2 font-mono text-meta text-subtle">{notice}</p> : null}
         <div className="flex items-end gap-2">
           {leading}
           <textarea
             value={value}
             onChange={(e) => {
               onChange(e.target.value);
-              e.currentTarget.style.height = "auto";
-              e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              // scrollHeight excludes the border; add it back or the box loses two
+              // pixels on the first keystroke and everything above it shifts.
+              const border = el.offsetHeight - el.clientHeight;
+              el.style.height = `${el.scrollHeight + border}px`;
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -48,21 +52,26 @@ export function Composer({
             }}
             rows={1}
             placeholder={placeholder}
-            className="max-h-40 min-h-[42px] flex-1 resize-none border border-line bg-transparent px-3 py-2.5 text-[13px] outline-none transition-colors focus:border-foreground/45"
+            className="max-h-40 min-h-[42px] flex-1 resize-none border border-line bg-transparent px-3 py-2.5 text-body leading-5 outline-none transition-colors hover:border-foreground/50 focus:border-foreground/90 no-ring"
           />
           <button
             onClick={onSubmit}
             disabled={disabled || !value.trim()}
+            aria-label={actionLabel}
             data-hint={actionHint}
             className={[
-              actionHint ? "hint hint-end" : "",
-              "flex h-[42px] items-center gap-1.5 border border-line px-4 font-display text-[11px] tracking-[0.16em] uppercase transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background disabled:pointer-events-none disabled:opacity-30"
+              actionHint ? "hint hint-end hint-block" : "",
+              // Same border as the textarea beside it. Empty: an outline. With text:
+              // filled ink with a paper arrow, so the ready state is unmistakable.
+              "flex h-[42px] w-[42px] shrink-0 items-center justify-center border transition-colors",
+              value.trim() && !disabled
+                ? "border-foreground bg-foreground text-background hover:bg-foreground/85"
+                : "border-line text-subtle disabled:pointer-events-none"
             ]
               .filter(Boolean)
               .join(" ")}
           >
-            <PaperPlaneRightIcon size={12} />
-            {actionLabel}
+            <ArrowUpIcon size={18} weight="bold" />
           </button>
         </div>
       </div>

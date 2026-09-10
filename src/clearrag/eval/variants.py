@@ -54,7 +54,7 @@ def standard_variants(embedders: Sequence[str] = ()) -> list[Variant]:
             "dense only, 50% overlap (2024 baseline)",
             BASE.model_copy(update={"retrieval": "dense", "chunk_size": 512, "chunk_overlap": 256}),
         ),
-        # Same retrieval, sane overlap — isolates the cost of the overlap alone.
+        # Same retrieval, sane overlap; isolates the cost of the overlap alone.
         ("dense only", BASE.model_copy(update={"retrieval": "dense"})),
         ("keyword only (BM25)", BASE.model_copy(update={"retrieval": "lexical"})),
         (
@@ -153,7 +153,7 @@ _SEC_BASE = BASE.model_copy(update={"retrieval": "hybrid", "fusion": "rrf", "rer
 def sec_variants() -> tuple[list[Variant], list[str]]:
     """The Phase 4 sweep: parser × chunker × context, one dimension at a time.
 
-    Returns ``(variants, skipped_backends)`` — heavyweight parser backends that are
+    Returns ``(variants, skipped_backends)``: heavyweight parser backends that are
     not installed are omitted rather than crashing the sweep, and named so the CLI
     can say how to add them.
     """

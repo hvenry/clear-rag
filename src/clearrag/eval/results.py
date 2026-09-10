@@ -145,7 +145,7 @@ def merge_parse_quality(
 
 
 def _fmt(value: float | None) -> str:
-    return "—" if value is None else f"{value:.3f}"
+    return "n/a" if value is None else f"{value:.3f}"
 
 
 def _model_short(provenance: dict[str, Any]) -> str:

@@ -2,11 +2,11 @@ import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
 /**
- * A styled listbox — the app's monochrome answer to the OS-default `<select>`.
+ * A styled listbox: the app's monochrome answer to the OS-default `<select>`.
  *
  * Deliberately NOT portalled: it positions absolutely inside its own subtree, so
  * a parent that closes on focus-out (the ConfigMenu card) still counts a click on
- * an option as "inside". The cost is that a clipping ancestor could cut it off —
+ * an option as "inside". The cost is that a clipping ancestor could cut it off:
  * fine in popover cards, which don't clip; use with care inside scroll containers.
  * The list background is solid, not glass: a nested backdrop-filter inside an
  * already-filtered card silently no-ops.
@@ -48,14 +48,14 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={[
-          "flex w-full items-center justify-between gap-2 border bg-transparent px-2 py-1 font-mono text-[11px] outline-none transition-colors",
-          open ? "border-foreground/50" : "border-line hover:border-foreground/40",
+          "flex w-full items-center justify-between gap-2 border bg-transparent px-2 py-1 font-mono text-ui outline-none transition-colors",
+          open ? "border-foreground/50" : "border-line hover:border-foreground/50",
           "focus-visible:border-foreground/45"
         ].join(" ")}
       >
         <span className="truncate">{value}</span>
         <CaretDownIcon
-          size={11}
+          size={14}
           className={`shrink-0 text-subtle transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
@@ -78,14 +78,14 @@ export function Select({
                     setOpen(false);
                   }}
                   className={[
-                    "flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left font-mono text-[11px] transition-colors",
+                    "flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left font-mono text-ui transition-colors",
                     selected
                       ? "bg-foreground text-background"
                       : "text-muted hover:bg-foreground/8 hover:text-foreground"
                   ].join(" ")}
                 >
                   <span className="truncate">{name}</span>
-                  {selected ? <CheckIcon size={11} className="shrink-0" /> : null}
+                  {selected ? <CheckIcon size={14} className="shrink-0" /> : null}
                 </button>
               </li>
             );

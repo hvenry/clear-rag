@@ -6,7 +6,7 @@ export function Loader({ label }: { label?: string }) {
           <span key={i} className="loader-dot" style={{ animationDelay: `${i * 0.15}s` }} />
         ))}
       </div>
-      {label ? <span className="font-mono text-[10px] text-subtle">{label}</span> : null}
+      {label ? <span className="font-mono text-meta text-subtle">{label}</span> : null}
     </div>
   );
 }

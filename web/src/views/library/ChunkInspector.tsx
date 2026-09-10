@@ -23,7 +23,7 @@ import type { DocumentDetail } from "../../lib/types";
 
 /** The overlap-bands toggle: hover explains below (header-nav style), click toggles. */
 function BandsToggle({ showBands, onToggle }: { showBands: boolean; onToggle: () => void }) {
-  const menu = useHoverMenu(150, 250);
+  const menu = useHoverMenu(150);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -32,7 +32,7 @@ function BandsToggle({ showBands, onToggle }: { showBands: boolean; onToggle: ()
         ref={triggerRef}
         onClick={onToggle}
         {...menu.hover}
-        className="border border-line px-2 py-1 font-mono text-[10px] transition-colors hover:border-foreground/50"
+        className="border border-line px-2 py-1 font-mono text-meta transition-colors hover:border-foreground/50"
       >
         {showBands ? "hide bands" : "show bands"}
       </button>
@@ -40,13 +40,13 @@ function BandsToggle({ showBands, onToggle }: { showBands: boolean; onToggle: ()
         anchorRef={triggerRef}
         menu={menu}
         placement="below"
-        text="Shade the text by how many chunks cover it. A darker band is text that appears in two chunks at once — the overlap window, which exists so an answer spanning a boundary is still retrievable."
+        text="Shade the text by how many chunks cover it. A darker band is text that appears in two chunks at once: the overlap window, which exists so an answer spanning a boundary is still retrievable."
       />
     </>
   );
 }
 
-/** How each non-PDF format is extracted — fixed per format, not a backend choice. */
+/** How each non-PDF format is extracted: fixed per format, not a backend choice. */
 const FORMAT_EXTRACTORS: Record<string, string> = {
   md: "markdown",
   markdown: "markdown",
@@ -68,11 +68,11 @@ function MetaCell({
 }) {
   return (
     <div className={wide ? "col-span-2 min-w-0" : "min-w-0"}>
-      <div className="flex items-center gap-1 font-display text-[9px] tracking-[0.14em] text-subtle uppercase">
-        <CellIcon size={10} aria-hidden />
+      <div className="flex items-center gap-1 menu-label">
+        <CellIcon size={14} aria-hidden />
         {label}
       </div>
-      <div className="tabular mt-0.5 truncate font-mono text-[10px]" title={value}>
+      <div className="tabular mt-0.5 truncate font-mono text-meta" title={value}>
         {value}
       </div>
     </div>
@@ -81,7 +81,7 @@ function MetaCell({
 
 /**
  * The document's vital signs: parse-level stats plus what its chunks and vectors
- * were actually built with — the settings stamped at ingest (and re-stamped on
+ * were actually built with: the settings stamped at ingest (and re-stamped on
  * re-index), not whatever the config currently says. Documents indexed before
  * stamping existed show only their stats and ingestion time.
  */
@@ -158,7 +158,7 @@ function MetaGrid({
  *
  * Hover state is tracked per CHUNK, not per text segment. Overlap cuts every chunk
  * into up to three segments, and the earlier per-segment hover flipped highlight and
- * readout at each cut — the flicker. A hovered overlap segment now keeps the chunk
+ * readout at each cut, which was the flicker. A hovered overlap segment now keeps the chunk
  * you came from, so the highlight is stable across a whole chunk, and clicking pins
  * a chunk so the readout survives the mouse leaving.
  */
@@ -201,7 +201,7 @@ export function ChunkInspector({
   /**
    * Chunks overlap by design, so their spans cannot be rendered as a flat list of
    * ranges. The text is cut at every boundary instead, producing disjoint segments
-   * each of which knows how many chunks cover it — which is exactly what makes the
+   * each of which knows how many chunks cover it, which is exactly what makes the
    * overlap regions visible as darker bands.
    */
   const segments = useMemo(() => {
@@ -235,7 +235,7 @@ export function ChunkInspector({
   const focusOrdinal = pinned ?? hovered;
   const focusChunk = doc?.chunks.find((c) => c.ordinal === focusOrdinal) ?? null;
   // Ordinals are stored 0-based; people count chunks from 1, and the header
-  // says "N chunks" — so every displayed chunk number is 1-based.
+  // says "N chunks", so every displayed chunk number is 1-based.
   const focusNo = focusChunk ? focusChunk.ordinal + 1 : null;
 
   /** Stable hover: entering an overlap segment keeps the chunk we came from. */
@@ -246,7 +246,7 @@ export function ChunkInspector({
     });
   };
 
-  /** Centre a chunk's rendered region — not just its first character — in the view. */
+  /** Centre a chunk's rendered region (not just its first character) in the view. */
   const scrollToChunk = (ordinal: number) => {
     const el = textRef.current;
     if (!el) return;
@@ -262,10 +262,10 @@ export function ChunkInspector({
   };
 
   /**
-   * Where the reader is, as a chunk — measured from the rendered layout, not
+   * Where the reader is, as a chunk, measured from the rendered layout, not
    * estimated from character counts (wrapping makes rendered height per char
    * uneven, which drifted the indicator off small chunks). The current chunk is
-   * the one whose region contains the viewport's centre line — the same line
+   * the one whose region contains the viewport's centre line, the same line
    * `scrollToChunk` centres on, so clicking a bar lands the indicator under that
    * bar. The scroll extremes are pinned: at the very top the reader is at chunk
    * one, at the very bottom the last chunk, whatever happens to sit at centre.
@@ -313,8 +313,8 @@ export function ChunkInspector({
       <div className="border-b border-line px-4 py-3">
         {/* Title and actions share one row; the metadata grid gets the full width below. */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-1.5 truncate font-display text-[13px] tracking-wide">
-            <FileTextIcon size={14} className="shrink-0 text-subtle" />
+          <div className="flex min-w-0 items-center gap-1.5 truncate font-display text-body tracking-wide">
+            <FileTextIcon size={16} className="shrink-0 text-subtle" />
             {doc?.filename ?? "Loading…"}
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -336,7 +336,7 @@ export function ChunkInspector({
                 value: "structure",
                 label: "structure",
                 icon: TreeStructureIcon,
-                hint: "The typed structure the parser recovered — headings, paragraphs, tables — before any chunking. This is what the structural chunker cuts along and what breadcrumb contexts are built from."
+                hint: "The typed structure the parser recovered (headings, paragraphs, tables) before any chunking. This is what the structural chunker cuts along and what breadcrumb contexts are built from."
               },
               {
                 value: "raw",
@@ -348,7 +348,7 @@ export function ChunkInspector({
           />
             {onClose ? (
               <IconButton label="Close document" onClick={onClose}>
-                <XIcon size={12} />
+                <XIcon size={14} />
               </IconButton>
             ) : null}
           </div>
@@ -356,16 +356,16 @@ export function ChunkInspector({
         {doc ? <MetaGrid doc={doc} stats={stats} /> : null}
       </div>
 
-      {error ? <p className="p-4 font-mono text-[11px] text-critical">{error}</p> : null}
+      {error ? <p className="p-4 font-mono text-ui text-critical">{error}</p> : null}
 
       {view === "chunks" && doc ? (
         <>
           {/* ── Chunk sizes at a glance: one thin bar per chunk ── */}
           <div className="border-b border-line px-4 py-2.5">
-            <div className="mb-1 flex items-center gap-1.5 font-display text-[9px] tracking-[0.16em] text-subtle uppercase">
-              <ChartBarIcon size={11} />
+            <div className="mb-1 flex items-center gap-1.5 menu-label">
+              <ChartBarIcon size={14} />
               Chunk sizes
-              <span className="tabular ml-auto font-mono text-[9px] normal-case">
+              <span className="tabular ml-auto font-mono text-label normal-case">
                 {focusChunk
                   ? `chunk ${focusNo} of ${doc.chunks.length} · ${focusChunk.span[1] - focusChunk.span[0]} chars`
                   : "hover or click a bar to locate a chunk"}
@@ -419,7 +419,7 @@ export function ChunkInspector({
 
           {/* ── Stable readout: chunk-level, pinned on click ── */}
           <div className="border-b border-line px-4 py-2">
-            <p className="tabular font-mono text-[10px]">
+            <p className="tabular font-mono text-meta">
               {focusChunk ? (
                 <>
                   <span className={pinned !== null ? "text-foreground" : "text-muted"}>
@@ -430,11 +430,11 @@ export function ChunkInspector({
                     · chars {focusChunk.span[0]}–{focusChunk.span[1]} ·{" "}
                     {focusChunk.span[1] - focusChunk.span[0]} chars
                     {focusChunk.page != null ? ` · page ${focusChunk.page}` : ""}
-                    {pinned !== null ? " · pinned — click again to release" : ""}
+                    {pinned !== null ? " · pinned, click again to release" : ""}
                   </span>
                   {focusChunk.context ? (
                     <span
-                      data-hint="Contextual retrieval: this preamble is prepended to the chunk when it is embedded and keyword-indexed. It is never part of the stored text — spans and citations are untouched."
+                      data-hint="Contextual retrieval: this preamble is prepended to the chunk when it is embedded and keyword-indexed. It is never part of the stored text, so spans and citations are untouched."
                       className="hint mt-0.5 block truncate text-subtle italic"
                     >
                       indexed as: “{focusChunk.context}”
@@ -453,7 +453,7 @@ export function ChunkInspector({
           <div
             ref={textRef}
             onScroll={onTextScroll}
-            className="flex-1 overflow-auto p-4 font-mono text-[12px] leading-[1.85] whitespace-pre-wrap"
+            className="flex-1 overflow-auto p-4 font-mono text-body leading-[1.85] whitespace-pre-wrap"
           >
             {segments.map((segment, i) => {
               const depth = segment.covering.length;
@@ -505,11 +505,11 @@ export function ChunkInspector({
         doc.blocks.length > 0 ? (
           <>
             <div className="border-b border-line px-4 py-2">
-              <p className="text-[11px] leading-relaxed text-subtle">
+              <p className="text-ui leading-relaxed text-subtle">
                 What the parser inferred from the file's geometry: headings sized by
                 level, tables boxed, paragraphs plain. The structural chunker cuts
                 along these boundaries, and breadcrumb contexts are these headings,
-                joined. A table shredded here was shredded at parse time — no
+                joined. A table shredded here was shredded at parse time, and no
                 retrieval setting downstream can reassemble it.
               </p>
             </div>
@@ -526,7 +526,7 @@ export function ChunkInspector({
 
                 return (
                   <div key={i} className="group mb-3 flex gap-3">
-                    <span className="tabular w-28 shrink-0 pt-0.5 text-right font-mono text-[9px] text-subtle opacity-60 transition-opacity group-hover:opacity-100">
+                    <span className="tabular w-28 shrink-0 pt-0.5 text-right font-mono text-label text-subtle opacity-60 transition-opacity group-hover:opacity-100">
                       {meta}
                     </span>
                     {block.kind === "heading" ? (
@@ -534,22 +534,22 @@ export function ChunkInspector({
                         className={[
                           "min-w-0 font-display tracking-wide",
                           block.level <= 1
-                            ? "text-[15px]"
+                            ? "text-lead"
                             : block.level === 2
-                              ? "text-[13px]"
-                              : "text-[12px] text-muted"
+                              ? "text-body"
+                              : "text-body text-muted"
                         ].join(" ")}
                       >
                         {text}
                       </h4>
                     ) : block.kind === "table" ? (
                       <div className="min-w-0 overflow-x-auto border border-line bg-foreground/3 px-3 py-2">
-                        <pre className="font-mono text-[11px] leading-[1.7] whitespace-pre">
+                        <pre className="font-mono text-ui leading-[1.7] whitespace-pre">
                           {text}
                         </pre>
                       </div>
                     ) : (
-                      <p className="min-w-0 font-mono text-[11.5px] leading-[1.8] whitespace-pre-wrap text-muted">
+                      <p className="min-w-0 font-mono text-ui leading-[1.8] whitespace-pre-wrap text-muted">
                         {text}
                       </p>
                     )}
@@ -560,8 +560,8 @@ export function ChunkInspector({
           </>
         ) : (
           <div className="p-4">
-            <p className="text-[12px] leading-relaxed text-muted">
-              The parser found no structure in this document — no headings, tables or
+            <p className="text-body leading-relaxed text-muted">
+              The parser found no structure in this document: no headings, tables or
               paragraph blocks to draw. Plain text files and PDFs ingested before the
               structural parser existed both land here; re-uploading a PDF under the
               primitives backend will populate this view.
@@ -573,13 +573,13 @@ export function ChunkInspector({
       {view === "raw" && doc ? (
         <>
           <div className="border-b border-line px-4 py-2">
-            <p className="text-[11px] leading-relaxed text-subtle">
-              The parsed text, exactly as extracted from the file — what chunking,
+            <p className="text-ui leading-relaxed text-subtle">
+              The parsed text, exactly as extracted from the file, what chunking,
               indexing and retrieval all start from. If something looks wrong here, no
               retrieval setting downstream can fix it.
             </p>
           </div>
-          <div className="flex-1 overflow-auto p-4 font-mono text-[12px] leading-[1.85] whitespace-pre-wrap select-text">
+          <div className="flex-1 overflow-auto p-4 font-mono text-body leading-[1.85] whitespace-pre-wrap select-text">
             {doc.text}
           </div>
         </>

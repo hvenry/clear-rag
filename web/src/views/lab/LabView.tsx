@@ -1,12 +1,6 @@
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import {
-  ArrowCounterClockwiseIcon,
-  ChatsCircleIcon,
-  MagnifyingGlassIcon,
-  ScissorsIcon,
-  SparkleIcon,
-  type Icon
-} from "@phosphor-icons/react";
-import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -34,22 +28,15 @@ import { RunCard, type LabRun } from "./RunCard";
  * side by side. Watching the pipeline explains what RAG does; experimenting on it
  * explains why.
  *
- * Settings apply when you ask — a dirty draft is applied automatically before the run,
+ * Settings apply when you ask: a dirty draft is applied automatically before the run,
  * so a card always shows results produced under exactly the settings it displays. The
  * one exception is ingestion: those settings rewrite the stored index, so the re-index
  * stays an explicit button with its cost stated, never a side effect.
  */
 
-const GROUP_ICON: Record<string, Icon> = {
-  Retrieval: MagnifyingGlassIcon,
-  Ingestion: ScissorsIcon,
-  Conversation: ChatsCircleIcon,
-  Generation: SparkleIcon
-};
-
 let runCounter = 0;
 
-/** Hints preference survives view switches but not a reload — a mode, not an address. */
+/** Hints preference survives view switches but not a reload: a mode, not an address. */
 let hintsPref = true;
 
 export function LabView() {
@@ -173,7 +160,7 @@ export function LabView() {
   const runReindex = useCallback(async () => {
     setReindexing(true);
     setReindexStartedAt(Date.now());
-    // The backend's note flags what a re-index could NOT do — e.g. PDFs keeping
+    // The backend's note flags what a re-index could NOT do, e.g. PDFs keeping
     // text from a different parser backend. Dropping it made the parser knob look
     // broken after a re-index, and a warning deserves more screen time than a count.
     let linger = 6000;
@@ -200,7 +187,7 @@ export function LabView() {
             );
             break;
           case "error":
-            setNotice(event.message + (event.remedy ? ` — ${event.remedy}` : ""));
+            setNotice(event.message + (event.remedy ? `: ${event.remedy}` : ""));
             break;
         }
       }
@@ -222,7 +209,7 @@ export function LabView() {
     setBusy(true);
     try {
       const ready = await applyDraft();
-      if (!ready) return; // ingestion changed — the banner asks for a re-index first
+      if (!ready) return; // ingestion changed, so the banner asks for a re-index first
 
       const config = { ...draft };
       const response = await api.config();
@@ -251,7 +238,7 @@ export function LabView() {
       const patch = (fn: (turn: Turn) => Turn) =>
         setRuns((prev) => prev.map((r) => (r.id === id ? { ...r, turn: fn(r.turn) } : r)));
 
-      // The Lab always asks standalone questions — no history — so every run is a fair
+      // The Lab always asks standalone questions, with no history, so every run is a fair
       // comparison of settings rather than of conversational context.
       for await (const event of api.chat(text, [])) {
         switch (event.type) {
@@ -318,13 +305,13 @@ export function LabView() {
         headerExtra={
           <button
             onClick={toggleHints}
-            className="font-display text-[9px] tracking-[0.14em] text-subtle uppercase transition-colors hover:text-foreground"
+            className="menu-label transition-colors hover:text-foreground"
           >
             {hintsOn ? "hide hints" : "show hints"}
           </button>
         }
         footer={
-          // Only when something actually deviates from the defaults — a reset
+          // Only when something actually deviates from the defaults, because a reset
           // button with nothing to reset is furniture. Restores the backend's own
           // defaults into the draft; it applies on the next ask like any other
           // edit, so the re-index banner still guards chunking changes.
@@ -332,9 +319,9 @@ export function LabView() {
             <div className="px-4 py-3">
               <button
                 onClick={() => setDraft({ ...defaults })}
-                className="flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1 font-mono text-[10px] text-subtle transition-colors hover:border-foreground/50"
+                className="flex w-full items-center justify-center gap-1.5 border border-line px-2 py-1 font-mono text-meta text-subtle transition-colors hover:border-foreground/50"
               >
-                <ArrowCounterClockwiseIcon size={12} />
+                <ArrowCounterClockwiseIcon size={14} />
                 reset to defaults
               </button>
             </div>
@@ -342,7 +329,6 @@ export function LabView() {
         }
       >
         {KNOB_GROUPS.map((group) => {
-          const GroupIcon = GROUP_ICON[group.title];
           return (
             <section key={group.title} className="border-b border-line/60 px-4 py-3">
               <div
@@ -350,8 +336,7 @@ export function LabView() {
                 onMouseLeave={hideHint}
                 className={`mb-1 ${hintRow}`}
               >
-                <h3 className="flex items-center gap-1.5 font-display text-[10px] tracking-[0.16em] text-subtle uppercase">
-                  {GroupIcon ? <GroupIcon size={12} /> : null}
+                <h3 className="font-display text-meta tracking-[0.16em] text-subtle uppercase">
                   {group.title}
                 </h3>
               </div>
@@ -381,7 +366,7 @@ export function LabView() {
 
       {/* ── The hint card: fixed at the hovered row's height, sliding out from
           under the rail's right border (the rail paints above it at z-10).
-          Hovering the card itself keeps it open. Desktop only — on mobile the
+          Hovering the card itself keeps it open. Desktop only, because on mobile the
           settings drawer covers the screen and there is no hover. ── */}
       {hintCard ? (
         <div
@@ -396,13 +381,13 @@ export function LabView() {
           ].join(" ")}
         >
           <p className="menu-label mb-1">{hintCard.title}</p>
-          <p className="text-[11px] leading-relaxed text-muted">{hintCard.text}</p>
+          <p className="text-ui leading-relaxed text-muted">{hintCard.text}</p>
           {hintCard.learn ? (
             // Same affordance as the chat's stage inspector: one step from a
             // setting to the concept page explaining it.
             <button
               onClick={() => navigate(`/learn/${hintCard.learn}`)}
-              className="mt-2 w-full border border-line px-2 py-1 text-left font-mono text-[10px] text-subtle transition-colors hover:border-foreground/50 hover:text-foreground"
+              className="mt-2 w-full border border-line px-2 py-1 text-left font-mono text-meta text-subtle transition-colors hover:border-foreground/50 hover:text-foreground"
             >
               more info →
             </button>
@@ -419,31 +404,37 @@ export function LabView() {
             </div>
           ) : null}
           {runs.map((run, i) => (
-            <RunCard
-              key={run.id}
-              run={run}
-              isLatest={i === 0}
-              selected={selectedChunk}
-              onSelect={setSelectedChunk}
-            />
+            <Fragment key={run.id}>
+              {i > 0 ? (
+                // A dashed rule between runs: horizontal when stacked, vertical when
+                // the cards sit side by side.
+                <div className="rule-dashed w-full shrink-0 lg:rule-dashed-v lg:h-auto lg:w-px lg:self-stretch" aria-hidden />
+              ) : null}
+              <RunCard
+                run={run}
+                isLatest={i === 0}
+                selected={selectedChunk}
+                onSelect={setSelectedChunk}
+              />
+            </Fragment>
           ))}
         </div>
 
         {needsReindex || dirtyChunking ? (
           <div className="border-t border-slow/40 bg-slow/5 px-3 py-2.5 sm:px-5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <p className="text-[11px] text-muted">
-                Ingestion settings changed — the {chunkCount} stored chunks were built
+              <p className="text-ui text-muted">
+                Ingestion settings changed: the {chunkCount} stored chunks were built
                 under the old settings. Re-index to apply ({docCount} documents will be
                 re-chunked and re-embedded).
                 {dirtyParser
-                  ? " The parser change only affects files uploaded from now on — re-indexing rebuilds from stored text and cannot re-parse."
+                  ? " The parser change only affects files uploaded from now on, because re-indexing rebuilds from stored text and cannot re-parse."
                   : ""}
               </p>
               {!reindexing ? (
                 <button
                   onClick={() => void runReindex()}
-                  className="border border-slow/60 px-2.5 py-1 font-display text-[10px] tracking-[0.14em] text-slow uppercase transition-colors hover:bg-slow hover:text-background"
+                  className="border border-slow/60 px-2.5 py-1 font-display text-meta tracking-[0.14em] text-slow uppercase transition-colors hover:bg-slow hover:text-background"
                 >
                   re-index now
                 </button>
@@ -463,7 +454,7 @@ export function LabView() {
                     }}
                   />
                 </div>
-                <p className="tabular mt-1 flex justify-between gap-2 font-mono text-[10px] text-subtle">
+                <p className="tabular mt-1 flex justify-between gap-2 font-mono text-meta text-subtle">
                   <span className="truncate">
                     {reindexProgress.index}/{reindexProgress.total}
                     {reindexProgress.filename ? ` · ${reindexProgress.filename}` : ""}
@@ -475,11 +466,11 @@ export function LabView() {
           </div>
         ) : null}
 
-        {/* Re-index results surface here now that the corpus section is gone —
+        {/* Re-index results surface here now that the corpus section is gone;
             document management itself lives in the Library. */}
         {notice ? (
           <div className="border-t border-line px-3 py-1.5 sm:px-5">
-            <p className="tabular font-mono text-[10px] text-subtle">{notice}</p>
+            <p className="tabular font-mono text-meta text-subtle">{notice}</p>
           </div>
         ) : null}
 
@@ -509,8 +500,8 @@ export function LabView() {
 
 function LabEmptyState() {
   return (
-    <EmptyState lead="Ask a question, then change one setting and ask it again. Each run becomes a card, newest first, with the changed setting highlighted — so the difference between two configurations is something you read, not something you remember.">
-      <ul className="space-y-1.5 font-mono text-[11px] text-subtle">
+    <EmptyState lead="Ask a question, then change one setting and ask it again. Each run becomes a card, newest first, with the changed setting highlighted, so the difference between two configurations is something you read, not something you remember.">
+      <ul className="space-y-1.5 font-mono text-ui text-subtle">
         <li>try: hybrid vs vector-only on the same question</li>
         <li>try: chunk size 512 vs 192 on a structured document</li>
         <li>try: RRF damping k at 5 vs 60</li>

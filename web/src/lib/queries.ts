@@ -152,7 +152,7 @@ export function useUpdateProviders() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: api.updateProviders,
-    // A model switch changes what /config reports and what health checks — and an
+    // A model switch changes what /config reports and what health checks, and an
     // embedding switch trips the index guard, which health is how the UI learns.
     onSettled: () =>
       void Promise.all([

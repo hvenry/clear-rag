@@ -9,8 +9,8 @@ import type { Citation } from "../../lib/types";
  * turned into clickable citation chips.
  *
  * The chip mechanism: validated markers are rewritten to `[n](#cite-n)` links
- * *before* parsing, so they survive wherever Markdown puts them — a table cell, a
- * list item, bold text — and the link renderer turns them into chips. A marker
+ * *before* parsing, so they survive wherever Markdown puts them (a table cell, a
+ * list item, bold text), and the link renderer turns them into chips. A marker
  * with no matching citation was invented by the model and validated away
  * server-side; it stays literal text rather than becoming a false source.
  */
@@ -42,7 +42,7 @@ export function AnswerText({
           <button
             onClick={() => onCite(citation)}
             title={`${citation.filename}${citation.page ? ` · p.${citation.page}` : ""}`}
-            className="mx-0.5 inline-flex h-[17px] min-w-[17px] items-center justify-center border border-line px-1 align-baseline font-mono text-[10px] transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background"
+            className="mx-0.5 inline-flex h-[17px] min-w-[17px] items-center justify-center border border-line px-1 align-baseline font-mono text-meta transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background"
           >
             {citation.marker}
           </button>
@@ -69,13 +69,13 @@ export function AnswerText({
       </code>
     ),
     pre: ({ children }) => (
-      <pre className="my-2 overflow-x-auto border border-line bg-foreground/4 p-2.5 font-mono text-[12px] leading-relaxed [&_code]:border-0 [&_code]:bg-transparent [&_code]:p-0">
+      <pre className="my-2 overflow-x-auto border border-line bg-foreground/4 p-2.5 font-mono text-body leading-relaxed [&_code]:border-0 [&_code]:bg-transparent [&_code]:p-0">
         {children}
       </pre>
     ),
     table: ({ children }) => (
       <div className="my-2 overflow-x-auto">
-        <table className="w-full border-collapse text-[13px]">{children}</table>
+        <table className="w-full border-collapse text-body">{children}</table>
       </div>
     ),
     th: ({ children }) => (
@@ -83,13 +83,13 @@ export function AnswerText({
     ),
     td: ({ children }) => <td className="border border-line px-2 py-1 align-top">{children}</td>,
     h1: ({ children }) => (
-      <h3 className="mt-3 mb-1.5 font-display text-[15px] tracking-wide">{children}</h3>
+      <h3 className="mt-3 mb-1.5 font-display text-lead tracking-wide">{children}</h3>
     ),
     h2: ({ children }) => (
-      <h3 className="mt-3 mb-1.5 font-display text-[14px] tracking-wide">{children}</h3>
+      <h3 className="mt-3 mb-1.5 font-display text-lead tracking-wide">{children}</h3>
     ),
     h3: ({ children }) => (
-      <h3 className="mt-3 mb-1.5 font-display text-[13px] tracking-wide">{children}</h3>
+      <h3 className="mt-3 mb-1.5 font-display text-body tracking-wide">{children}</h3>
     ),
     blockquote: ({ children }) => (
       <blockquote className="my-2 border-l-2 border-line pl-3 text-muted">{children}</blockquote>
@@ -98,7 +98,7 @@ export function AnswerText({
   };
 
   return (
-    <div className="text-[14px] leading-[1.75]">
+    <div className="text-lead leading-[1.75]">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {source}
       </ReactMarkdown>
@@ -123,16 +123,16 @@ export function CitationList({
             onClick={() => onCite(citation)}
             className="group flex w-full items-start gap-2.5 text-left"
           >
-            <span className="mt-px inline-flex h-[17px] min-w-[17px] shrink-0 items-center justify-center border border-line font-mono text-[10px]">
+            <span className="mt-px inline-flex h-[17px] min-w-[17px] shrink-0 items-center justify-center border border-line font-mono text-meta">
               {citation.marker}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="font-mono text-[10px] text-subtle">
+              <span className="font-mono text-meta text-subtle">
                 {citation.filename}
                 {citation.page ? ` · p.${citation.page}` : ""} · chars {citation.span[0]}–
                 {citation.span[1]}
               </span>
-              <span className="block truncate text-[11px] text-muted transition-opacity group-hover:opacity-100">
+              <span className="block truncate text-ui text-muted transition-opacity group-hover:opacity-100">
                 {citation.quote}
               </span>
             </span>

@@ -18,15 +18,15 @@ import { ThemeToggle } from "./ThemeToggle";
 /**
  * The app shell: navigation, health, runtime and model controls in the header, the
  * routed view below, and the drop-anywhere upload overlay. Session state (the chat
- * conversation, in-flight uploads) lives here — above the routes — so switching
+ * conversation, in-flight uploads) lives here, above the routes, so switching
  * views never destroys it.
  */
 export function Layout() {
   const { data: health } = useHealth();
   const { data: config } = useConfig();
   const { data: documents = [] } = useDocuments();
-  // The active chat session follows the URL, but its state lives here — above the
-  // routes — so navigating to the Library mid-stream never interrupts the answer.
+  // The active chat session follows the URL, but its state lives here, above the
+  // routes, so navigating to the Library mid-stream never interrupts the answer.
   const chatMatch = useMatch("/chat/:sessionId");
   const session = useChatSession(chatMatch?.params.sessionId ?? null);
   const { upload, uploading, uploadProgress, dragging, dragHandlers } = useAppUpload();
@@ -46,16 +46,16 @@ export function Layout() {
                   to={`/${v}`}
                   className={({ isActive }) =>
                     [
-                      "flex items-center gap-1.5 border px-2 py-1 font-display text-[10px] tracking-[0.12em] uppercase transition-colors sm:px-2.5 sm:tracking-[0.16em]",
+                      "flex items-center gap-1.5 border px-2 py-1 font-display text-meta tracking-[0.12em] uppercase transition-colors sm:px-2.5 sm:tracking-[0.16em]",
                       isActive
                         ? "border-foreground/50 bg-foreground text-background"
-                        : "border-line text-subtle hover:border-foreground/40 hover:text-foreground"
+                        : "border-line text-subtle hover:border-foreground/50 hover:text-foreground"
                     ].join(" ")
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <Icon size={12} weight={isActive ? "fill" : "regular"} />
+                      <Icon size={14} weight={isActive ? "fill" : "regular"} />
                       <span className="hidden min-[540px]:inline">{v}</span>
                       {v === "library" && documents.length ? (
                         <span className="tabular opacity-60">{documents.length}</span>
@@ -66,10 +66,10 @@ export function Layout() {
               );
             })}
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <RuntimePanel />
-            {config ? <ConfigMenu config={config} /> : null}
             <HealthMenu health={health ?? null} />
+            {config ? <ConfigMenu config={config} /> : null}
             <ThemeToggle />
           </div>
         </div>
@@ -93,7 +93,7 @@ export function Layout() {
               }}
             />
           </div>
-          <p className="tabular mt-1 truncate font-mono text-[10px] text-subtle">
+          <p className="tabular mt-1 truncate font-mono text-meta text-subtle">
             {uploadProgress.index + 1}/{uploadProgress.total} · {uploadProgress.filename}
           </p>
         </div>
@@ -102,8 +102,8 @@ export function Layout() {
       {dragging ? (
         <div className="glass-strong pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
           <div className="panel-ticks relative border border-foreground/40 px-10 py-8 text-center">
-            <p className="font-display text-[14px] tracking-[0.2em] uppercase">Drop to index</p>
-            <p className="mt-1.5 font-mono text-[10px] text-subtle">
+            <p className="font-display text-lead tracking-[0.2em] uppercase">Drop to index</p>
+            <p className="mt-1.5 font-mono text-meta text-subtle">
               pdf · docx · md · csv · txt
             </p>
           </div>

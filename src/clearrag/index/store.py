@@ -270,7 +270,7 @@ class Store:
         clear_doc_filter: bool = False,
     ) -> dict | None:
         """Rename and/or re-scope. ``clear_doc_filter`` distinguishes "scope to the
-        whole corpus" from "leave the scope alone" — both would otherwise be None."""
+        whole corpus" from "leave the scope alone"; both would otherwise be None."""
         if title is not None:
             self.conn.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, session_id))
         if clear_doc_filter:
@@ -343,8 +343,8 @@ class Store:
         """Trace summaries, newest first, with enough per-stage detail to chart.
 
         The full payload stays behind get_trace(); this pulls out only what a
-        telemetry readout needs — stage durations and the generate stage's token
-        stats — so listing fifty traces does not ship fifty full candidate lists.
+        telemetry readout needs (stage durations and the generate stage's token
+        stats), so listing fifty traces does not ship fifty full candidate lists.
         ``session_id`` scopes the list to one chat's queries.
         """
         where = "WHERE session_id = ? " if session_id is not None else ""

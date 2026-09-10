@@ -2,13 +2,13 @@
  * The measurements the Learn pages chart.
  *
  * Every value here is read from the committed results files through `results.ts`
- * — nothing is typed by hand, so a re-run of `clear-rag ablate --save-results` that
+ * and nothing is typed by hand, so a re-run of `clear-rag ablate --save-results` that
  * changes a number changes these bars with it. The prose in `topics.ts` still quotes
  * numbers; CI checks those against the same files.
  *
  * Colours reuse the identities the interface already teaches: keyword aqua,
  * vector blue, fused rankings as ink, reranking violet, expansion in the transform
- * stage's hue — never a new hue for a concept that already has one.
+ * stage's hue, never a new hue for a concept that already has one.
  */
 
 import { metric, modelShort, PARSE_QUALITY, RESULTS, tagRecall } from "./results";
@@ -64,7 +64,7 @@ export interface BenchmarkChart {
 export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   "keyword-search": [
     {
-      title: "recall@1 — each retriever alone",
+      title: "recall@1: each retriever alone",
       note: "On a corpus full of identifiers like `hb bootstrap` and `422`, exact-term matching beats semantic matching on its own.",
       domain: 1,
       rows: [
@@ -75,8 +75,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   embeddings: [
     {
-      title: "recall@1 — each retriever alone",
-      note: "Vector search loses to keyword search on this identifier-heavy corpus — and wins on paraphrased questions, which is why the pipeline runs both.",
+      title: "recall@1: each retriever alone",
+      note: "Vector search loses to keyword search on this identifier-heavy corpus, and wins on paraphrased questions, which is why the pipeline runs both.",
       domain: 1,
       rows: [
         { label: "Vector", value: r1("dense only"), color: VECTOR },
@@ -86,7 +86,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "hybrid-fusion": [
     {
-      title: "recall@5 — the merge is the whole story",
+      title: "recall@5: the merge is the whole story",
       note: "Every distractor question either method alone got wrong is resolved by fusing their rankings.",
       domain: 1,
       rows: [
@@ -98,7 +98,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   reranking: [
     {
-      title: "recall@1 — before and after the cross-encoder",
+      title: "recall@1: before and after the cross-encoder",
       note: "Fusion already put the right chunk somewhere in the top five; the reranker puts it first.",
       domain: 1,
       rows: [
@@ -107,7 +107,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       ]
     },
     {
-      title: "MRR — how high the first relevant chunk sits",
+      title: "MRR: how high the first relevant chunk sits",
       note: "The largest measured effect of any single technique in this pipeline.",
       domain: 1,
       rows: [
@@ -118,8 +118,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "phase5-query-understanding": [
     {
-      title: "recall@5 on paraphrase questions — what expansion is for",
-      note: "Nine questions worded to share almost no vocabulary with their answers. Expansion recovers both that fusion missed outright — and so does the reranker, without it.",
+      title: "recall@5 on paraphrase questions: what expansion is for",
+      note: "Nine questions worded to share almost no vocabulary with their answers. Expansion recovers both that fusion missed outright, and so does the reranker, without it.",
       domain: 1,
       rows: [
         { label: "Hybrid (RRF)", value: para("hybrid + RRF"), color: INK },
@@ -128,7 +128,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       ]
     },
     {
-      title: "recall@1 — the bill",
+      title: "recall@1: the bill",
       note: "Extra phrasings pull in near-misses that rank fusion promotes over the exact hit; the reranker pays no such price.",
       domain: 1,
       rows: [
@@ -140,7 +140,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "retrieval-metrics": [
     {
-      title: "recall@1 — where the differences live",
+      title: "recall@1: where the differences live",
       note: "The interesting movement happens at the top of the ranking.",
       domain: 1,
       rows: [
@@ -149,7 +149,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
       ]
     },
     {
-      title: "recall@5 — nearly saturated, so it stops discriminating",
+      title: "recall@5: nearly saturated, so it stops discriminating",
       note: "Every hybrid configuration sits at or near 1.000 at k=5 on this corpus. A column that cannot distinguish its rows looks like evidence and isn't.",
       domain: 1,
       rows: [
@@ -160,8 +160,8 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "answer-metrics": [
     {
-      title: "Attribution suite — right words vs right receipts",
-      note: "The 3B model mentions the right content while citing the wrong support — invisible to recall@k, decisive in practice. The 9B model scores 100/100.",
+      title: "Attribution suite: right words vs right receipts",
+      note: "The 3B model mentions the right content while citing the wrong support, invisible to recall@k, decisive in practice. The 9B model scores 100/100.",
       domain: 1,
       rows: [
         { label: "3B · mentions", value: attribution("llama3.2", 512, "mention_accuracy"), color: INK },
@@ -173,7 +173,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "parser-backends": [
     {
-      title: "recall@5 on the SEC corpus — by parser backend",
+      title: "recall@5 on the SEC corpus, by parser backend",
       note: "Born-digital single-column renders are flat extraction's best case, and docling's ML table reconstruction loses labels outright. Structure earns its keep downstream, not here.",
       domain: 1,
       rows: [
@@ -200,7 +200,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "semantic-chunking": [
     {
-      title: "Table-question recall@5 — fixed-size vs structural",
+      title: "Table-question recall@5: fixed-size vs structural",
       note: "Heading-bounded packing folds financial tables into large mixed chunks that rank worse. A negative result the knob shipped with, pointing at its own fix: atomic table chunks.",
       domain: 1,
       rows: [
@@ -211,7 +211,7 @@ export const TOPIC_CHARTS: Record<string, BenchmarkChart[]> = {
   ],
   "contextual-retrieval": [
     {
-      title: "recall@5 on the SEC corpus — by context mode",
+      title: "recall@5 on the SEC corpus, by context mode",
       note: "Three identical bars, honestly drawn: two companies with distinct vocabulary give context nothing to disambiguate. The technique's motivating case is many near-identical documents.",
       domain: 1,
       rows: [

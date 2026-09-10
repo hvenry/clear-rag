@@ -82,7 +82,7 @@ class Trace:
     citations: list[Citation] = field(default_factory=list)
     total_ms: float = 0.0
     session_id: str | None = None
-    """The chat session this query ran in — what scopes the telemetry panel."""
+    """The chat session this query ran in, which is what scopes the telemetry panel."""
 
     def stage(self, name: str, label: str, **config: Any) -> StageRecord:
         """Open a stage record and append it immediately.

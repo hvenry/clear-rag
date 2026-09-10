@@ -23,7 +23,7 @@ export interface ChatSession {
 
 /** Rebuild renderable turns from a session's stored messages. Assistant messages
  * carry their full trace, so stages, citations and the resolved query all come back
- * — only the ephemeral context-chunk previews are not reconstructed. */
+ * (only the ephemeral context-chunk previews are not reconstructed). */
 function turnsFromMessages(messages: SessionMessage[]): Turn[] {
   const turns: Turn[] = [];
   for (const message of messages) {
@@ -65,7 +65,7 @@ export function useChatSession(sessionId: string | null): ChatSession {
 
   // Switching to a DIFFERENT session blanks the view and re-arms hydration; its
   // turns arrive with its detail. Leaving chat entirely (sessionId null) keeps
-  // everything — navigating to the Library and back must not wipe the
+  // everything, because navigating to the Library and back must not wipe the
   // conversation, least of all one still streaming. Re-renders of the same
   // session never clobber local turns, which are newer than the server's.
   useEffect(() => {
@@ -170,7 +170,7 @@ export interface UploadProgress {
 export function useAppUpload() {
   const uploadMutation = useUpload();
   const [uploading, setUploading] = useState<string | null>(null);
-  // Files upload one at a time so this progress is real, not a guess — parsing
+  // Files upload one at a time so this progress is real, not a guess: parsing
   // and embedding dominate, and they happen per file anyway.
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [dragging, setDragging] = useState(false);

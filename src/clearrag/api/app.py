@@ -64,7 +64,7 @@ SAMPLE_SETS: list[dict[str, str]] = [
     {
         "id": "dev-docs",
         "label": "Engineering docs",
-        "description": "Ten short internal docs (~60 chunks) — the corpus the Lab "
+        "description": "Ten short internal docs (~60 chunks), the corpus the Lab "
         "comparisons and the bundled evals assume.",
         "rel": "evals/corpus",
         "glob": "*.md",
@@ -72,7 +72,7 @@ SAMPLE_SETS: list[dict[str, str]] = [
     {
         "id": "sec-10k",
         "label": "SEC 10-K sections",
-        "description": "Apple and Microsoft FY2023 10-K sections as PDFs — financial "
+        "description": "Apple and Microsoft FY2023 10-K sections as PDFs: financial "
         "tables and dense vocabulary, the parser comparison corpus.",
         "rel": "evals/sec/corpus",
         "glob": "*.pdf",
@@ -258,7 +258,7 @@ def _split_models(entries: list[tuple[str, list[str] | None]]) -> dict[str, list
 
     Ollama's /api/show reports a ``capabilities`` array ("completion", "embedding",
     …). When a model's capabilities cannot be fetched (older Ollama, transient
-    error), fall back to the naming convention — "embed" in the tag — rather than
+    error), fall back to the naming convention ("embed" in the tag) rather than
     listing an embedding model as something you could chat with.
     """
     chat: list[str] = []
@@ -275,10 +275,10 @@ def _split_models(entries: list[tuple[str, list[str] | None]]) -> dict[str, list
 
 @app.get("/api/models")
 async def list_models() -> dict[str, Any]:
-    """Models installed in the local Ollama, split by what each can actually do —
+    """Models installed in the local Ollama, split by what each can actually do, because
     a selector offering an embedding model as a chat model is a footgun, not a choice.
 
-    Best-effort: an unreachable Ollama returns empty lists rather than an error —
+    Best-effort: an unreachable Ollama returns empty lists rather than an error;
     the selector degrades to a text field, it does not break the header.
     """
     empty: dict[str, list[str]] = {"chat": [], "embedding": []}
@@ -313,7 +313,7 @@ async def update_providers(patch: dict[str, Any]) -> dict[str, Any]:
     """Switch the chat or embedding model at runtime.
 
     The engine is rebuilt lazily with the new providers. A chat-model change is free;
-    an embedding-model change makes every stored vector incomparable — the
+    an embedding-model change makes every stored vector incomparable, so the
     embedding-space guard refuses queries until a re-index, and the response says so
     up front instead of letting the guard be a surprise.
     """
@@ -329,7 +329,7 @@ async def update_providers(patch: dict[str, Any]) -> dict[str, Any]:
         setattr(state.settings, key, value.strip())
 
     # Providers are constructed from settings, so dropping the engine is the whole
-    # switch — the next request rebuilds it with the new models.
+    # switch; the next request rebuilds it with the new models.
     state.engine = None
 
     return {
@@ -402,7 +402,7 @@ async def clear_documents(eng: Engine = Depends(engine)) -> dict[str, Any]:
 @app.get("/api/samples")
 async def list_sample_sets(eng: Engine = Depends(engine)) -> list[dict[str, Any]]:
     """The bundled sample sets available in this install, with how much of each is
-    already indexed — that difference is what makes the UI's import/remove buttons
+    already indexed; that difference is what makes the UI's import/remove buttons
     honest instead of stateless."""
     indexed = {d["filename"] for d in eng.store.list_documents()}
     listing = []
@@ -443,7 +443,7 @@ async def import_sample_set(set_id: str, eng: Engine = Depends(engine)) -> Strea
         warned: set[str] = set()
         # Resuming a stopped import must not pay for the files that already landed.
         # The engine's content-hash short-circuit only fires *after* parsing, which for
-        # a PDF is most of the cost — but sample sets are static bundles, so a filename
+        # a PDF is most of the cost, but sample sets are static bundles, so a filename
         # already in the store is the same file and can be skipped without reading it.
         already = {d["filename"] for d in eng.store.list_documents()}
         indexed = unchanged = 0
@@ -530,8 +530,8 @@ async def get_document(doc_id: str, eng: Engine = Depends(engine)) -> dict[str, 
         "text": document.text,
         "created_at": created_at,
         "meta": document.meta,
-        # Parse structure, so the Library view can draw what the parser recovered —
-        # headings, paragraphs, tables — before it ever became chunks.
+        # Parse structure, so the Library view can draw what the parser recovered
+        # (headings, paragraphs, tables) before it ever became chunks.
         "blocks": [
             {"kind": b.kind, "span": list(b.span), "level": b.level, "page": b.page}
             for b in document.blocks
@@ -578,7 +578,7 @@ class SessionUpdate(BaseModel):
     title: str | None = None
     doc_ids: list[str] | None = None
     all_documents: bool = False
-    """True widens the scope back to the whole corpus — distinct from omitting
+    """True widens the scope back to the whole corpus, distinct from omitting
     ``doc_ids``, which leaves the scope untouched."""
 
 
@@ -764,7 +764,7 @@ async def runtime() -> dict[str, Any]:
 async def list_traces(
     limit: int = 50, session_id: str | None = None, eng: Engine = Depends(engine)
 ) -> list[dict[str, Any]]:
-    """Recent traces — all of them, or one chat session's with ``session_id``."""
+    """Recent traces: all of them, or one chat session's with ``session_id``."""
     return eng.store.list_traces(limit, session_id=session_id)
 
 

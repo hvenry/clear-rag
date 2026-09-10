@@ -8,7 +8,7 @@ Usage:
 
 Reads the Kaggle dataset `deepshah16/song-lyrics-dataset` (downloaded on demand via
 kagglehub into its own cache) and posts each song to a running clear-rag server as
-`Artist — Title.md`. Nothing is written into the repository: lyrics are copyrighted,
+`Artist U+2014 Title.md`. Nothing is written into the repository: lyrics are copyrighted,
 so the dataset lives in the kagglehub cache and the indexed copy in the gitignored
 workspace, for personal local experimentation only. Do not publish the indexed corpus.
 
@@ -91,7 +91,7 @@ def pick_balanced(by_artist: dict[str, list[dict]], limit: int) -> list[dict]:
 
 def to_document(song: dict) -> tuple[str, str]:
     """(filename, markdown body). The metadata header keeps artist and era retrievable."""
-    safe = re.sub(r'[/\\:*?"<>|]', "-", f"{song['artist']} — {song['title']}")
+    safe = re.sub(r'[/\\:*?"<>|]', "-", f"{song['artist']} \u2014 {song['title']}")
     header = " · ".join(x for x in (song["artist"], song["album"], song["year"]) if x)
     body = f"# {song['title']}\n\n{header}\n\n{song['lyric']}\n"
     return f"{safe}.md", body

@@ -4,7 +4,7 @@ A local-first RAG system whose retrieval process is **visible**.
 
 Most RAG applications show you a spinner and then an answer. clear-rag streams the
 machinery: you watch keyword search finish, vector search finish, the two rankings fuse,
-and documents change position — and only then does the answer begin.
+and documents change position, and only then does the answer begin.
 
 > Successor to [Local-RAG-System](https://github.com/hvenry/Local-RAG-System) (2024).
 > That project answered "can I build a RAG pipeline?". This one asks "how well does it
@@ -16,7 +16,7 @@ and documents change position — and only then does the answer begin.
 
 Two goals, in order.
 
-**Learning by building.** The retrieval core is written from primitives — BM25 scoring
+**Learning by building.** The retrieval core is written from primitives: BM25 scoring
 over a hand-built inverted index, reciprocal rank fusion, context assembly. Libraries are
 used where they teach nothing (HTTP, SQLite, tensor math) and avoided where they would
 hide the thing worth understanding.
@@ -54,7 +54,7 @@ Then drag a PDF, DOCX, Markdown, CSV or text file onto the window and ask a ques
 
 ### With Docker
 
-Ollama runs on the **host**, not in a container — Docker on macOS has no GPU access, so a
+Ollama runs on the **host**, not in a container, because Docker on macOS has no GPU access, so a
 containerised Ollama would be CPU-only and feel broken on the most common laptop.
 
 ```bash
@@ -75,7 +75,7 @@ pip install -e ".[byok]"
 ### Optional ML parser backends
 
 The default parsers (`naive`, `primitives`) are dependency-light and always available.
-The ML backends install as extras — they bring torch:
+The ML backends install as extras, since they bring torch:
 
 ```bash
 pip install -e ".[docling]"   # IBM docling (MIT): layout + TableFormer models
@@ -86,7 +86,7 @@ pip install -e ".[marker]"    # datalab marker (GPL-3.0; surya weights carry a
 marker's surya models additionally need an inference server: a GPU vllm container, or
 a local `llama-server` binary (`LLAMA_CPP_BINARY=/path/to/llama-server` with
 `SURYA_INFERENCE_BACKEND=llamacpp`). A configured backend that is not installed never
-breaks ingestion — PDFs fall back to `naive` and the trace records the degradation.
+breaks ingestion: PDFs fall back to `naive` and the trace records the degradation.
 
 ---
 
@@ -99,12 +99,12 @@ Parse (backend) → Chunk (recursive | structural) → Contextualize → Embed �
 ```
 
 Documents are content-hashed, so re-uploading an unchanged file costs nothing. Every
-chunk records the **character span** it occupies in the source document — the invariant
+chunk records the **character span** it occupies in the source document, the invariant
 that makes exact citation highlighting and span-anchored evaluation possible.
 
 Parsing is a pluggable backend and a measured variable: `naive` (flat pypdf
-extraction), `primitives` (a hand-rolled layout parser — columns, headings,
-header/footer stripping, ruled and aligned tables — built from pdfplumber word
+extraction), `primitives` (a hand-rolled layout parser for columns, headings,
+header/footer stripping, ruled and aligned tables, built from pdfplumber word
 geometry), and `docling` / `marker` as optional ML extras. Every backend also emits
 **typed blocks** (headings, paragraphs, tables) anchored to spans of the same text;
 structural chunking cuts along them and contextual retrieval builds its breadcrumbs
@@ -122,7 +122,7 @@ Keyword and vector search run concurrently. Fusion is Reciprocal Rank Fusion:
 RRF(d) = Σ over retrievers  1 / (60 + rank(d))
 ```
 
-RRF consumes *ranks*, not scores — BM25 scores are unbounded sums of idf terms and cosine
+RRF consumes *ranks*, not scores: BM25 scores are unbounded sums of idf terms and cosine
 similarities live in [-1, 1], so they cannot be combined meaningfully without a
 normalisation scheme that needs retuning whenever the corpus changes.
 
@@ -131,8 +131,8 @@ alternative phrasings of the question and searches every one of them. Each retri
 fuses its own rankings across the phrasings by reciprocal rank *before* the two
 retrievers are fused, so keyword and vector search still each emit one ranking and the
 inspector can still say which search found a chunk. It exists for questions whose
-wording diverges from the document's — "can a customer be relocated to a different data
-centre?" against a page that says *moving a tenant between regions* — and the golden set
+wording diverges from the document's ("can a customer be relocated to a different data
+centre?" against a page that says *moving a tenant between regions*), and the golden set
 tags those `paraphrase` so the ablation can say what the technique is worth on exactly
 the questions it was built for.
 
@@ -156,7 +156,7 @@ search, vector search, fusion and reranking all speak `list[Candidate]`, the UI 
 rank-flow diagram between *any* two adjacent stages without knowing what those stages do.
 A retrieval technique added later appears in the visualisation for free.
 
-The trace is a **returned value, not a log** — `(answer, trace)` — so it also persists to
+The trace is a **returned value, not a log**, `(answer, trace)`, so it also persists to
 SQLite and can be replayed offline by the evaluation harness without re-invoking a model.
 
 ---
@@ -168,11 +168,11 @@ Measured on a 67-question golden set over a 10-document corpus (`evals/`), using
 multi-query rows. Re-measured on 2026-09-08 after nine `paraphrase` questions joined the
 set; every row moved a little, because the new questions are the hard ones. The table is
 rendered from `evals/results/retrieval.json`, which `clear-rag ablate --save-results`
-writes, and the app's **Results** view reads the same file — so the README, the interface
+writes, and the app's **Results** view reads the same file, so the README, the interface
 and the file cannot disagree. The embedding model is a dimension of the sweep too:
 `clear-rag ablate` adds a dense-only and a hybrid + RRF row for each of `all-minilm` and
 `mxbai-embed-large` that Ollama has pulled (or any model named with `--embedder`), each
-on its own index, with the model in the row's provenance rather than its config hash —
+on its own index, with the model in the row's provenance rather than its config hash,
 because an embedder is the identity of an index, not a setting of a query.
 
 <!-- results:retrieval -->
@@ -199,29 +199,29 @@ because an embedder is the identity of an index, not a setting of a query.
 
 `lexical` / `semantic` / `distractor` are recall@5 restricted to question sets tagged
 that way. Distractor questions are ones with a plausible near-miss elsewhere in the
-corpus — production access is described in both `security.md` and `onboarding.md` with
+corpus: production access is described in both `security.md` and `onboarding.md` with
 different answers, and "retention" means thirteen months in one document and thirty-five
 days in another. `paraphrase` questions are worded to share almost no vocabulary with the
-passage that answers them — "can a customer be relocated to a different data centre?"
-against *moving a tenant between regions* — which is the failure query expansion exists
+passage that answers them ("can a customer be relocated to a different data centre?"
+against *moving a tenant between regions*), which is the failure query expansion exists
 to fix.
 
 **What the numbers say.** Two techniques carry the table. Hybrid retrieval: dense alone
 reaches 0.871 recall@5 and BM25 alone 0.903, while combining them reaches 0.968 and
-resolves every distractor question either method alone got wrong. Then reranking — a
+resolves every distractor question either method alone got wrong. Then reranking. A
 23 MB quantised cross-encoder (ms-marco-MiniLM via ONNX, downloaded on first use, no
 torch) re-scores the fused shortlist and delivers the single largest jump measured:
 recall@1 0.734 → **0.927**, MRR 0.841 → **0.965**, and the two paraphrase questions
-fusion missed outright land at ranks one and three — for a few hundred milliseconds per
+fusion missed outright land at ranks one and three, for a few hundred milliseconds per
 query. Fusion gets the right chunk into the top five; the reranker puts it first. Notably **BM25 beats vector
-search here** — on a technical corpus full of exact identifiers (`422`, `hb bootstrap`,
+search here**: on a technical corpus full of exact identifiers (`422`, `hb bootstrap`,
 `X-RateLimit-Remaining`) lexical matching is genuinely strong, which is the argument
 against the dense-only pipeline this project's predecessor used.
 
 **Three honest caveats**, because a table without them is a sales pitch:
 
 1. **recall@5 nearly saturates.** The reranked rows sit at 1.000 and the hybrid rows at
-   0.968, so the column can barely separate them — recall@1 and MRR are doing the
+   0.968, so the column can barely separate them; recall@1 and MRR are doing the
    discriminating. A larger corpus would fix this; the current one is 22 KB.
 2. **Weighted fusion beating RRF is not a finding.** The gap at recall@1 (0.782 vs 0.734)
    is three questions out of 62, well inside noise for a set this size. RRF stays the
@@ -230,7 +230,7 @@ against the dense-only pipeline this project's predecessor used.
 3. **The chunk-size rows barely move, with one exception the new questions expose.**
    From 192 to 1024 tokens every size lands within a few questions of the others:
    retrieval is not sensitive to chunk size on prose where each document covers a
-   distinct topic. At 96 tokens the `paraphrase` column falls to 0.444 — a chunk that
+   distinct topic. At 96 tokens the `paraphrase` column falls to 0.444, because a chunk that
    small carries too little of the surrounding wording for a differently-phrased
    question to land on it. Whether query expansion repairs that is exactly what the
    multi-query row at that size measures. See *What this benchmark cannot see* below
@@ -238,7 +238,7 @@ against the dense-only pipeline this project's predecessor used.
 4. **The overlap row proves nothing.** These documents are short enough to fit in roughly
    one 512-token chunk, so 50% and 12% overlap produce the same 11 chunks and the same
    scores. On a document long enough for overlap to apply, 50% produces 19 chunks against
-   10 and duplicates 51% of the indexed text — that is a real index-size cost, it just
+   10 and duplicates 51% of the indexed text. That is a real index-size cost, it just
    is not visible here.
 
 **Multi-query expansion: measured, and honest about it.** The two `multi-query` rows
@@ -246,7 +246,7 @@ exist because nine `paraphrase` questions were added for them, and on those ques
 the technique does its job: on hybrid + RRF it lifts the `paraphrase` column from 0.778
 to **1.000**, recovering both questions fusion had missed outright. It also has a bill.
 recall@1 falls 0.734 → 0.653 and MRR 0.841 → 0.802, because the extra phrasings pull in
-near-misses that reciprocal rank across phrasings then promotes over the exact hit — the
+near-misses that reciprocal rank across phrasings then promotes over the exact hit: the
 first relevant chunk moved up on ten questions and down on fourteen. At 96-token chunks
 the same trade turns bad: `paraphrase` rises 0.444 → 0.556 while every other column
 drops. And stacked on the reranker it changes nothing at all, for a structural reason:
@@ -255,14 +255,14 @@ the shortlist *is* the corpus and the cross-encoder alone decides the order. Exp
 can only change what enters the shortlist, and here nothing is ever left out. The
 reranker reaches the same 1.000 with a better recall@1 for about 0.5 s per question
 against 3.7 s of `qwen3.5:9b` writing phrasings. So the knob stays, off by default, and
-the case it was built for — a corpus large enough that the shortlist is a real cut — is
+the case it was built for (a corpus large enough that the shortlist is a real cut) is
 one this benchmark cannot yet make. A recall lever with a precision bill; here the
 reranker is the better buy.
 
 ### What this benchmark cannot see
 
 Retrieval metrics only measure whether the right text was *retrieved*. They are blind to
-whether the model then attributed a claim to the right part of it — and that turns out to
+whether the model then attributed a claim to the right part of it, and that turns out to
 be where a real failure lives.
 
 Indexing a one-page résumé (4.5 KB) produces three chunks at the default 512-token size.
@@ -272,7 +272,7 @@ did Henry do at QMIND?"*, the answer was still wrong: QMIND sat at character 289
 2,092-character chunk that also held a data-science role, an education entry, and two other
 clubs, and a 3B model could not pick it out.
 
-Same question, same model, same document — only chunk size differs:
+Same question, same model, same document, only chunk size differs:
 
 | chunk_size | chunks | Answer |
 |---|---|---|
@@ -291,16 +291,16 @@ report a healthy system while users get wrong answers.
 
 The section above ends with a warning: a benchmark that only scores retrieval reports a
 healthy system while users get wrong answers. This suite closes that gap. It runs with
-`--generate` and grades the **answers**, deterministically — no judge model:
+`--generate` and grades the **answers**, deterministically, with no judge model:
 
 | Metric | Question it answers |
 |---|---|
 | false refusals | did the model say "I don't know" with the answer in front of it? |
-| required mentions / wrong-section bleed | is the right content present — and content from the *wrong* section absent? (`must_not_mention` labels) |
+| required mentions / wrong-section bleed | is the right content present, and content from the *wrong* section absent? (`must_not_mention` labels) |
 | grounding / citation precision | do the cited chunks actually cover the labelled answer span? |
 
 The attribution suite (`evals/attribution/`) is a single fictional staff profile whose
-sections deliberately share vocabulary — a day job doing forecasting, an AI club doing
+sections deliberately share vocabulary: a day job doing forecasting, an AI club doing
 NLP, projects that echo both. One document means retrieval is trivially perfect in every
 configuration, so **every failure the suite reports is a generation failure.**
 
@@ -315,15 +315,15 @@ Measured on the bundled suite (12 answerable + 3 unanswerable questions):
 | qwen3.5:9b · 192 | 1.000 | 1.000 | 1.000 | 0.917 |
 <!-- /results:attribution -->
 
-Reading it: retrieval metrics are a flat, useless 1.000 across every row — and grounding
+Reading it: retrieval metrics are a flat, useless 1.000 across every row, and grounding
 varies by a factor of three. The 3B model *says* the right thing three times in four
 (mentions 0.750) while citing the wrong chunk two times in three; smaller chunks help its
 grounding somewhat (0.333 → 0.500) but don't fix it. The 9B model is essentially perfect
 at either chunk size. Generated answers wobble by a question or two between runs at
-temperature 0.1 — the 3B rows moved when this table was last re-measured — but the
+temperature 0.1 (the 3B rows moved when this table was last re-measured), but the
 pattern has not. This settles, with numbers, what an earlier debugging session found
 anecdotally on a real résumé: past a modest floor, **attribution quality is a property of
-the model far more than of the chunking** — and it is entirely invisible to recall@k.
+the model far more than of the chunking**, and it is entirely invisible to recall@k.
 
 ```bash
 clear-rag ablate --suite attribution --generate --save-results                # current model
@@ -334,7 +334,7 @@ CLEARRAG_CHAT_MODEL=llama3.2 clear-rag ablate --suite attribution --generate --s
 
 `pytest` runs the same golden set through the real pipeline on **fake providers** and
 compares against `evals/baseline.json`. The fake embedder is a bag-of-words hash
-projection, so those scores measure nothing about quality — but they are deterministic,
+projection, so those scores measure nothing about quality, but they are deterministic,
 need no models, and catch a change that silently breaks chunking, BM25, fusion or
 assembly. Real quality numbers come from `clear-rag ablate` against Ollama.
 
@@ -346,7 +346,7 @@ directly comparable.
 
 A second gate covers refactors rather than retrieval changes. The baseline compares
 *metrics*, and two implementations can score identically while emitting different stage
-records or diagnostics — which the interface renders. `scripts/snapshot_query_events.py`
+records or diagnostics, which the interface renders. `scripts/snapshot_query_events.py`
 records every query event stream, on fake providers and the real reranker, with ids and
 timings stripped; a refactor that changes nothing observable reproduces it byte for byte.
 
@@ -355,12 +355,12 @@ timings stripped; a refactor that changes nothing observable reproduces it byte 
 Every table in this README is rendered from `evals/results/<suite>.json`, the output of
 `clear-rag ablate --save-results` (and `clear-rag parse-quality --save-results`). A
 results file *merges*: rows a sweep produced replace their predecessors, rows it did not
-produce survive, and every row records the models and date that measured it — a row
+produce survive, and every row records the models and date that measured it; a row
 imported from an earlier run says so, and the table footnotes it. The interface imports
 the same files, so the Results view, the Learn page's charts, the Lab's knob hints and
 this README cannot drift apart. CI runs `scripts/render_results.py --check`, which fails
 if a table was edited by hand or if a number in hand-written prose no longer appears in
-any results file — the exact way twelve numbers went stale the day the golden set grew.
+any results file, which is the exact way twelve numbers went stale the day the golden set grew.
 
 ```bash
 clear-rag eval                    # score the golden set with real models
@@ -380,8 +380,8 @@ python scripts/snapshot_query_events.py out.json --compare before.json  # refact
 ### How the golden set works
 
 Relevance is anchored to **character spans in source documents**, never to chunk ids.
-Chunk ids change whenever chunking configuration changes — and comparing chunking
-strategies is the point — so id-anchored labels would invalidate themselves the first
+Chunk ids change whenever chunking configuration changes (and comparing chunking
+strategies is the point), so id-anchored labels would invalidate themselves the first
 time they were useful.
 
 Labels are written as quotes and resolved to spans at load time, with whitespace matched
@@ -395,8 +395,8 @@ matches twice, is a hard error:
 ```
 
 recall@k counts **labelled spans covered**, not relevant chunks retrieved. The obvious
-denominator moves when you change chunk size — the same passage becomes one chunk or
-four — so the score would shift without retrieval having changed at all.
+denominator moves when you change chunk size (the same passage becomes one chunk or
+four), so the score would shift without retrieval having changed at all.
 
 ---
 
@@ -404,8 +404,8 @@ four — so the score would shift without retrieval having changed at all.
 
 Phase 4 made three more stages measurable, on a new benchmark built for the purpose:
 curated sections of two real SEC 10-K filings (Apple and Microsoft FY2023) as rendered
-PDFs, with tag-stripped text from the same filings' HTML kept as **parse ground truth**
-— so parser backends are differentially tested (`clear-rag parse-quality`) the same way
+PDFs, with tag-stripped text from the same filings' HTML kept as **parse ground truth**,
+so parser backends are differentially tested (`clear-rag parse-quality`) the same way
 BM25 is tested against FTS5. A 42-question golden set tags `table`, `structure` and
 `cross-company` questions; `clear-rag ablate --suite sec` sweeps parser × chunker ×
 context with real models.
@@ -427,20 +427,20 @@ context with real models.
 Three findings, none of them the marketing version (full tables and caveats in
 [`evals/sec/README.md`](evals/sec/README.md)):
 
-1. **Flat extraction wins on born-digital PDFs — and the hand-rolled parser beats the
+1. **Flat extraction wins on born-digital PDFs, and the hand-rolled parser beats the
    ML one.** These Chromium-rendered filings are pypdf's best case, and the ~400-line
    geometric parser (`primitives`) outscores docling's layout models on both parse
    fidelity (word recovery 0.996 vs 0.988) and retrieval, while docling's aggressive
    table reconstruction loses two labelled answers outright. Structure's value flows to
    the stages that consume it (structural chunking, breadcrumbs, the Library's
    structure view), not to raw retrieval on clean renders. The differential test also
-   caught two real parser bugs during development — a page-wide phantom grid built
+   caught two real parser bugs during development: a page-wide phantom grid built
    from 186 table-shading rects, and part-page column bands interleaving side-by-side
-   lines — worth 0.78 → 0.99 in reading-order fidelity.
+   lines, worth 0.78 → 0.99 in reading-order fidelity.
 2. **Semantic chunking regresses financial tables** (table recall 0.545 → 0.182):
    heading-bounded packing folds a statement's table into one large mixed chunk that
    ranks worse than the accidental isolation fixed-size cutting provides. The block
-   model points at its own fix — atomic table chunks — and the metric to judge it is
+   model points at its own fix, atomic table chunks, and the metric to judge it is
    already in place.
 3. **Contextual retrieval measured a null** on this corpus: identical recall under no
    context, breadcrumbs, and LLM-written context. Two companies with distinct
@@ -450,7 +450,7 @@ Three findings, none of them the marketing version (full tables and caveats in
 
 `marker` is wired as a fourth backend (optional extra; note its GPL-3.0 licence and
 surya model-weight restrictions) and passes its contract test, but its ablation row is
-pending — surya inference needs a GPU path or a local `llama-server`, and the CPU run
+pending: surya inference needs a GPU path or a local `llama-server`, and the CPU run
 was impractically slow.
 
 ---
@@ -458,32 +458,32 @@ was impractically slow.
 ## Interface
 
 Five views. **Chat** streams each retrieval stage as it completes, then the answer.
-**Library** shows how a document was split — chunk boundaries drawn over the source
+**Library** shows how a document was split: chunk boundaries drawn over the source
 text, overlap regions shaded darker, and a *structure* view of the typed blocks the
 parser recovered (headings sized by level, tables boxed), which is what structural
 chunking cuts along. Pin a chunk and the readout shows the contextual-retrieval
 preamble it was indexed under. **Lab** turns every pipeline knob into a control:
 change one setting, ask the same question again, and the runs sit side by side with the
-changed setting highlighted — hybrid vs vector-only, chunk size 512 vs 192, recursive
+changed setting highlighted: hybrid vs vector-only, chunk size 512 vs 192, recursive
 vs semantic chunking, parser backend, contextual retrieval on or off. Settings that
 rewrite the index trigger an explicit re-index, rebuilt from stored text without
-needing the original files (a parser change is called out as the one exception —
+needing the original files (a parser change is called out as the one exception, since
 re-indexing cannot re-parse, so it applies to files uploaded afterwards). Knobs that
 exist in the config but are not implemented yet (HyDE, self-correction)
 appear disabled with a note, so the interface never pretends.
 
 **Results** shows the benchmark itself: every table in this README, read from the same
-committed files, with a row you can pin so the others are read against it — which
-settings differ, and how far each number moved — and a per-question panel that turns
+committed files, with a row you can pin so the others are read against it (which
+settings differ, and how far each number moved), and a per-question panel that turns
 "recall@1 fell" into the fourteen questions whose first relevant chunk moved down and
 the ten whose chunk moved up. Every table carries the models and the date that measured
 it, and rows imported from an earlier run say so.
 
-A one-click **sample corpus** (the evaluation documents — 10 files, ~60 chunks at small
+A one-click **sample corpus** (the evaluation documents: 10 files, ~60 chunks at small
 chunk sizes) exists because a three-chunk résumé makes every comparison degenerate:
 below ~20 chunks each search returns everything and no setting visibly matters.
 
-Every stage, metric and column explains itself on hover — "Fuse (RRF)" means nothing
+Every stage, metric and column explains itself on hover. "Fuse (RRF)" means nothing
 until something tells you it merges two rankings so a chunk both searches liked beats one
 that only a single search ranked first. The interface should not require the README.
 
@@ -502,21 +502,21 @@ Monochrome carries the interface; colour carries only data, and only two jobs:
 | Job | Encoding |
 |---|---|
 | Which search found a chunk | blue = vector, aqua = keyword, ink = both |
-| A stage slow enough to notice | amber ≥ 1s, red ≥ 5s — **fast is deliberately uncoloured** |
+| A stage slow enough to notice | amber ≥ 1s, red ≥ 5s; **fast is deliberately uncoloured** |
 
 Colour marks the exception, not the rule. In a typical query exactly one number is
-coloured — generation — and it is the one worth looking at.
+coloured, generation, and it is the one worth looking at.
 
 The palette was validated with a CVD/contrast checker against this project's actual
 surfaces (pure `#000` and pure `#fff`, not a generic near-black), all pairs, both modes.
 Two findings changed the design:
 
-- A green/amber/red latency scale **failed** at CVD ΔE 3.0 under protanopia — the
+- A green/amber/red latency scale **failed** at CVD ΔE 3.0 under protanopia, the
   traffic-light problem. Dropping green entirely fixed it and improved the design.
 - Orange-for-keyword collided with amber-for-slow, so keyword moved to aqua.
 
 Two warnings remain and are discharged by construction: dark red↔aqua sits in the 6–8 ΔE
-band and light aqua is 2.82:1, both legal only with secondary encoding — so every
+band and light aqua is 2.82:1, both legal only with secondary encoding, so every
 coloured mark ships a visible text label and nothing is ever encoded in colour alone.
 
 ---
@@ -527,8 +527,8 @@ Three decisions that invert what a RAG tutorial would tell you:
 
 **The vector index is exact, not approximate.** Under ~100k chunks, exhaustive cosine is
 single-digit milliseconds and has no parameters to misconfigure. Swapping in FAISS HNSW is
-deferred to Phase 5 specifically so that it arrives as a *measured* experiment — recall@k
-against latency, plotted — rather than an unexamined day-one default.
+deferred to Phase 5 specifically so that it arrives as a *measured* experiment, recall@k
+against latency, plotted, rather than an unexamined day-one default.
 
 **BM25 is differentially tested.** A from-scratch ranking function is easy to write
 plausibly and hard to verify by reading. `tests/test_bm25.py` indexes the same corpus into
@@ -550,7 +550,7 @@ code comments where the fix lives, and two have regression tests:
 
 | Bug | Consequence | Fixed in |
 |---|---|---|
-| The history-aware retriever's prompt said *"provide a response…"* — but its output is fed straight into the retriever as a **search query**, with no documents available yet | From turn two onward, the index was searched with a hallucinated answer | `generate/prompt.py:REWRITE_SYSTEM`, tested in `test_followup_is_rewritten_not_answered` |
+| The history-aware retriever's prompt said *"provide a response…"*, but its output is fed straight into the retriever as a **search query**, with no documents available yet | From turn two onward, the index was searched with a hallucinated answer | `generate/prompt.py:REWRITE_SYSTEM`, tested in `test_followup_is_rewritten_not_answered` |
 | Document vectors were normalised by hand; query vectors were not | Reported similarity scores were meaningless (ranking survived by luck) | `providers/base.py:l2_normalise` |
 | Answer quality was scored as cosine similarity to its own context | Rewarded verbatim copying, and **penalised a correct "I don't know"** | Refusal is recorded as correct behaviour, tested in `test_refusal_is_recorded_as_such` |
 
@@ -572,25 +572,25 @@ make dev                     # backend (auto-reload) + frontend (HMR), open :517
 
 `make dev` runs both halves of the development loop in one command: uvicorn with
 `--reload` for Python changes and Vite with hot-module-replacement for the UI,
-proxying `/api` to the backend. One Ctrl-C stops both. `make serve` is the other mode —
+proxying `/api` to the backend. One Ctrl-C stops both. `make serve` is the other mode:
 a single server with the *built* UI, which is what production and Docker run.
 
 Before starting either half, `make dev` checks the things whose failure is otherwise
 invisible: that the virtualenv exists and still matches `pyproject.toml` (a dependency
-added after the venv was built does not crash — it silently degrades), that the port is
+added after the venv was built does not crash; it silently degrades), that the port is
 free, and that Ollama is answering. It then waits for the backend to serve a real request
 before handing the terminal to Vite. This ordering is the whole point: Vite prints a
 ready banner and proxies `/api` whether or not the backend came up, so a backend that
-died at boot presents as a broken app rather than a missing process — and if something
+died at boot presents as a broken app rather than a missing process, and if something
 else owns the port, as *someone else's* 404s.
 
 **The port lives in one place.** `CLEARRAG_PORT` (default `8010`) is read by
 `Settings.port`, by the Vite dev proxy, and by `docker-compose.yml`. Change it in `.env`
 and every consumer follows. It deliberately avoids 8000, which is the default for Django,
-`http.server`, and half the containers on a working laptop — a collision there answers
+`http.server`, and half the containers on a working laptop; a collision there answers
 with a plausible-looking 404 instead of refusing the connection.
 
-Tests run entirely on **fake providers** — a deterministic bag-of-words hash embedder and
+Tests run entirely on **fake providers**: a deterministic bag-of-words hash embedder and
 a scripted chat model. That is the one piece of infrastructure that makes a RAG project
 testable; without it every path appears to need a running model, which is why most RAG
 repositories have no tests at all. The fake embedder is not random, so retrieval tests

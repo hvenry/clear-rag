@@ -4,7 +4,7 @@ SEC filings are public domain. EDGAR requires a declared User-Agent with a conta
 address. For each filing this script:
 
 1. downloads the primary 10-K HTML document,
-2. locates the target Items (title-anchored, last occurrence — the body heading, not
+2. locates the target Items (title-anchored, last occurrence, meaning the body heading, not
    the table of contents or a prose cross-reference),
 3. writes tag-stripped ground-truth text per Item (tables as " | "-joined rows), which
    the parse-quality differential test scores backends against,
@@ -55,19 +55,19 @@ ITEMS = [
 #: Tag/entity noise allowed between "Item", its number, and its title in inline-XBRL
 #: HTML. Bounded quantifiers throughout: an unbounded noise loop backtracks
 #: catastrophically on an 8 MB filing.
-_NOISE = r"(?:\s|&#160;|&nbsp;|&#8212;|—|-|\.|:|</?[^>]{0,300}>){0,60}"
+_NOISE = r"(?:\s|&#160;|&nbsp;|&#8212;|\u2014|-|\.|:|</?[^>]{0,300}>){0,60}"
 
 
 def _locate(html: str, number: str, title: str) -> int | None:
     """Offset where the Item's body section begins.
 
-    Preferred signal: an element carrying an ``id="item_1a_…"``-style anchor — filings
+    Preferred signal: an element carrying an ``id="item_1a_…"``-style anchor, since filings
     that link their table of contents (Microsoft's does) mark the true body heading
     this way, which running page headers and prose cross-references never are.
 
     Fallback (Apple's filing has no such anchors): the *last* title-anchored textual
     occurrence of the heading. Scans for cheap "Item" anchors and applies the noisy
-    pattern only to a short window after each — bounded work per candidate instead of
+    pattern only to a short window after each, bounded work per candidate instead of
     one pathological regex over the whole document.
     """
     anchor_pattern = re.compile(rf'id="[^"]*item_?{re.escape(number.lower())}[_"]', re.IGNORECASE)
@@ -91,7 +91,7 @@ def _locate(html: str, number: str, title: str) -> int | None:
 
 class _TextExtractor(HTMLParser):
     """Tag-stripped text with block structure: paragraphs on their own lines, table
-    rows as ' | '-joined cells — the same shape the parsers emit, so parse-quality
+    rows as ' | '-joined cells, the same shape the parsers emit, so parse-quality
     comparisons measure parsing rather than formatting conventions."""
 
     _BLOCK_TAGS = {"p", "div", "br", "h1", "h2", "h3", "h4", "h5", "h6", "li"}
@@ -257,7 +257,7 @@ def main() -> int:
         + "\n\nRegenerate with `python scripts/fetch_sec.py`. PDFs in `corpus/` are "
         "rendered from the Item HTML slices with headless Chromium and are what the "
         "pipeline ingests; `ground_truth/*.txt` is tag-stripped text from the same "
-        "slices (tables as ` | `-joined rows) and is never ingested — it is the "
+        "slices (tables as ` | `-joined rows) and is never ingested; it is the "
         "oracle the parser backends are differentially scored against.\n"
     )
     print(f"Wrote {readme}")

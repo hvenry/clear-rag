@@ -7,7 +7,7 @@ Curated 10-K sections (public domain, via SEC EDGAR) used by the `sec` eval suit
 | Apple Inc. 10-K FY2023 | https://www.sec.gov/Archives/edgar/data/320193/000032019323000106/aapl-20230930.htm |
 | Microsoft Corporation 10-K FY2023 | https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm |
 
-Regenerate with `python scripts/fetch_sec.py`. PDFs in `corpus/` are rendered from the Item HTML slices with headless Chromium and are what the pipeline ingests; `ground_truth/*.txt` is tag-stripped text from the same slices (tables as ` | `-joined rows) and is never ingested — it is the oracle the parser backends are differentially scored against.
+Regenerate with `python scripts/fetch_sec.py`. PDFs in `corpus/` are rendered from the Item HTML slices with headless Chromium and are what the pipeline ingests; `ground_truth/*.txt` is tag-stripped text from the same slices (tables as ` | `-joined rows) and is never ingested; it is the oracle the parser backends are differentially scored against.
 
 ## Parse quality (differential test)
 
@@ -49,7 +49,7 @@ Per-backend means: naive recovery 1.000, order 0.999; primitives recovery 0.996,
 <!-- /results:parse-quality -->
 
 An honest caveat: these PDFs are born-digital Chromium renders of linear HTML, which
-is the *best case* for flat extraction — pypdf emits the content stream in reading
+is the *best case* for flat extraction, because pypdf emits the content stream in reading
 order, so `naive` scores near-perfect here. The primitives parser earns its keep on
 what recovery/order cannot see: typed structure (headings, tables as tables, page
 provenance) that structural chunking and breadcrumb contexts consume. On scanned or
@@ -84,35 +84,35 @@ Retrieval-side metrics over the 42-question golden set (39 answerable):
 <!-- /results:sec -->
 
 > marker is wired as a backend and passes its contract test (via a local
-> `llama-server` for surya's models), but its ablation row was cancelled mid-run —
+> `llama-server` for surya's models), but its ablation row was cancelled mid-run because
 > CPU-only inference was impractically slow. Rerun when a GPU path is configured:
 > `SURYA_INFERENCE_BACKEND=llamacpp LLAMA_CPP_BINARY=<path> clear-rag ablate --suite sec`
 > from a venv with the `[marker]` extra.
 
 
-**What the numbers say — three honest findings, none of them the marketing version:**
+**What the numbers say: three honest findings, none of them the marketing version:**
 
 1. **Naive extraction wins on this corpus.** recall@5 0.872 vs 0.846: the flat pypdf
    text beat the structured parse by two questions. Chromium-rendered single-column
    PDFs are flat extraction's best case (see the parse-quality caveat above), and
    structure-preserving table rendering (`cell | cell` rows) buys nothing at
    retrieval time on questions BM25 can already match by rare tokens. The primitives
-   parser's value shows up in *structure consumers* — chunk boundaries, breadcrumbs,
-   page provenance — not in raw retrieval on clean renders. A scanned or natively
+   parser's value shows up in *structure consumers* (chunk boundaries, breadcrumbs,
+   page provenance), not in raw retrieval on clean renders. A scanned or natively
    multi-column corpus is where this row should flip; that corpus does not exist
    here yet, and this table refuses to pretend otherwise. **docling underperforms
    both** (recall@5 0.718, two labelled quotes lost to its parse, and most of its
    misses are financial-table questions): its ML table reconstruction rewrites row
    structure aggressively enough that labels stop resolving and table content lands
    in worse-ranking chunks. On clean renders, the 300 MB of layout models buy
-   negative retrieval value over 400 lines of geometry heuristics — the strongest
+   negative retrieval value over 400 lines of geometry heuristics, the strongest
    argument this table makes for the build-from-primitives decision.
 2. **Semantic chunking is a regression for financial tables** (table recall@5
    0.545 → 0.182, four lost questions, all in Item 8 statements). Heading-bounded
    packing folds a statement's table into one large section chunk whose embedding
    and BM25 profile is diluted by surrounding prose. Fixed-size chunking accidentally
-   isolates table rows better. The obvious Phase-4.5 fix — treat table blocks as
-   atomic chunks instead of packing them into sections — falls straight out of the
+   isolates table rows better. The obvious Phase-4.5 fix (treat table blocks as
+   atomic chunks instead of packing them into sections) falls straight out of the
    block model, and now has a number waiting to judge it. One more mark against it:
    this row moved by three questions at recall@5 between the August and September
    runs, while every fixed-size row stayed within one question of itself. Structural chunking
@@ -122,7 +122,7 @@ Retrieval-side metrics over the 42-question golden set (39 answerable):
    corpus has two companies with strongly distinct vocabulary, so chunks are rarely
    ambiguous enough for a breadcrumb or an LLM blurb to matter; the cross-company
    distractor questions were already resolved by content terms. The technique's
-   motivating case — many near-identical documents — is not this corpus. The LLM
+   motivating case, many near-identical documents, is not this corpus. The LLM
    variant also costs one generation per chunk at index time, so on this evidence
    the free breadcrumb is strictly the better default, and neither earns its keep
    on retrieval metrics alone. Answer-side grounding (`--generate`) may yet

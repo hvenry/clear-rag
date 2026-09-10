@@ -1,16 +1,18 @@
-import { StackIcon } from "@phosphor-icons/react";
+import { InfoIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
 import { AnchoredPopover, useHoverMenu } from "../components/Popover";
+import { headerControl } from "./headerControl";
+import { KeyValueRow } from "../components/KeyValueRow";
 import { Select } from "../components/Select";
 import { useModels, useUpdateProviders } from "../lib/queries";
 import type { ConfigResponse } from "../lib/types";
 
 /**
- * The provider control in the header — chat model, embedding model, config hash —
- * as a click-to-open dropdown. Not just a readout any more: both models can be
+ * The provider control in the header: an info glyph whose hover card names the
+ * chat model, embedding model and config hash. Not just a readout: both models can be
  * switched here, from the list Ollama actually has installed. A chat switch is
- * free; an embedding switch is applied honestly — the menu warns that the stored
+ * free; an embedding switch is applied honestly: the menu warns that the stored
  * vectors become incomparable and the embedding-space guard will require a
  * re-index before the next query.
  */
@@ -24,15 +26,10 @@ export function ConfigMenu({ config }: { config: ConfigResponse }) {
         ref={triggerRef}
         onClick={menu.toggle}
         {...menu.hover}
-        className={[
-          "cursor-default border px-2 py-1 font-mono text-[10px] transition-colors",
-          menu.open
-            ? "border-foreground/50 text-foreground"
-            : "border-transparent text-subtle hover:border-line hover:text-foreground"
-        ].join(" ")}
+        aria-label="Models and configuration"
+        className={headerControl(menu.open)}
       >
-        {config.providers.chat.model} · {config.providers.embeddings.model} ·{" "}
-        {config.config_hash}
+        <InfoIcon size={16} />
       </button>
 
       {menu.open ? (
@@ -43,12 +40,14 @@ export function ConfigMenu({ config }: { config: ConfigResponse }) {
           {...menu.hover}
           className="w-[min(22rem,calc(100vw-2rem))] p-3"
         >
-          <div className="mb-2 flex items-center gap-1.5 menu-label">
-            <StackIcon size={11} />
-            Models
-          </div>
+          <div className="mb-2 menu-label">Models</div>
+          <dl className="mb-3 space-y-1">
+            <KeyValueRow label="chat" value={config.providers.chat.model} />
+            <KeyValueRow label="embeddings" value={config.providers.embeddings.model} />
+            <KeyValueRow label="config hash" value={config.config_hash} />
+          </dl>
           <ProviderForm config={config} />
-          <p className="mt-2 border-t border-line pt-2 text-[10px] leading-relaxed text-muted">
+          <p className="mt-2 border-t border-line pt-2 text-meta leading-relaxed text-muted">
             Config hash <span className="tabular font-mono">{config.config_hash}</span>{" "}
             fingerprints the exact retrieval settings. Every trace and every Lab run is
             stamped with the hash it ran under, so two results are comparable exactly
@@ -79,7 +78,7 @@ function ProviderForm({ config }: { config: ConfigResponse }) {
       const response = await update.mutateAsync(patch);
       setNotice(
         response.reindex_needed
-          ? "Embedding model switched — re-index before the next query (Lab → re-index, or the health banner will walk you through it)."
+          ? "Embedding model switched. Re-index before the next query (Lab → re-index, or the health banner will walk you through it)."
           : "Applied."
       );
     } catch (error) {
@@ -103,8 +102,8 @@ function ProviderForm({ config }: { config: ConfigResponse }) {
       />
 
       {embedDirty ? (
-        <p className="border-l-2 border-slow/60 pl-2 text-[10px] leading-relaxed text-muted">
-          Vectors from different embedding models are not comparable — applying this
+        <p className="border-l-2 border-slow/60 pl-2 text-meta leading-relaxed text-muted">
+          Vectors from different embedding models are not comparable, so applying this
           requires re-indexing every document before queries work again.
         </p>
       ) : null}
@@ -113,11 +112,11 @@ function ProviderForm({ config }: { config: ConfigResponse }) {
         <button
           onClick={() => void apply()}
           disabled={!dirty || update.isPending}
-          className="border border-line px-2.5 py-1 font-display text-[10px] tracking-[0.14em] uppercase transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background disabled:pointer-events-none disabled:opacity-30"
+          className="border border-line px-2.5 py-1 font-display text-meta tracking-[0.14em] uppercase transition-colors hover:border-foreground/60 hover:bg-foreground hover:text-background disabled:pointer-events-none disabled:opacity-30"
         >
           {update.isPending ? "applying…" : "apply"}
         </button>
-        {notice ? <p className="min-w-0 flex-1 text-[10px] text-subtle">{notice}</p> : null}
+        {notice ? <p className="min-w-0 flex-1 text-meta text-subtle">{notice}</p> : null}
       </div>
     </div>
   );
@@ -136,20 +135,20 @@ function ModelField({
   onChange: (value: string) => void;
 }) {
   // The configured model may not be in Ollama's list (a bare tag like "llama3.2"
-  // matches "llama3.2:latest" server-side) — keep it selectable rather than
+  // matches "llama3.2:latest" server-side), so keep it selectable rather than
   // silently snapping to something else.
   const options = models.includes(value) ? models : [value, ...models];
 
   return (
     <label className="block">
-      <span className="mb-0.5 block font-mono text-[10px] text-subtle">{label}</span>
+      <span className="mb-0.5 block font-mono text-meta text-subtle">{label}</span>
       {models.length > 0 ? (
         <Select value={value} options={options} onChange={onChange} />
       ) : (
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full border border-line bg-transparent px-2 py-1 font-mono text-[11px] outline-none transition-colors focus:border-foreground/45"
+          className="w-full border border-line bg-transparent px-2 py-1 font-mono text-ui outline-none transition-colors focus:border-foreground/45"
         />
       )}
     </label>

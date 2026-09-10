@@ -13,14 +13,14 @@ import { createPortal } from "react-dom";
  *
  * Rendering the card inside the header would put it under the header's
  * backdrop-filter, and a nested backdrop-filter cannot sample page content
- * outside that ancestor — the card's blur silently no-ops and whatever sits
+ * outside that ancestor, so the card's blur silently no-ops and whatever sits
  * behind it stays readable. Portalling out of the header makes the blur real.
  *
  * Positioned from the trigger's rect at open time; the header is sticky, so
  * the rect does not move while the card is open.
  *
  * Focus keeps the card alive: while anything inside it has focus (a select's
- * native dropdown, a text input), pointer-leave is ignored — otherwise choosing
+ * native dropdown, a text input), pointer-leave is ignored, because otherwise choosing
  * a model could unmount the menu mid-choice. When focus leaves the card, it
  * closes like a pointer-leave would.
  */
@@ -41,9 +41,9 @@ export function AnchoredPopover({
   /** The full-screen click-catcher behind the card. Off for hover-driven menus. */
   backdrop?: boolean;
   /**
-   * "below": under the trigger, right-aligned — header dropdowns. "right": beside
-   * the trigger — flyouts from a side rail, where a dropdown would be clipped by
-   * the rail's own scroll container.
+   * "below": under the trigger, right-aligned (header dropdowns). "right": beside
+   * the trigger (flyouts from a side rail, where a dropdown would be clipped by
+   * the rail's own scroll container).
    */
   placement?: "below" | "right";
   onMouseEnter?: () => void;
@@ -55,9 +55,10 @@ export function AnchoredPopover({
   useLayoutEffect(() => {
     const rect = anchorRef.current?.getBoundingClientRect();
     if (!rect) return;
-    // Positioned flush against the trigger; the visual gap is transparent padding
-    // INSIDE the hover area, so the pointer never crosses dead space — which is
-    // what lets the close fire without a perceptible grace delay.
+    // Positioned flush against the trigger; the visual gap (--hint-gap, shared with
+    // the CSS tooltips) is transparent padding INSIDE the hover area, so the pointer
+    // never crosses dead space, which is what lets the close fire without a
+    // perceptible grace delay.
     if (placement === "right") {
       setPos({ top: Math.max(8, rect.top - 4), left: rect.right });
     } else {
@@ -78,7 +79,7 @@ export function AnchoredPopover({
       ) : null}
       <div
         ref={cardRef}
-        className={`fixed z-40 ${placement === "right" ? "pl-2" : "pt-1.5"}`}
+        className={`fixed z-40 ${placement === "right" ? "pl-[var(--hint-gap)]" : "pt-[var(--hint-gap)]"}`}
         style={{ top: pos.top, left: pos.left, right: pos.right }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={() => {
@@ -99,7 +100,7 @@ export function AnchoredPopover({
 }
 
 /**
- * A plain-text hint in a hover card — the shared rendering behind every hover
+ * A plain-text hint in a hover card: the shared rendering behind every hover
  * hint that flies from a control (rail rows, segmented options, menu-bar
  * buttons). One width, one type style, one place to change them.
  */
@@ -122,9 +123,9 @@ export function HintCard({
       backdrop={false}
       placement={placement}
       {...menu.hover}
-      className="w-[min(19rem,calc(100vw-4rem))] p-2.5"
+      className="w-[min(22rem,calc(100vw-4rem))] px-3 py-2.5"
     >
-      <p className="font-sans text-[11px] leading-relaxed tracking-normal normal-case text-muted">
+      <p className="font-sans text-ui leading-relaxed tracking-normal normal-case text-muted">
         {text}
       </p>
     </AnchoredPopover>
@@ -133,13 +134,13 @@ export function HintCard({
 
 /**
  * The header-menu interaction pattern: hovering the trigger opens the card and
- * leaving closes it. The close always goes through a timer — even at 0ms — so
+ * leaving closes it. The close always goes through a timer, even at 0ms, so
  * that leaving the trigger straight into the (gap-bridged) card cancels the
  * close in the same event turn instead of unmounting the card mid-crossing.
- * No pinning — a click simply toggles, which is what makes the menus reachable
+ * No pinning: a click simply toggles, which is what makes the menus reachable
  * on touch screens, where hover does not exist.
  */
-export function useHoverMenu(closeDelayMs = 0, openDelayMs = 0) {
+export function useHoverMenu(closeDelayMs = 0) {
   const [open, setOpen] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -152,15 +153,11 @@ export function useHoverMenu(closeDelayMs = 0, openDelayMs = 0) {
 
   useEffect(() => cancel, []);
 
+  // Opening is always immediate: the trigger's hover state is the intent signal,
+  // and a card that lags the pointer reads as broken rather than calm.
   const enter = () => {
     cancel();
-    // An open-intent delay keeps whole-row triggers calm: sweeping the pointer
-    // down a rail should not flash a card at every row it crosses.
-    if (openDelayMs > 0 && !open) {
-      timer.current = window.setTimeout(() => setOpen(true), openDelayMs);
-    } else {
-      setOpen(true);
-    }
+    setOpen(true);
   };
   const leave = () => {
     cancel();
@@ -168,7 +165,7 @@ export function useHoverMenu(closeDelayMs = 0, openDelayMs = 0) {
   };
   const toggle = () => {
     cancel();
-    // Where a pointer exists, hover owns open and close — a click on an already
+    // Where a pointer exists, hover owns open and close, so a click on an already
     // open menu must not snap it shut. Touch has no hover, so there click toggles.
     if (window.matchMedia("(hover: hover)").matches) setOpen(true);
     else setOpen((v) => !v);

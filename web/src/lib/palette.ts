@@ -3,7 +3,7 @@
  *
  * Slots are assigned in fixed order and never cycled: the ninth entity does not
  * invent a hue, it folds to neutral ink. Identity is always carried by a visible
- * label beside the mark — the colour reinforces, it never stands alone (three of
+ * label beside the mark: the colour reinforces, it never stands alone (three of
  * the light-mode slots sit under 3:1 contrast by design, with exactly that
  * mitigation).
  */

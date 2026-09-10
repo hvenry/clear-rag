@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 
+import { Chip } from "../../components/Chip";
 import { Segmented } from "../../components/Segmented";
+import { Th } from "../../components/Table";
 import { Select } from "../../components/Select";
 import {
   displayLabel,
@@ -15,7 +17,7 @@ import {
  * Per-question results for the pinned row, and the honest half of any ablation claim:
  * a metric that moved is some questions that moved. Pick a second row and every
  * question shows both ranks, so "recall@1 fell 0.081" becomes "the first relevant chunk
- * moved up on ten questions and down on fourteen" — and you can read which.
+ * moved up on ten questions and down on fourteen", and you can read which.
  */
 
 type Filter = "all" | "changed" | "misses";
@@ -72,7 +74,7 @@ export function QuestionPanel({
 
   if (pinned.questions.length === 0) {
     return (
-      <p className="px-4 py-3 text-[11px] text-subtle">
+      <p className="px-4 py-3 text-ui text-subtle">
         This row was imported from an earlier measurement, so there is no per-question detail to
         show. Re-run the sweep in an environment with its backend installed to get it.
       </p>
@@ -82,11 +84,8 @@ export function QuestionPanel({
   return (
     <div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2">
-        <span className="font-display text-[10px] tracking-[0.16em] text-subtle uppercase">
-          Questions · {displayLabel(suite, pinned)}
-        </span>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-subtle">compare with</span>
+          <span className="text-meta text-subtle">compare with</span>
           <Select
             value={compare ? displayLabel(suite, compare) : "—"}
             options={["—", ...others.map((r) => displayLabel(suite, r))]}
@@ -102,10 +101,10 @@ export function QuestionPanel({
                 key={x}
                 onClick={() => setTag(tag === x ? null : x)}
                 className={[
-                  "border px-1.5 py-0.5 font-mono text-[9px] transition-colors",
+                  "border px-1.5 py-0.5 font-mono text-label transition-colors",
                   tag === x
                     ? "border-foreground/60 bg-foreground text-background"
-                    : "border-line text-subtle hover:border-foreground/40 hover:text-foreground"
+                    : "border-line text-subtle hover:border-foreground/50 hover:text-foreground"
                 ].join(" ")}
               >
                 {x}
@@ -116,7 +115,7 @@ export function QuestionPanel({
       </div>
 
       {movement ? (
-        <p className="tabular border-b border-line px-4 py-2 font-mono text-[10px] text-subtle">
+        <p className="tabular border-b border-line px-4 py-2 font-mono text-meta text-subtle">
           against {displayLabel(suite, compare!)}: first relevant chunk moved up on{" "}
           <span className="text-foreground">{movement.up}</span>, down on{" "}
           <span className="text-foreground">{movement.down}</span>, unchanged on{" "}
@@ -134,34 +133,27 @@ export function QuestionPanel({
         </p>
       ) : null}
 
-      <div className="max-h-[26rem] overflow-y-auto">
+      <div className="scroll-chain max-h-[24rem] overflow-y-auto">
         <table className="w-full border-collapse text-left">
           <thead className="sticky top-0 bg-background">
             <tr className="border-b border-line">
-              <th className="px-4 pb-1.5 pt-2 font-display text-[9px] font-medium tracking-[0.16em] text-subtle uppercase">
-                Question
-              </th>
-              <th className="pb-1.5 pr-3 pt-2 text-left font-display text-[9px] font-medium tracking-[0.16em] text-subtle uppercase">
-                Tags
-              </th>
-              <th
-                data-hint={`Rank of the first chunk covering a labelled answer span, within the top ${k}. “miss” means none did.`}
-                className="hint hint-end pb-1.5 pr-3 pt-2 text-right font-display text-[9px] font-medium tracking-[0.16em] text-subtle uppercase"
+              <Th className="pl-4">Question</Th>
+              <Th>Tags</Th>
+              <Th
+                align="right"
+                hint={`Rank of the first chunk covering a labelled answer span, within the top ${k}. “miss” means none did.`}
               >
                 {compare ? "pinned" : "rank"}
-              </th>
-              {compare ? (
-                <th className="pb-1.5 pr-3 pt-2 text-right font-display text-[9px] font-medium tracking-[0.16em] text-subtle uppercase">
-                  compared
-                </th>
-              ) : null}
+              </Th>
+              {compare ? <Th align="right">compared</Th> : null}
               {suite === "attribution" ? (
-                <th
-                  data-hint="Answer-side checks: mentioned the required strings, cited a chunk covering the answer, bled in wrong-section content, refused."
-                  className="hint hint-end pb-1.5 pr-4 pt-2 text-right font-display text-[9px] font-medium tracking-[0.16em] text-subtle uppercase"
+                <Th
+                  align="right"
+                  className="pr-4"
+                  hint="Answer-side checks: mentioned the required strings, cited a chunk covering the answer, bled in wrong-section content, refused."
                 >
                   answer
-                </th>
+                </Th>
               ) : null}
             </tr>
           </thead>
@@ -169,9 +161,9 @@ export function QuestionPanel({
             {rows.map(({ q, other }) => (
               <tr key={q.id} className="border-b border-line/60 align-top">
                 <td className="max-w-[28rem] px-4 py-1.5">
-                  <div className="text-[11px] text-muted">{q.question ?? q.id}</div>
+                  <div className="text-ui text-muted">{q.question ?? q.id}</div>
                   {q.missed.length > 0 && q.first_relevant_rank === null ? (
-                    <div className="mt-0.5 truncate font-mono text-[9px] text-subtle" title={q.missed.join(" · ")}>
+                    <div className="mt-0.5 truncate font-mono text-label text-subtle" title={q.missed.join(" · ")}>
                       missed: {q.missed[0]}
                       {q.missed.length > 1 ? ` (+${q.missed.length - 1})` : ""}
                     </div>
@@ -180,22 +172,20 @@ export function QuestionPanel({
                 <td className="py-1.5 pr-3">
                   <div className="flex flex-wrap gap-1">
                     {q.tags.map((x) => (
-                      <span key={x} className="border border-line px-1 font-mono text-[8px] text-subtle">
-                        {x}
-                      </span>
+                      <Chip key={x}>{x}</Chip>
                     ))}
                   </div>
                 </td>
-                <td className="tabular py-1.5 pr-3 text-right font-mono text-[11px]">
+                <td className="tabular py-1.5 pr-3 text-right font-mono text-ui">
                   <Rank q={q} />
                 </td>
                 {compare ? (
-                  <td className="tabular py-1.5 pr-3 text-right font-mono text-[11px]">
+                  <td className="tabular py-1.5 pr-3 text-right font-mono text-ui">
                     {other ? <Rank q={other} moveFrom={q} /> : <span className="text-subtle">—</span>}
                   </td>
                 ) : null}
                 {suite === "attribution" ? (
-                  <td className="py-1.5 pr-4 text-right font-mono text-[9px] text-subtle">
+                  <td className="py-1.5 pr-4 text-right font-mono text-label text-subtle">
                     <AnswerFlags q={q} />
                   </td>
                 ) : null}
@@ -203,7 +193,7 @@ export function QuestionPanel({
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-4 text-center font-mono text-[10px] text-subtle">
+                <td colSpan={5} className="px-4 py-4 text-center font-mono text-meta text-subtle">
                   nothing matches this filter
                 </td>
               </tr>
@@ -236,7 +226,7 @@ function Rank({ q, moveFrom }: { q: QuestionResult; moveFrom?: QuestionResult })
   return (
     <span>
       #{q.first_relevant_rank}
-      {move ? <span className="ml-1 text-[9px] text-subtle">{move}</span> : null}
+      {move ? <span className="ml-1 text-label text-subtle">{move}</span> : null}
     </span>
   );
 }

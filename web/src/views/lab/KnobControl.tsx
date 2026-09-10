@@ -53,7 +53,7 @@ function RangeValue({
         if (e.key === "Enter") e.currentTarget.blur();
       }}
       aria-label="Exact value"
-      className="tabular w-12 shrink-0 border border-transparent bg-transparent px-1 py-0.5 text-right font-mono text-[10px] outline-none transition-colors hover:border-line focus:border-foreground/45"
+      className="tabular w-12 shrink-0 border border-transparent bg-transparent px-1 py-0.5 text-right font-mono text-meta outline-none transition-colors hover:border-line focus:border-foreground/45"
     />
   );
 }
@@ -73,11 +73,11 @@ export function KnobControl({
   return (
     <div className={disabled ? "opacity-45" : ""}>
       {/* The knob's explanation lives in the Lab's slide-out hint card, keyed by
-          hovering this row — not in a per-label popover. */}
+          hovering this row, not in a per-label popover. */}
       <div className="mb-1 flex items-center justify-between gap-2">
-        <label className="text-[11px] text-muted">{knob.label}</label>
+        <label className="text-ui text-muted">{knob.label}</label>
         {disabled ? (
-          <span className="font-mono text-[8px] tracking-wide text-subtle uppercase">
+          <span className="font-mono text-label tracking-wide text-subtle uppercase">
             not built yet
           </span>
         ) : null}
@@ -100,7 +100,7 @@ export function KnobControl({
           min={knob.min}
           max={knob.max}
           onChange={(e) => onChange(clamp(Number(e.target.value), knob.min, knob.max))}
-          className="tabular w-24 border border-line bg-transparent px-2 py-1 font-mono text-[11px] outline-none transition-colors focus:border-foreground/45"
+          className="tabular w-24 border border-line bg-transparent px-2 py-1 font-mono text-ui outline-none transition-colors focus:border-foreground/45"
         />
       ) : null}
 
@@ -132,10 +132,10 @@ export function KnobControl({
           disabled={disabled}
           onClick={() => onChange(!value)}
           className={[
-            "border px-2.5 py-1 font-mono text-[10px] transition-colors",
+            "border px-2.5 py-1 font-mono text-meta transition-colors",
             value
               ? "border-foreground/60 bg-foreground text-background"
-              : "border-line text-subtle hover:border-foreground/40",
+              : "border-line text-subtle hover:border-foreground/50",
             "disabled:pointer-events-none"
           ].join(" ")}
         >

@@ -37,7 +37,7 @@ const STAGE_ICON: Record<string, Icon> = {
  * watched rather than waited on.
  *
  * Every chip explains itself on hover, and its duration is coloured only when slow
- * enough to be worth noticing — so a 32-second generate stage is visible at a glance
+ * enough to be worth noticing, so a 32-second generate stage is visible at a glance
  * without painting the whole strip.
  */
 export function StageStrip({
@@ -65,7 +65,7 @@ export function StageStrip({
       </div>
       {/* Where the time went, annotated like a trace inspector: one bar for the
           whole query, and a leader line dropping from each slice to a row that
-          states its stage, duration and share — no hover required. */}
+          states its stage, duration and share, no hover required. */}
       {!streaming && stages.length >= 2 && total > 0 ? (
         <div className="mt-1.5">
           <StageTimeline stages={stages} total={total} />
@@ -143,7 +143,7 @@ function StageTimeline({ stages, total }: { stages: StageRecord[]; total: number
                 }}
               />
               <div
-                className="tabular absolute flex items-center gap-1.5 font-mono text-[9px] whitespace-nowrap"
+                className="tabular absolute flex items-center gap-1.5 font-mono text-label whitespace-nowrap"
                 style={{
                   top: i * ROW + 3,
                   height: ROW,
@@ -167,8 +167,8 @@ function StageTimeline({ stages, total }: { stages: StageRecord[]; total: number
           );
         })}
       </div>
-      <p className="mt-0.5 text-right font-mono text-[8px] text-subtle">
-        bar widths √-scaled for legibility — times and shares are real
+      <p className="mt-0.5 text-right font-mono text-label text-subtle">
+        bar widths √-scaled for legibility; times and shares are real
       </p>
     </div>
   );
@@ -199,7 +199,7 @@ function StageChip({
   };
   useEffect(() => clearTimers, []);
 
-  // The detail card opens on hover — instantly, no separate hover hint, no click
+  // The detail card opens on hover: instantly, no separate hover hint, no click
   // required. A grace period on leave lets the pointer cross the 6px gap between
   // the chip and the card without the card snapping shut. Touch has no hover, so
   // there the click toggles and the backdrop closes.
@@ -231,19 +231,19 @@ function StageChip({
         style={{ borderLeftColor: stage.error ? undefined : color }}
       >
         <StageIcon name={stage.name} color={color} />
-        <span className="font-display text-[10px] tracking-[0.12em] uppercase">
+        <span className="font-display text-meta tracking-[0.12em] uppercase">
           {stage.label}
         </span>
-        <span className={`tabular font-mono text-[9px] ${SPEED_CLASS[speed]}`}>
+        <span className={`tabular font-mono text-label ${SPEED_CLASS[speed]}`}>
           {formatMs(stage.duration_ms)}
         </span>
         {stage.candidates_out ? (
-          <span className="tabular border-l border-line pl-2 font-mono text-[9px] text-subtle">
+          <span className="tabular border-l border-line pl-2 font-mono text-label text-subtle">
             {stage.candidates_out.length}
           </span>
         ) : null}
         {stage.degraded ? (
-          <span className="font-mono text-[9px] text-slow">degraded</span>
+          <span className="font-mono text-label text-slow">degraded</span>
         ) : null}
       </button>
 
@@ -260,13 +260,13 @@ function StageChip({
           {/* The visual gap under the chip is padding inside this wrapper, so the
               hover area is contiguous and the instant close cannot fire mid-gap. */}
           <div className="fixed inset-x-4 top-1/2 z-40 -translate-y-1/2 lg:absolute lg:inset-x-auto lg:top-full lg:left-0 lg:translate-y-0 lg:pt-1.5">
-          <div className="glass-popover max-h-[70vh] overflow-auto p-3 text-[11px] lg:max-h-80 lg:w-[min(24rem,calc(100vw-2rem))]"
+          <div className="glass-popover max-h-[70vh] overflow-auto p-3 text-ui lg:max-h-80 lg:w-[min(24rem,calc(100vw-2rem))]"
             style={{ borderTopColor: color, borderTopWidth: 2 }}
           >
-          <p className="tabular mb-2 font-mono text-[10px]">
+          <p className="tabular mb-2 font-mono text-meta">
             {formatMs(stage.duration_ms)}
             <span className="text-subtle">
-              {" "}— {SPEED_HINT[speed]} {share.toFixed(0)}% of this query.
+              {". "}{SPEED_HINT[speed]} {share.toFixed(0)}% of this query.
             </span>
           </p>
           <p className="mb-3 leading-relaxed text-muted">{info.what}</p>
@@ -274,7 +274,7 @@ function StageChip({
             <p className="mb-3 leading-relaxed text-subtle">{info.timing}</p>
           ) : null}
           {stage.error ? (
-            <p className="mb-3 border-l-2 border-critical pl-2 font-mono text-[10px] text-muted">
+            <p className="mb-3 border-l-2 border-critical pl-2 font-mono text-meta text-muted">
               {stage.error}
             </p>
           ) : null}
@@ -283,7 +283,7 @@ function StageChip({
           {onExplain && STAGE_TOPIC[stage.name] ? (
             <button
               onClick={() => onExplain(stage.name)}
-              className="mt-1 w-full border border-line px-2 py-1 text-left font-mono text-[10px] text-subtle transition-colors hover:border-foreground/50 hover:text-foreground"
+              className="mt-1 w-full border border-line px-2 py-1 text-left font-mono text-meta text-subtle transition-colors hover:border-foreground/50 hover:text-foreground"
             >
               why does this stage exist? →
             </button>
@@ -299,7 +299,7 @@ function StageChip({
 function StageIcon({ name, color }: { name: string; color?: string }) {
   const Icon = STAGE_ICON[name];
   if (!Icon) return null;
-  return <Icon size={11} className="shrink-0" style={{ color }} aria-hidden />;
+  return <Icon size={14} className="shrink-0" style={{ color }} aria-hidden />;
 }
 
 function Rows({ title, data }: { title: string; data: Record<string, unknown> }) {
@@ -314,8 +314,8 @@ function Rows({ title, data }: { title: string; data: Record<string, unknown> })
       <dl className="space-y-1">
         {entries.map(([key, value]) => (
           <div key={key} className="flex items-start justify-between gap-3">
-            <dt className="font-mono text-[10px] text-subtle">{key}</dt>
-            <dd className="tabular max-w-[62%] text-right font-mono text-[10px] break-words">
+            <dt className="font-mono text-meta text-subtle">{key}</dt>
+            <dd className="tabular max-w-[62%] text-right font-mono text-meta break-words">
               {format(value)}
             </dd>
           </div>

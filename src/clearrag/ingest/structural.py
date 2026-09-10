@@ -1,6 +1,6 @@
 """Structure-first semantic chunking.
 
-Fixed-size chunking cuts wherever the token budget happens to land — which is how a
+Fixed-size chunking cuts wherever the token budget happens to land, which is how a
 résumé chunk ends up holding half of one job and two unrelated sections, the exact
 attribution failure the README documents. This chunker cuts where the *document* says
 its topics change: parsed heading boundaries first, and (when an embedder is available)
@@ -9,8 +9,8 @@ embedding-drop breakpoints inside sections too long for one chunk.
 No overlap, deliberately: overlap is a recall hedge against arbitrary cut points, and
 these cut points are not arbitrary.
 
-Every chunk is still a contiguous span of ``Document.text``, so the span invariant —
-citations, highlighting, span-anchored evaluation — holds unchanged.
+Every chunk is still a contiguous span of ``Document.text``, so the span invariant
+(citations, highlighting, span-anchored evaluation) holds unchanged.
 """
 
 from __future__ import annotations
@@ -144,7 +144,7 @@ async def _split_section(
 ) -> list[tuple[int, int]]:
     """A section too big for one chunk.
 
-    With an embedder: cut where meaning shifts — embed the section's units (paragraph
+    With an embedder: cut where meaning shifts: embed the section's units (paragraph
     blocks when it has several, sentences when it is one long paragraph), and break
     where the distance between adjacent units spikes above mean + one standard
     deviation. Fragments still over budget fall back to recursive splitting, as does

@@ -66,7 +66,7 @@ def resolve_quote(text: str, quote: str) -> tuple[int, int]:
     table cells as ``a | b`` where flat extraction yields ``a b``, PDFs attach
     parentheses to figures (``(77,046)``) where HTML spaces them out, and trademark
     glyphs float (``iPad Pro®`` vs ``iPad Pro ®``). So the quote is reduced to its
-    content tokens and any run of non-word characters may separate them — flexible
+    content tokens and any run of non-word characters may separate them: flexible
     about separators, exact about the words themselves.
     """
     tokens = _TOKEN.findall(quote)
@@ -99,7 +99,7 @@ def load_golden(path: Path, corpus: dict[str, str], *, strict: bool = True) -> l
     ``corpus`` maps filename to full document text.
 
     ``strict=False`` turns an *unresolvable* quote into the sentinel span ``(-1, -1)``
-    instead of a hard error — every coverage check fails against it, so the question
+    instead of a hard error; every coverage check fails against it, so the question
     scores as a miss. Ablation runs use this: quotes resolve against parsed text, and a
     parser backend that lost the answer is a result to measure, not a crash. An
     *ambiguous* quote in lenient mode anchors its first occurrence (backends duplicate

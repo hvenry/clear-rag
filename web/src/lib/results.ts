@@ -4,7 +4,7 @@
  * Those files are written by `clear-rag ablate --save-results`; nothing here is typed
  * by hand. The Results view renders them, the Learn page's charts and prose read from
  * them through the accessors below, and `scripts/render_results.py` renders the same
- * files into the README — so a re-run that changes a number changes it everywhere,
+ * files into the README, so a re-run that changes a number changes it everywhere,
  * or nowhere. Every row carries its provenance: which models measured it, and when.
  */
 
@@ -172,8 +172,8 @@ export function rowKey(r: ResultRow): string {
 
 /**
  * Model differences between two rows: the embedder always, the chat model when either
- * row generated answers. These live in provenance rather than config — the embedder is
- * the identity of an index, not a query setting — so `diffConfigs` cannot see them.
+ * row generated answers. These live in provenance rather than config (the embedder is
+ * the identity of an index, not a query setting), so `diffConfigs` cannot see them.
  */
 export function diffModels(a: ResultRow, b: ResultRow): { key: string; from: string; to: string }[] {
   const out: { key: string; from: string; to: string }[] = [];

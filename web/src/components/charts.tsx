@@ -34,9 +34,9 @@ export function StatTile({
   return (
     <div
       data-hint={hint}
-      className={`${hint ? "hint" : ""} relative flex min-w-0 flex-col border border-line px-3 py-2.5`}
+      className={`${hint ? "hint hint-block hover:border-foreground/50" : ""} relative flex min-w-0 flex-col border border-line px-3 py-2.5 transition-colors`}
     >
-      <div className="flex items-center gap-1.5 font-display text-[9px] tracking-[0.16em] text-subtle uppercase">
+      <div className="flex items-center gap-1.5 menu-label">
         {icon}
         <span className="truncate">{label}</span>
       </div>
@@ -46,7 +46,7 @@ export function StatTile({
             {value}
           </div>
           {sub ? (
-            <div className="tabular mt-1 truncate font-mono text-[9px] text-subtle">{sub}</div>
+            <div className="tabular mt-1 truncate font-mono text-label text-subtle">{sub}</div>
           ) : null}
         </div>
         {spark && spark.length > 1 ? <SparkBars values={spark} color={sparkColor} /> : null}
@@ -55,7 +55,7 @@ export function StatTile({
   );
 }
 
-/** Baseline-anchored thin bars, oldest left. Pure shape — the tile's value and
+/** Baseline-anchored thin bars, oldest left. Pure shape: the tile's value and
  *  sub-line carry the numbers, so the spark needs no axis and no tooltip. */
 export function SparkBars({ values, color }: { values: number[]; color?: string }) {
   const max = Math.max(...values, 1e-9);
@@ -104,7 +104,7 @@ export function MeterRow({
       className={`${hint ? "hint" : ""} relative flex items-center gap-2.5 py-[3px]`}
     >
       <div
-        className="flex shrink-0 items-center gap-1.5 truncate text-[10px] text-muted"
+        className="flex shrink-0 items-center gap-1.5 truncate text-meta text-muted"
         style={{ width: labelWidth }}
       >
         {swatch && color ? (
@@ -118,7 +118,7 @@ export function MeterRow({
           style={{ width: `${Math.max(0.5, 100 * Math.min(1, fraction))}%`, background: fill }}
         />
       </div>
-      <div className="tabular w-14 shrink-0 text-right font-mono text-[10px]">{value}</div>
+      <div className="tabular w-16 shrink-0 text-right font-mono text-ui text-foreground">{value}</div>
     </div>
   );
 }
@@ -171,7 +171,7 @@ export function SegmentBar({
         ))}
       </div>
       {readout ? (
-        <div className="tabular mt-1 h-[14px] font-mono text-[9px] text-subtle">
+        <div className="tabular mt-1 h-[14px] font-mono text-label text-subtle">
           {current
             ? `${current.label} · ${format(current.value)} · ${((100 * current.value) / total).toFixed(0)}%`
             : ""}
@@ -193,7 +193,7 @@ export interface Column {
 /**
  * Vertical bars, oldest left, optionally stacked. Grid stays recessive (three
  * hairlines), the y-scale is announced once at the top-left, and hovering a
- * column pins its breakdown into the readout line below the plot — a readout
+ * column pins its breakdown into the readout line below the plot. A readout
  * line rather than a floating tooltip, so it never occludes the marks.
  */
 export function ColumnChart({
@@ -212,7 +212,7 @@ export function ColumnChart({
   const totals = columns.map((c) => c.segments.reduce((s, x) => s + x.value, 0));
   const max = Math.max(...totals, 1e-9);
   if (columns.length === 0) {
-    return <p className="py-6 text-center font-mono text-[10px] text-subtle">{emptyLabel}</p>;
+    return <p className="py-6 text-center font-mono text-meta text-subtle">{emptyLabel}</p>;
   }
 
   const current = columns.find((c) => c.key === active) ?? null;
@@ -220,7 +220,7 @@ export function ColumnChart({
 
   return (
     <div>
-      <div className="tabular mb-1 font-mono text-[9px] text-subtle">↑ {format(max)}</div>
+      <div className="tabular mb-1 font-mono text-label text-subtle">↑ {format(max)}</div>
       <div className="relative" style={{ height }}>
         {/* Recessive grid: quarter lines only. */}
         {[0.25, 0.5, 0.75].map((f) => (
@@ -267,7 +267,7 @@ export function ColumnChart({
         </div>
       </div>
       <div className="mt-1 border-t border-line pt-1">
-        <div className="tabular h-[14px] truncate font-mono text-[9px] text-subtle">
+        <div className="tabular h-[14px] truncate font-mono text-label text-subtle">
           {current
             ? `${current.label} · ${format(currentTotal)}` +
               (current.segments.filter((s) => s.value > 0).length > 1
@@ -289,7 +289,7 @@ export function ChartLegend({ items }: { items: { label: string; color: string }
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       {items.map((item) => (
-        <span key={item.label} className="flex items-center gap-1.5 text-[9px] text-subtle">
+        <span key={item.label} className="flex items-center gap-1.5 text-label text-subtle">
           <span className="h-2 w-2" style={{ background: item.color }} aria-hidden />
           {item.label}
         </span>

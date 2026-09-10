@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 /**
- * The bordered square icon button — close, collapse/expand, theme. One border
+ * The bordered square icon button: close, collapse/expand, theme. One border
  * and hover treatment for every icon-only control, so they read as one family.
  */
 export function IconButton({

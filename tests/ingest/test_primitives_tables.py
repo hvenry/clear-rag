@@ -1,4 +1,4 @@
-"""Primitives parser: table extraction — ruled grids, then aligned borderless rows."""
+"""Primitives parser: table extraction: ruled grids, then aligned borderless rows."""
 
 from clearrag.ingest.parsers.primitives import parse_pdf
 from tests.pdf_fixtures import aligned_table_pdf, ruled_table_pdf
@@ -16,7 +16,7 @@ def test_ruled_table_extracted_row_major():
 
 def test_justified_prose_with_years_is_not_a_table():
     # Wrapped, justified-ish prose: a few word starts coincide across lines and the
-    # lines contain year tokens — the false positive that mangled a real MD&A intro.
+    # lines contain year tokens, the false positive that mangled a real MD&A intro.
     import io
 
     from reportlab.lib.pagesizes import LETTER

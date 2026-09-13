@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef } from "react";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+
+import type { AppOutletContext } from "../../app/session";
 
 import { MeterRow } from "../../components/charts";
-import { PanelTrigger, SidePanel } from "../../components/SidePanel";
+import { SidePanel } from "../../components/SidePanel";
 import { TOPIC_CHARTS } from "../../lib/benchmarks";
 import { ALL_TOPICS, TOPIC_GROUPS, type Topic } from "../../lib/topics";
 
@@ -22,11 +24,11 @@ export function LearnView() {
     [topicId]
   );
   const paneRef = useRef<HTMLDivElement>(null);
-  const [tocOpen, setTocOpen] = useState(false);
+  const { rail } = useOutletContext<AppOutletContext>();
 
   const pick = (id: string) => {
     onSelect(id);
-    setTocOpen(false);
+    rail.setOpen(false);
   };
 
   useEffect(() => {
@@ -35,14 +37,7 @@ export function LearnView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
-      <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2 lg:hidden">
-        <span className="min-w-0 truncate font-display text-body tracking-wide">
-          {topic.title}
-        </span>
-        <PanelTrigger label="Topics" onOpen={() => setTocOpen(true)} />
-      </div>
-
-      <SidePanel title="Topics" open={tocOpen} onClose={() => setTocOpen(false)}>
+      <SidePanel title="Topics" open={rail.open} onClose={() => rail.setOpen(false)}>
         {TOPIC_GROUPS.map((group) => (
           <section key={group.title} className="pt-4">
             <h2 className="px-4 pb-1.5 font-display text-meta tracking-[0.18em] text-subtle uppercase">

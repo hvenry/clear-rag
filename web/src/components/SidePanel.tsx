@@ -100,15 +100,3 @@ export function SidePanel({
     </>
   );
 }
-
-/** The button that summons a SidePanel on mobile; invisible on desktop. */
-export function PanelTrigger({ label, onOpen }: { label: string; onOpen: () => void }) {
-  return (
-    <button
-      onClick={onOpen}
-      className="border border-line px-2.5 py-1.5 font-display text-meta tracking-[0.14em] uppercase transition-colors hover:border-foreground/50 lg:hidden"
-    >
-      {label}
-    </button>
-  );
-}

@@ -11,6 +11,8 @@ export interface AppOutletContext {
   session: ChatSession;
   uploading: string | null;
   upload: (files: File[]) => Promise<void>;
+  /** The view's side rail on narrow screens, opened from the header's rail button. */
+  rail: { open: boolean; setOpen: (open: boolean) => void };
 }
 
 export interface ChatSession {

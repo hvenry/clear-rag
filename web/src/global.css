@@ -261,7 +261,10 @@ body {
 /* Tailwind v4's preflight resets buttons to cursor: default, which is why nothing
    in the app ever looked clickable. Every enabled control gets the pointer back;
    informational hover targets that are not controls read as "help" instead. */
-button:not(:disabled),
+/* Hover-driven triggers (the header's runtime, status and info cards) opt out with
+   cursor-default: they open on hover, so a pointer would promise a click that
+   does nothing. */
+button:not(:disabled):not(.cursor-default),
 [role="button"],
 select,
 summary,

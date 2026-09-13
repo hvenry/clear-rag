@@ -3,9 +3,11 @@ import {
   ChartBarIcon,
   ChatCircleTextIcon,
   FlaskIcon,
-  GraduationCapIcon
+  GraduationCapIcon,
+  SidebarSimpleIcon
 } from "@phosphor-icons/react";
-import { NavLink, Outlet, useMatch } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useMatch } from "react-router-dom";
 
 import { useConfig, useDocuments, useHealth } from "../lib/queries";
 import { ConfigMenu } from "./ConfigMenu";
@@ -31,13 +33,36 @@ export function Layout() {
   const session = useChatSession(chatMatch?.params.sessionId ?? null);
   const { upload, uploading, uploadProgress, dragging, dragHandlers } = useAppUpload();
 
-  const context: AppOutletContext = { session, uploading, upload };
+  // Narrow screens: the view's side rail (chats, lab settings, learn topics) is an
+  // overlay summoned from one header button, instead of each view spending a row
+  // on its own trigger. Closed on navigation, so a rail never follows you.
+  const { pathname } = useLocation();
+  const [railOpen, setRailOpen] = useState(false);
+  useEffect(() => setRailOpen(false), [pathname]);
+  const railLabel = RAIL_LABEL[pathname.split("/")[1] ?? ""];
+
+  const context: AppOutletContext = {
+    session,
+    uploading,
+    upload,
+    rail: { open: railOpen, setOpen: setRailOpen }
+  };
 
   return (
     <div className="flex h-full flex-col" {...dragHandlers}>
       <header className="glass-strong sticky top-0 z-20 border-x-0 border-t-0">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
           <nav className="flex items-center gap-1">
+            {railLabel ? (
+              <button
+                onClick={() => setRailOpen(true)}
+                aria-label={`Open ${railLabel}`}
+                data-hint={railLabel}
+                className="hint hint-block mr-1 flex h-8 w-8 items-center justify-center border border-line text-subtle transition-colors hover:border-foreground/50 hover:text-foreground lg:hidden"
+              >
+                <SidebarSimpleIcon size={16} />
+              </button>
+            ) : null}
             {(["chat", "library", "lab", "results", "learn"] as const).map((v) => {
               const Icon = NAV_ICON[v];
               return (
@@ -112,6 +137,13 @@ export function Layout() {
     </div>
   );
 }
+
+/** Views with a side rail on narrow screens, and what the header button opens. */
+const RAIL_LABEL: Record<string, string | undefined> = {
+  chat: "Chats",
+  lab: "Settings",
+  learn: "Topics"
+};
 
 const NAV_ICON = {
   chat: ChatCircleTextIcon,

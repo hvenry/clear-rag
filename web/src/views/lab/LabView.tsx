@@ -8,12 +8,14 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
+
+import type { AppOutletContext } from "../../app/session";
 
 import { Composer } from "../../components/Composer";
 import { EmptyState } from "../../components/EmptyState";
 import { Loader } from "../../components/Loader";
-import { PanelTrigger, SidePanel } from "../../components/SidePanel";
+import { SidePanel } from "../../components/SidePanel";
 import { api } from "../../lib/api";
 import { diffConfigs, KNOB_GROUPS, REINDEX_KEYS } from "../../lib/knobs";
 import { formatElapsed, useElapsedSeconds } from "../../lib/importer";
@@ -67,7 +69,7 @@ export function LabView() {
   const [runs, setRuns] = useState<LabRun[]>([]);
   const [busy, setBusy] = useState(false);
   const [selectedChunk, setSelectedChunk] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { rail } = useOutletContext<AppOutletContext>();
   const [railCollapsed, setRailCollapsed] = useState(false);
 
   // ── Hint card: slides out from under the rail's right border, at the hovered
@@ -289,8 +291,8 @@ export function LabView() {
       <SidePanel
         title="Pipeline settings"
         widthClass="lg:w-80"
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        open={rail.open}
+        onClose={() => rail.setOpen(false)}
         collapsed={railCollapsed}
         onCollapse={(collapsed) => {
           setRailCollapsed(collapsed);
@@ -485,12 +487,6 @@ export function LabView() {
             dirty
               ? "Your edited settings will be applied first, then the question runs under them."
               : "Runs the question under the settings on the left."
-          }
-          leading={
-            <PanelTrigger
-              label={dirty ? "Settings ·" : "Settings"}
-              onOpen={() => setSettingsOpen(true)}
-            />
           }
         />
       </section>

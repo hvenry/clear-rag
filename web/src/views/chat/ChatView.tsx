@@ -20,7 +20,6 @@ import { SourceLegend } from "../../components/retrieval/Legend";
 import { MIN_CANDIDATES_FOR_FLOW, RankFlow } from "../../components/retrieval/RankFlow";
 import { RetrievalTable } from "../../components/retrieval/RetrievalTable";
 import { StageStrip } from "../../components/retrieval/StageStrip";
-import { PanelTrigger } from "../../components/SidePanel";
 import { useDocuments, useSessions } from "../../lib/queries";
 import { formatMs } from "../../lib/stages";
 import type { StageRecord, Turn } from "../../lib/types";
@@ -34,14 +33,13 @@ import { TelemetryPanel } from "./TelemetryPanel";
  */
 export function ChatView() {
   const { sessionId } = useParams<{ sessionId?: string }>();
-  const { session, uploading, upload } = useOutletContext<AppOutletContext>();
+  const { session, uploading, upload, rail } = useOutletContext<AppOutletContext>();
   const { turns, question, setQuestion, ask, busy } = session;
   const { data: documents = [] } = useDocuments();
   const { data: sessions = [] } = useSessions();
   const openCitation = useOpenCitation();
   const explainStage = useExplainStage();
   const [selectedChunk, setSelectedChunk] = useState<string | null>(null);
-  const [railOpen, setRailOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const wasEmpty = useRef(true);
@@ -64,14 +62,11 @@ export function ChatView() {
     <div className="flex min-h-0 flex-1">
       <SessionRail
         activeId={sessionId}
-        open={railOpen}
-        onClose={() => setRailOpen(false)}
+        open={rail.open}
+        onClose={() => rail.setOpen(false)}
         onUpload={upload}
       />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex items-center border-b border-line px-3 py-2 lg:hidden">
-          <PanelTrigger label="Chats" onOpen={() => setRailOpen(true)} />
-        </div>
       <TelemetryPanel
         refreshKey={turns.filter((t) => !t.streaming).length}
         sessionId={sessionId}

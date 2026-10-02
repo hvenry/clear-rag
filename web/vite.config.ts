@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { loadEnv } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig(({ mode }) => {
   // The backend's port is CLEARRAG_PORT in the repo-root .env -- the same value
@@ -23,6 +24,8 @@ export default defineConfig(({ mode }) => {
       // FastAPI serves this bundle itself, so there is no proxy and no second origin.
       proxy: { "/api": { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true } }
     },
-    build: { outDir: "dist", sourcemap: true }
+    build: { outDir: "dist", sourcemap: true },
+    // Unit tests live beside the code as *.test.ts; e2e/*.spec.ts belongs to Playwright.
+    test: { include: ["src/**/*.test.ts"] }
   };
 });

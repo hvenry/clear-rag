@@ -294,7 +294,6 @@ export const TOPIC_GROUPS: TopicGroup[] = [
         body: [
           "**OCR**: the one documented parser scope hole. Scanned PDFs currently refuse with a pointer to `ocrmypdf`; integrating that as an opt-in preprocessing step (detect empty extraction → offer OCR → re-parse) closes it without dragging OCR models into the core install.",
           "**Replaying an old trace**: every query's full trace is persisted to SQLite and the chat's telemetry panel lists them per session, with latency by stage. What is still missing is opening one of those rows in the retrieval inspector, exactly as a fresh answer is shown; the components exist, so it is mostly wiring.",
-          "**Session hydration**: chat sessions are stored server-side and survive a reload, but a reloaded session shows every retrieved chunk as dropped, because the per-turn context is rebuilt from the trace without the assembly stage's keep-or-drop verdicts. Storing that verdict beside the trace closes the gap.",
           "**URL ingestion**: paste a link, ingest the page. The HTML-to-blocks extraction written for the SEC corpus fetcher is most of the implementation; what remains is an endpoint and a paste target.",
           "**Electron packaging** (Phase 6): only if \"installable local app for non-terminal users\" becomes a goal. `make serve` already covers everyone comfortable with a terminal."
         ],

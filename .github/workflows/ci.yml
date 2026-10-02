@@ -35,4 +35,8 @@ jobs:
           node-version: "22"
       - run: npm install
       - run: npm run type-check
+      - run: npm test
       - run: npm run build
+      # One browser path against the Vite dev server with the API mocked in the spec.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

@@ -1,4 +1,4 @@
-.PHONY: help install dev build test lint fix check serve docker clean reset
+.PHONY: help install dev build test e2e lint fix check serve docker clean reset
 
 # Three ways to run the app. Pick by what you are doing:
 #   make dev     developing: backend auto-reload + Vite HMR, open http://localhost:5173
@@ -30,8 +30,12 @@ install:  ## Install Python and web dependencies (override with PYTHON=python3.1
 build:  ## Build the web bundle
 	cd web && npm run build
 
-test:  ## Run the test suite (no models required)
+test:  ## Run the test suites (no models required)
 	.venv/bin/pytest -q
+	cd web && npm test
+
+e2e:  ## Run the browser tests (mocked API, no backend needed)
+	cd web && npm run test:e2e
 
 lint:  ## Lint and type-check
 	.venv/bin/ruff check .

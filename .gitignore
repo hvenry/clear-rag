@@ -24,6 +24,8 @@ node_modules/
 
 # TS incremental build cache
 web/*.tsbuildinfo
+web/test-results/
+web/playwright-report/
 
 # Local-only working notes (design specs stay on disk, not in the public repo)
 docs/specs/

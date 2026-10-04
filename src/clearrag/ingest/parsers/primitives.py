@@ -6,7 +6,7 @@ exactly why it exists: the hardest stage of RAG should be visible and measured, 
 black box. pdfplumber is used strictly as the primitive extractor (words with positions,
 line/rect geometry); every layout decision above that is made here, in plain sight.
 
-Scope, deliberately bounded (see the Phase 4 spec): text-based PDFs, multi-column
+Scope, deliberately bounded (see docs/parsers.md): text-based PDFs, multi-column
 reading order, heading inference, header/footer stripping, cross-page paragraph merge,
 and simple tables (ruled, or consistently aligned, with spanning headers). No OCR, no
 nested tables; those are the documented trigger for the docling/marker backends.

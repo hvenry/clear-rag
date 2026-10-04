@@ -27,8 +27,7 @@ web/*.tsbuildinfo
 web/test-results/
 web/playwright-report/
 
-# Local-only working notes (design specs stay on disk, not in the public repo)
-docs/specs/
+# Local-only working notes from planning tools (specs live in docs/specs/ and are tracked)
 docs/superpowers/
 
 # Generated eval reports (the committed inputs are evals/golden.jsonl,

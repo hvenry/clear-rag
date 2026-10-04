@@ -93,7 +93,9 @@ class PipelineConfig(BaseModel):
         description="Alternative phrasings to generate when query_transform='multi'. The "
         "original question always searches too, so each retriever runs 1 + this many times.",
     )
-    self_correct: bool = Field(False, description="Phase 4: grade retrieval, rewrite, retry once.")
+    self_correct: bool = Field(
+        False, description="Not built yet: grade retrieval, rewrite, retry once."
+    )
     rewrite_followups: bool = Field(
         True,
         description="Rewrite follow-up questions into standalone queries. The prompt rewrites "

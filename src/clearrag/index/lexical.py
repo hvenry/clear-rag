@@ -2,7 +2,7 @@
 
 Written from the formula rather than pulled from a library, because this is one of the
 two places the project exists to teach. The parameters match SQLite FTS5's defaults
-(k1=1.2, b=0.75) so that ``tests/test_bm25.py`` can assert agreement with FTS5 on a
+(k1=1.2, b=0.75) so that ``tests/index/test_bm25.py`` can assert agreement with FTS5 on a
 shared corpus -- a differential test is how you find out a from-scratch implementation is
 actually correct, rather than merely plausible.
 

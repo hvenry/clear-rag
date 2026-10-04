@@ -4,8 +4,8 @@ Deliberately exhaustive rather than approximate. Under roughly 100k chunks a ful
 matrix-vector product is single-digit milliseconds, and being exact means there are no
 index parameters to misconfigure and no recall loss to explain away.
 
-Swapping in an approximate index (FAISS HNSW) is Phase 5 precisely so that it arrives as
-a *measured* experiment -- recall@k against latency, plotted -- rather than as an
+Swapping in an approximate index (FAISS HNSW) is planned as a *measured* experiment
+(docs/specs/ann-vector-index.md) -- recall@k against latency, plotted -- rather than as an
 unexamined day-one default whose cost nobody ever checks.
 
 Because every vector is L2-normalised on the way in (see ``providers.base.l2_normalise``),

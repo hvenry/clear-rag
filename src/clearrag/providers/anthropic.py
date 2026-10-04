@@ -38,7 +38,7 @@ def _load_sdk() -> Any:
     except ModuleNotFoundError as exc:  # pragma: no cover - import guard
         raise ProviderError(
             "The 'anthropic' package is not installed.",
-            remedy="Install the optional extra: `uv pip install -e '.[byok]'`",
+            remedy="Install the SDK into the environment: `pip install anthropic`",
         ) from exc
     return anthropic
 

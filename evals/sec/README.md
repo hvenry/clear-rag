@@ -17,6 +17,7 @@ PDFs in `corpus/` are rendered from the Item HTML slices with headless Chromium 
 Word recovery and reading-order similarity against the HTML-derived ground truth, via `clear-rag parse-quality --save-results`, rendered from `evals/results/parse-quality.json`:
 
 <!-- results:parse-quality -->
+
 | file | backend | word recovery | order similarity |
 |---|---|---|---|
 | aapl-10k-2023-item1.pdf | naive | 1.000 | 1.000 |
@@ -47,6 +48,7 @@ Word recovery and reading-order similarity against the HTML-derived ground truth
 Per-backend means: naive recovery 1.000, order 0.999; primitives recovery 0.996, order 0.996; docling recovery 0.988, order 0.989
 
 † imported from an earlier measurement rather than re-run here.
+
 <!-- /results:parse-quality -->
 
 An honest caveat: these PDFs are born-digital Chromium renders of linear HTML, which is the *best case* for flat extraction.
@@ -66,6 +68,7 @@ The chat model, which only the LLM-context row uses, is recorded per row in `eva
 Retrieval-side metrics over the 42-question golden set (39 answerable):
 
 <!-- results:sec -->
+
 | Configuration | recall@1 | recall@5 | MRR | nDCG@5 | table | structure | cross-company |
 |---|---|---|---|---|---|---|---|
 | **naive parser** | 0.538 | 0.872 | 0.678 | 0.764 | 0.636 | 0.875 | 0.889 |
@@ -77,6 +80,7 @@ Retrieval-side metrics over the 42-question golden set (39 answerable):
 | docling parser † | 0.385 | 0.718 | 0.521 | 0.611 | 0.455 | 0.750 | 0.667 |
 
 † imported from an earlier measurement rather than re-run here: 2026-08-23, docling is not installed in the current environment
+
 <!-- /results:sec -->
 
 > marker is wired as a backend and passes its contract test (via a local `llama-server` for surya's models).

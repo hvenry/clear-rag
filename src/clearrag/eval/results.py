@@ -252,7 +252,9 @@ def apply_to_document(text: str, suite: str, table: str) -> str:
         raise ValueError(f"document has no {start} … {end} region")
     head, rest = text.split(start, 1)
     _, tail = rest.split(end, 1)
-    return f"{head}{start}\n{table}\n{end}{tail}"
+    # Blank lines keep the table a Markdown block: Obsidian's Live Preview shows a table
+    # glued to an HTML comment as raw pipes (GitHub renders either).
+    return f"{head}{start}\n\n{table}\n\n{end}{tail}"
 
 
 # ── Drift check ─────────────────────────────────────────────────────────────────

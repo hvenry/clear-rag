@@ -85,6 +85,8 @@ The real `Engine` with Ollama models for measured runs, or fake providers (`--fa
 - Workspaces are keyed by embedder id, because a reused workspace under another model would be refused as a space mismatch and score a row of zeros.
 - Answerable and unanswerable questions are aggregated separately; averaging them hides both.
 - Generated answers vary by a question or two between runs even at low temperature.
+- The attribution suite exists because of a real failure: a one-page résumé indexed into three chunks, every query retrieved all of them, and a small model still refused or cited the wrong section; recall@k rated it flawless.
+- A correct "I don't know" scores as correct behaviour, because the predecessor scored answers by similarity to their context and penalised honest refusals.
 
 ## Related
 

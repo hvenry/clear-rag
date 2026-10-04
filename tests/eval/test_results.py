@@ -199,7 +199,12 @@ def test_render_table_has_tag_columns_and_marks_imported_rows():
 def test_apply_to_document_replaces_only_the_marked_region():
     doc = "intro\n<!-- results:retrieval -->\nold table\n<!-- /results:retrieval -->\noutro\n"
     out = apply_to_document(doc, "retrieval", "| new |")
-    assert out == "intro\n<!-- results:retrieval -->\n| new |\n<!-- /results:retrieval -->\noutro\n"
+    # Blank lines around the table: Obsidian's Live Preview renders a table glued to an
+    # HTML comment as raw pipes, while GitHub renders both forms.
+    assert out == (
+        "intro\n<!-- results:retrieval -->\n\n| new |\n\n<!-- /results:retrieval -->\noutro\n"
+    )
+    assert apply_to_document(out, "retrieval", "| new |") == out
     with pytest.raises(ValueError, match="no <!-- results:sec -->"):
         apply_to_document(doc, "sec", "| x |")
 
